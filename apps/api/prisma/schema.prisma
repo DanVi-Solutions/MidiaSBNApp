@@ -1,6 +1,3 @@
-// Schema do banco (Supabase / PostgreSQL).
-// Docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,4 +6,28 @@ datasource db {
   provider = "postgresql"
 }
 
-// Defina seus models abaixo e rode `npm run db:migrate -w apps/api -- --name <nome>`.
+// SCHEMAS:
+model Credential {
+  id              String    @id @default(uuid(7))  @db.Uuid
+  name            String    @db.VarChar(80) 
+  username        String    @unique @db.VarChar(30)
+  credentialHash  String    @map("credential_hash") @db.VarChar(12)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  refreshTokens   RefreshToken[]
+
+  @@map("credentials")
+}
+
+model RefreshToken {
+  id              String    @id @default(uuid(7))  @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  tokenHash       String    @unique @db.VarChar(255)
+  revokedAt       DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user            Credential @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
