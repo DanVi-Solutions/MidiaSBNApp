@@ -1,0 +1,17 @@
+{
+  "name": "@repo/ui",
+  "version": "0.0.0",
+  "exports": {
+    "./button": "./src/button.jsx"
+  },
+  "scripts": {
+    "lint": "eslint \"**/*.js*\" --max-warnings 0"
+  },
+  "dependencies": {
+    "react": "19.3.0"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "eslint": "9.39.5"
+  }
+}

@@ -1,0 +1,12 @@
+// Schema do banco (Supabase / PostgreSQL).
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Defina seus models abaixo e rode `npm run db:migrate -w apps/api -- --name <nome>`.
