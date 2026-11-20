@@ -10,8 +10,8 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "db:generate": "turbo run db:generate",
-    "db:migrate": "turbo run db:migrate",
-    "db:deploy": "turbo run db:deploy",
+    "db:migrate": "npm run db:migrate -w apps/api",
+    "db:deploy": "npm run db:deploy -w apps/api",
     "prepare": "husky",
     "commit": "cz"
   },
