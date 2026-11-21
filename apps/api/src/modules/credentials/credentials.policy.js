@@ -61,6 +61,13 @@ export function assertCanList(actor) {
   if (!isAtLeast(actor.role, ROLES.SCHEDULER_MANAGER)) throw AppError.forbidden();
 }
 
+export function assertCanListDepartment(actor, departmentId) {
+  assertCanList(actor);
+  if (!isAdmin(actor) && !actor.departmentIds.includes(departmentId)) {
+    throw AppError.forbidden("Você só pode listar departamentos dos quais participa");
+  }
+}
+
 export function assertCanChangeRole(actor, target, role, departmentIds) {
   if (isSelf(actor, target)) throw AppError.forbidden("Você não pode alterar o próprio papel");
   if (!canManage(actor, target)) throw AppError.forbidden();

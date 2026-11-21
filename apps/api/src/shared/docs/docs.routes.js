@@ -20,6 +20,13 @@ docsRoutes.use(
   swaggerUi.serve,
   swaggerUi.setup(null, {
     customSiteTitle: DOC_INFO.title,
-    swaggerOptions: { url: "/docs/openapi.json", persistAuthorization: true },
+    swaggerOptions: {
+      url: "/docs/openapi.json",
+      persistAuthorization: true,
+      operationsSorter: function byHttpMethod(a, b) {
+        const order = ["get", "post", "put", "patch", "delete"];
+        return order.indexOf(a.get("method")) - order.indexOf(b.get("method"));
+      },
+    },
   }),
 );

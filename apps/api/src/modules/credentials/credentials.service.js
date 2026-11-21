@@ -65,6 +65,15 @@ export function createCredentialsService({
       return credentials.map(toPublicCredential);
     },
 
+    async listByDepartment(auth, departmentId) {
+      if ((await repository.countDepartments([departmentId])) === 0) {
+        throw AppError.notFound("Departamento não encontrado");
+      }
+      policy.assertCanListDepartment(auth, departmentId);
+      const credentials = await repository.list({ departmentIds: [departmentId] });
+      return credentials.map(toPublicCredential);
+    },
+
     async create(auth, { name, role, departmentIds }) {
       policy.assertCanCreate(auth, { role, departmentIds });
       await ensureDepartmentsExist(departmentIds);

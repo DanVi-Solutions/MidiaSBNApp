@@ -22,6 +22,10 @@ export function createCredentialsController(service = credentialsService) {
       res.json(await service.list(req.auth));
     },
 
+    async listByDepartment(req, res) {
+      res.json(await service.listByDepartment(req.auth, req.validated.params.departmentId));
+    },
+
     async create(req, res) {
       res.status(201).json(await service.create(req.auth, req.validated.body));
     },

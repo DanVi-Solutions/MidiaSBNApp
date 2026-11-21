@@ -29,6 +29,8 @@ const role = z.enum(ROLE_LIST, "Papel inválido");
 
 export const idParams = z.object({ id: uuid });
 
+export const departmentIdParams = z.object({ departmentId: uuid });
+
 export const transferIdParams = z.object({ transferId: uuid });
 
 export const createBody = z.object({

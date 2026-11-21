@@ -15,13 +15,3 @@ export const session = z.object({
   refreshTokenExpiresAt: z.iso.datetime(),
   credential: sessionCredential,
 });
-
-export const recoveredSession = session.extend({
-  credentialNumber: z.string().meta({ example: "SBN-7KQ4M2XPRA" }),
-});
-
-export const recoveryCodes = z.object({
-  recoveryCodes: z.array(z.string().meta({ example: "ABCDE-23456" })),
-});
-
-export const recoveryCodesStatus = z.object({ remaining: z.number().int() });

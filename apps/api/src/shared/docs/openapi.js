@@ -92,9 +92,12 @@ export function buildOpenApiDocument({ title, version, description }) {
     paths[path][op.method] = toOperation(op);
   }
 
+  const tagsInRegistrationOrder = [...new Set(operations.map((op) => op.tag))].map((name) => ({ name }));
+
   return {
     openapi: "3.1.0",
     info: { title, version, description },
+    tags: tagsInRegistrationOrder,
     paths,
     components: {
       securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" } },

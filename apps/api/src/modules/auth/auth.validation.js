@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { username } from "../credentials/credentials.validation.js";
 
 export const loginBody = z.object({
   credentialNumber: z
@@ -13,14 +12,4 @@ export const loginBody = z.object({
 
 export const refreshTokenBody = z.object({
   refreshToken: z.string().min(1, "Informe o refresh token").max(200),
-});
-
-export const recoverBody = z.object({
-  username,
-  recoveryCode: z
-    .string()
-    .trim()
-    .min(1, "Informe o código de recuperação")
-    .max(30)
-    .meta({ example: "ABCDE-23456" }),
 });

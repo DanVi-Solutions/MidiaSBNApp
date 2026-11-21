@@ -5,6 +5,7 @@ import {
   changeRoleBody,
   changeStatusBody,
   createBody,
+  departmentIdParams,
   firstAccessBody,
   idParams,
   setDepartmentsBody,
@@ -20,6 +21,16 @@ export const credentialsRouter = createDocumentedRouter({ prefix: "/credentials"
 const r = credentialsRouter;
 
 r.get(
+  "/",
+  {
+    summary: "Obter todas as credenciais",
+    description: "Administrador: todas. Scheduler manager ou acima: as dos departamentos dos quais participa.",
+    responses: { 200: res.credentialList },
+  },
+  controller.list,
+);
+
+r.get(
   "/me",
   {
     summary: "Dados da própria credencial",
@@ -28,28 +39,6 @@ r.get(
     responses: { 200: res.credentialWithNumber },
   },
   controller.getMe,
-);
-
-r.post(
-  "/me/first-access",
-  {
-    summary: "Primeiro acesso",
-    description: "Define o username (e opcionalmente corrige o nome). Muda o status de PENDING para ACTIVE.",
-    statuses: ["PENDING"],
-    body: firstAccessBody,
-    responses: { 200: res.credential, 409: { description: "Username já está em uso" } },
-  },
-  controller.firstAccess,
-);
-
-r.patch(
-  "/me",
-  {
-    summary: "Editar o próprio nome e/ou username",
-    body: updateMeBody,
-    responses: { 200: res.credential, 409: { description: "Username já está em uso" } },
-  },
-  controller.updateMe,
 );
 
 r.get(
@@ -71,6 +60,54 @@ r.get(
     responses: { 200: res.transferList },
   },
   controller.listTransfers,
+);
+
+r.get(
+  "/departments/:departmentId",
+  {
+    summary: "Obter as credenciais de um departamento",
+    description: "Administrador: qualquer departamento. Scheduler manager ou acima: apenas os seus.",
+    params: departmentIdParams,
+    responses: { 200: res.credentialList },
+  },
+  controller.listByDepartment,
+);
+
+r.get(
+  "/:id",
+  {
+    summary: "Detalhar credencial",
+    params: idParams,
+    responses: { 200: res.credential },
+  },
+  controller.getById,
+);
+
+r.post(
+  "/",
+  {
+    summary: "Criar credencial",
+    description:
+      "Gera o código da credencial e cria com status PENDING.\n\n" +
+      "- **Administrador**: qualquer papel (general manager com 1+ departamentos, administrador sem departamento, demais com 1).\n" +
+      "- **General manager**: até general manager, somente nos seus departamentos.\n" +
+      "- **Department manager**: scheduler manager ou voluntário, no seu departamento.",
+    body: createBody,
+    responses: { 201: res.credentialWithNumber },
+  },
+  controller.create,
+);
+
+r.post(
+  "/me/first-access",
+  {
+    summary: "Primeiro acesso",
+    description: "Define o username (e opcionalmente corrige o nome). Muda o status de PENDING para ACTIVE.",
+    statuses: ["PENDING"],
+    body: firstAccessBody,
+    responses: { 200: res.credential, 409: { description: "Username já está em uso" } },
+  },
+  controller.firstAccess,
 );
 
 r.post(
@@ -95,69 +132,6 @@ r.post(
   controller.rejectTransfer,
 );
 
-r.get(
-  "/",
-  {
-    summary: "Listar credenciais",
-    description: "Scheduler manager ou acima: credenciais dos seus departamentos. Administrador: todas.",
-    responses: { 200: res.credentialList },
-  },
-  controller.list,
-);
-
-r.post(
-  "/",
-  {
-    summary: "Criar credencial",
-    description:
-      "Gera o código da credencial e cria com status PENDING.\n\n" +
-      "- **Administrador**: qualquer papel (general manager com 1+ departamentos, administrador sem departamento, demais com 1).\n" +
-      "- **General manager**: até general manager, somente nos seus departamentos.\n" +
-      "- **Department manager**: scheduler manager ou voluntário, no seu departamento.",
-    body: createBody,
-    responses: { 201: res.credentialWithNumber },
-  },
-  controller.create,
-);
-
-r.get(
-  "/:id",
-  {
-    summary: "Detalhar credencial",
-    params: idParams,
-    responses: { 200: res.credential },
-  },
-  controller.getById,
-);
-
-r.delete(
-  "/:id",
-  {
-    summary: "Excluir credencial",
-    description: "O próprio usuário ou general manager+ (sobre papéis abaixo do seu, nos seus departamentos).",
-    params: idParams,
-    responses: {
-      204: null,
-      409: { description: "A credencial participa de escalas; desative-a em vez de excluir" },
-    },
-  },
-  controller.delete,
-);
-
-r.patch(
-  "/:id/status",
-  {
-    summary: "Desativar ou reativar credencial",
-    description:
-      "INACTIVE: o próprio usuário ou general manager+ (encerra todas as sessões). " +
-      "ACTIVE (reativar): apenas general manager+.",
-    params: idParams,
-    body: changeStatusBody,
-    responses: { 200: res.credential, 409: { description: "Status atual não permite a mudança" } },
-  },
-  controller.changeStatus,
-);
-
 r.post(
   "/:id/credential-number",
   {
@@ -169,32 +143,6 @@ r.post(
     responses: { 200: res.regeneratedNumber },
   },
   controller.regenerateCredentialNumber,
-);
-
-r.patch(
-  "/:id/role",
-  {
-    summary: "Alterar papel",
-    description:
-      "Department manager: até scheduler manager. General manager: até general manager, " +
-      "com departamentos que ele possui. Se `departmentIds` for omitido, mantém os atuais.",
-    params: idParams,
-    body: changeRoleBody,
-    responses: { 200: res.credential },
-  },
-  controller.changeRole,
-);
-
-r.put(
-  "/:id/departments",
-  {
-    summary: "Definir departamentos (administrador)",
-    description: "Substitui todos os departamentos. General manager: 1+; demais: exatamente 1.",
-    params: idParams,
-    body: setDepartmentsBody,
-    responses: { 200: res.credential },
-  },
-  controller.setDepartments,
 );
 
 r.post(
@@ -213,4 +161,68 @@ r.post(
     },
   },
   controller.transfer,
+);
+
+r.put(
+  "/:id/departments",
+  {
+    summary: "Definir departamentos (administrador)",
+    description: "Substitui todos os departamentos. General manager: 1+; demais: exatamente 1.",
+    params: idParams,
+    body: setDepartmentsBody,
+    responses: { 200: res.credential },
+  },
+  controller.setDepartments,
+);
+
+r.patch(
+  "/me",
+  {
+    summary: "Editar o próprio nome e/ou username",
+    body: updateMeBody,
+    responses: { 200: res.credential, 409: { description: "Username já está em uso" } },
+  },
+  controller.updateMe,
+);
+
+r.patch(
+  "/:id/status",
+  {
+    summary: "Desativar ou reativar credencial",
+    description:
+      "INACTIVE: o próprio usuário ou general manager+ (encerra todas as sessões). " +
+      "ACTIVE (reativar): apenas general manager+.",
+    params: idParams,
+    body: changeStatusBody,
+    responses: { 200: res.credential, 409: { description: "Status atual não permite a mudança" } },
+  },
+  controller.changeStatus,
+);
+
+r.patch(
+  "/:id/role",
+  {
+    summary: "Alterar papel",
+    description:
+      "Department manager: até scheduler manager. General manager: até general manager, " +
+      "com departamentos que ele possui. Se `departmentIds` for omitido, mantém os atuais.",
+    params: idParams,
+    body: changeRoleBody,
+    responses: { 200: res.credential },
+  },
+  controller.changeRole,
+);
+
+r.delete(
+  "/:id",
+  {
+    summary: "Excluir credencial",
+    description: "O próprio usuário ou general manager+ (sobre papéis abaixo do seu, nos seus departamentos).",
+    params: idParams,
+    responses: {
+      204: null,
+      409: { description: "A credencial participa de escalas; desative-a em vez de excluir" },
+    },
+  },
+  controller.delete,
 );
