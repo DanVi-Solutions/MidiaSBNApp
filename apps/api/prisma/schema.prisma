@@ -6,28 +6,188 @@ datasource db {
   provider = "postgresql"
 }
 
+// ENUMS:
+enum CredentialStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+enum Weekday {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+enum ChangeStatus {
+  NONE
+  REQUESTED
+  REJECTED
+}
+
+enum Role {
+  ADMINISTRATOR
+  GENERAL_MANAGER
+  DEPARTMENT_MANAGER
+  SCHEDULER_MANAGER
+  VOLUNTEER
+}
+
 // SCHEMAS:
 model Credential {
-  id              String    @id @default(uuid(7))  @db.Uuid
-  name            String    @db.VarChar(80) 
-  username        String    @unique @db.VarChar(30)
-  credentialHash  String    @map("credential_hash") @db.VarChar(12)
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  id               String           @id @default(uuid(7)) @db.Uuid
+  name             String           @db.VarChar(80)
+  username         String?          @unique @db.VarChar(15)
+  status           CredentialStatus @default(PENDING)
+  role             Role             @default(VOLUNTEER)
+  credentialNumber String           @unique @map("credential_number") @db.VarChar(30)
 
-  refreshTokens   RefreshToken[]
+  availabilities     Availability[]
+  departments        CredentialDepartment[] @relation("CredentialDepartments")
+  refreshTokens      RefreshToken[]
+  recoveryCodes      RecoveryCode[]
+  schedules          CredentialSchedule[]
+  credentialChanges  CredentialSchedule[]   @relation("CredentialChange")
+  requestedTransfers CredentialDepartment[] @relation("TransferRequestedBy")
+  unavailabilities   Unavailability[]
 
-  @@map("credentials")
+  @@map("credential")
+}
+
+model RecoveryCode {
+  id           String @id @default(uuid(7)) @db.Uuid
+  credentialId String @map("credential_id") @db.Uuid
+  codeHash     String @map("code_hash") @db.VarChar(255)
+
+  credential Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+
+  @@index([credentialId])
+  @@map("recovery_code")
 }
 
 model RefreshToken {
-  id              String    @id @default(uuid(7))  @db.Uuid
-  userId          String    @map("user_id") @db.Uuid
-  tokenHash       String    @unique @db.VarChar(255)
-  revokedAt       DateTime? @map("revoked_at") @db.Timestamptz(6)
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  id           String   @id @default(uuid(7)) @db.Uuid
+  credentialId String   @map("credential_id") @db.Uuid
+  tokenHash    String   @unique @map("token_hash") @db.VarChar(255)
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz(6)
 
-  user            Credential @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credential Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@map("refresh_tokens")
+  @@index([credentialId])
+  @@map("refresh_token")
+}
+
+model Department {
+  id          String  @id @default(uuid(7)) @db.Uuid
+  name        String  @unique @db.VarChar(80)
+  description String? @db.VarChar(255)
+
+  credentials     CredentialDepartment[] @relation("DepartmentCredentials")
+  transfersFrom   CredentialDepartment[] @relation("TransferFrom")
+  schedules       Schedule[]
+  recurringEvents RecurringEvent[]
+
+  @@map("department")
+}
+
+model CredentialDepartment {
+  id                       String  @id @default(uuid(7)) @db.Uuid
+  credentialId             String  @map("credential_id") @db.Uuid
+  departmentId             String  @map("department_id") @db.Uuid
+  pending                  Boolean @default(false)
+  transferFromDepartmentId String? @map("transfer_from_department_id") @db.Uuid
+  transferRequestedById    String? @map("transfer_requested_by_id") @db.Uuid
+
+  credential             Credential  @relation("CredentialDepartments", fields: [credentialId], references: [id], onDelete: Cascade)
+  department             Department  @relation("DepartmentCredentials", fields: [departmentId], references: [id], onDelete: Cascade)
+  transferFromDepartment Department? @relation("TransferFrom", fields: [transferFromDepartmentId], references: [id], onDelete: Cascade)
+  transferRequestedBy    Credential? @relation("TransferRequestedBy", fields: [transferRequestedById], references: [id], onDelete: SetNull)
+
+  @@unique([credentialId, departmentId])
+  @@index([departmentId, pending])
+  @@map("credential_department")
+}
+
+model Schedule {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  name             String   @db.VarChar(80)
+  scheduleAt       DateTime @map("schedule_at") @db.Timestamptz(6)
+  departmentId     String   @map("department_id") @db.Uuid
+  published        Boolean  @default(false)
+  description      String?  @db.VarChar(255)
+  recurringEventId String?  @map("recurring_event_id") @db.Uuid
+
+  credentials CredentialSchedule[]
+
+  department     Department      @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  recurringEvent RecurringEvent? @relation(fields: [recurringEventId], references: [id], onDelete: SetNull)
+
+  @@unique([departmentId, scheduleAt])
+  @@index([recurringEventId])
+  @@map("schedule")
+}
+
+model RecurringEvent {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  name         String   @db.VarChar(80)
+  description  String?  @db.VarChar(255)
+  weekday      Weekday
+  departmentId String?  @map("department_id") @db.Uuid
+  times        String[] @db.VarChar(5)
+
+  schedules Schedule[]
+
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@index([departmentId])
+  @@map("recurring_event")
+}
+
+model CredentialSchedule {
+  id                 String       @id @default(uuid(7)) @db.Uuid
+  credentialId       String       @map("credential_id") @db.Uuid
+  scheduleId         String       @map("schedule_id") @db.Uuid
+  changeStatus       ChangeStatus @default(NONE) @map("change_status")
+  credentialChangeId String?      @map("credential_change_id") @db.Uuid
+
+  credential       Credential  @relation(fields: [credentialId], references: [id], onDelete: Restrict)
+  credentialChange Credential? @relation("CredentialChange", fields: [credentialChangeId], references: [id], onDelete: SetNull)
+  schedule         Schedule    @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([credentialId, scheduleId])
+  @@index([scheduleId])
+  @@index([credentialChangeId])
+  @@map("credential_schedule")
+}
+
+model Availability {
+  id           String  @id @default(uuid(7)) @db.Uuid
+  credentialId String  @map("credential_id") @db.Uuid
+  weekday      Weekday
+  morning      Boolean @default(false)
+  afternoon    Boolean @default(false)
+  night        Boolean @default(false)
+
+  credential Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+
+  @@unique([credentialId, weekday])
+  @@index([weekday])
+  @@map("availability")
+}
+
+model Unavailability {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  credentialId String   @map("credential_id") @db.Uuid
+  startAt      DateTime @map("start_at") @db.Timestamptz(6)
+  endAt        DateTime @map("end_at") @db.Timestamptz(6)
+  reason       String?  @db.VarChar(255)
+
+  credential Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+
+  @@index([credentialId, startAt])
+  @@map("unavailability")
 }

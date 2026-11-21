@@ -1,5 +1,3 @@
-# APP define o alvo:  (vazio) = todos  |  APP=web  |  APP=api
-# Exemplos: make up APP=api   make down   make dev APP=web
 APP ?=
 APPS := web api
 PKG_PREFIX := midia_sbn_app-
@@ -19,8 +17,6 @@ help: ## Lista os comandos disponíveis
 	@echo "Uso: make <comando> [APP=web|api]\n"
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-11s %s\n", $$1, $$2}'
 
-# ---------------------------------------------------------------- setup
-
 setup:
 	npm install
 	@[ -f .env ] || { cp .env.template .env && echo "Criado .env (preencha as variáveis do Postgres)"; }
@@ -31,8 +27,6 @@ define check_service
 	@$(if $(APP),$(COMPOSE) config --services 2>/dev/null | grep -qx "$(APP)" || \
 		{ echo "Serviço \"$(APP)\" ainda não existe no docker-compose.yml"; exit 1; })
 endef
-
-# ---------------------------------------------------------------- docker
 
 up:
 	$(check_service)
@@ -53,13 +47,9 @@ logs:
 ps:
 	$(COMPOSE) ps
 
-# ---------------------------------------------------------------- local
-
 dev:
 	@if [ "$(APP)" != "web" ]; then $(MAKE) --no-print-directory db-up; fi
 	npx turbo run dev $(if $(APP),--filter=$(PKG_PREFIX)$(APP))
-
-# ---------------------------------------------------------------- banco
 
 db-up:
 	$(COMPOSE) up -d db
