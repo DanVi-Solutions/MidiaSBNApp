@@ -260,4 +260,9 @@ ALTER TABLE "recurring_event"       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "credential_schedule"   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "availability"          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "unavailability"        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "_prisma_migrations"    ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  IF to_regclass('"_prisma_migrations"') IS NOT NULL THEN
+    ALTER TABLE "_prisma_migrations" ENABLE ROW LEVEL SECURITY;
+  END IF;
+END $$;

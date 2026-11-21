@@ -11,7 +11,7 @@ endif
 COMPOSE := docker compose
 
 .DEFAULT_GOAL := help
-.PHONY: help setup up down restart logs ps dev db-up db-migrate db-studio
+.PHONY: help setup up down restart logs ps dev db-up db-migrate db-seed db-studio
 
 help: ## Lista os comandos disponíveis
 	@echo "Uso: make <comando> [APP=web|api]\n"
@@ -56,6 +56,9 @@ db-up:
 
 db-migrate:
 	npm run db:migrate -w apps/api
+
+db-seed:
+	npm run db:seed -w apps/api
 
 db-studio:
 	npm run db:studio -w apps/api
