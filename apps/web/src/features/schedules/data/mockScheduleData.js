@@ -1,0 +1,267 @@
+export const CURRENT_USER = {
+  id: "u-rafael",
+  name: "Rafael Nunes",
+  initials: "RN",
+  handle: "@rafael",
+  roleLabel: "Membro Voluntário",
+  credentialCode: "MEM-2026",
+  ministries: ["Transmissão / Live"],
+  statusLabel: "Liberado",
+  accessBadgeLabel: "Acesso ativo",
+};
+
+export const ACTIVE_MINISTRY = {
+  id: "min-transmissao",
+  code: "TR",
+  name: "Transmissão / Live",
+};
+
+export const INITIAL_SUBSTITUTION_REQUEST = {
+  id: "sub-1",
+  requesterName: "Lucas Andrade",
+  requesterHandle: "@lucas",
+  eventTitle: "Culto de Celebração",
+  dateTimeLabel: "Sábado, 05 de Dezembro • 19:00",
+  suggestedRole: "Corte de Câmeras",
+  ministryId: ACTIVE_MINISTRY.id,
+  ministryName: ACTIVE_MINISTRY.name,
+};
+
+export const NEXT_SCHEDULE = {
+  id: "ev-21",
+  day: "21",
+  monthShort: "NOV",
+  weekdayShort: "SÁB.",
+  ministryId: ACTIVE_MINISTRY.id,
+  ministryName: ACTIVE_MINISTRY.name,
+  title: "Culto de Celebração",
+  fullDateLabel: "Sábado, 21 de Novembro",
+  time: "21:55",
+  notice: "Chegada técnica 30 minutos antes. Conferir retorno e streaming.",
+  checkInHint: "Check-in disponível 30 minutos antes do início",
+};
+
+export const MINISTRY_TEAMMATES = [
+  "Lucas Andrade (@lucas)",
+  "Beatriz Costa (@beatriz)",
+  "Matheus Silva (@matheus)",
+  "Camila Rocha (@camila)",
+];
+
+export const SCHEDULE_MINISTRIES = [
+  {
+    id: "min-transmissao",
+    name: "Transmissão / Live",
+  },
+  {
+    id: "min-cameras",
+    name: "Câmeras",
+  },
+  {
+    id: "min-projecao",
+    name: "Projeção",
+  },
+  {
+    id: "min-fotografia",
+    name: "Fotografia",
+  },
+  {
+    id: "min-som",
+    name: "Som",
+  },
+  {
+    id: "min-social",
+    name: "Social Media",
+  },
+];
+
+export const SCHEDULE_MEMBERS = [
+  {
+    id: "u-marina",
+    initials: "MC",
+    name: "Marina Costa",
+    handle: "@marina",
+    ministryIds: ["min-projecao", "min-transmissao", "min-social"],
+  },
+  {
+    id: "u-joao",
+    initials: "JP",
+    name: "João Pedro",
+    handle: "@joao.pedro",
+    ministryIds: ["min-projecao", "min-cameras"],
+  },
+  {
+    id: "u-lucas",
+    initials: "LA",
+    name: "Lucas Andrade",
+    handle: "@lucas",
+    ministryIds: ["min-transmissao", "min-cameras", "min-som"],
+  },
+  {
+    id: "u-rafael",
+    initials: "RN",
+    name: "Rafael Nunes",
+    handle: "@rafael",
+    ministryIds: ["min-transmissao", "min-cameras"],
+  },
+  {
+    id: "u-beatriz",
+    initials: "BC",
+    name: "Beatriz Costa",
+    handle: "@beatriz",
+    ministryIds: ["min-transmissao", "min-fotografia"],
+  },
+  {
+    id: "u-matheus",
+    initials: "MS",
+    name: "Matheus Silva",
+    handle: "@matheus",
+    ministryIds: ["min-transmissao", "min-som"],
+  },
+  {
+    id: "u-camila",
+    initials: "CR",
+    name: "Camila Rocha",
+    handle: "@camila",
+    ministryIds: ["min-transmissao", "min-fotografia", "min-social"],
+  },
+];
+
+export const MONTHLY_EVENTS = [
+  {
+    id: "ev-14",
+    dateIso: "2026-11-14",
+    day: "14",
+    monthShort: "NOV",
+    weekdayShort: "SÁB.",
+    ministryId: "min-transmissao",
+    ministryName: "Transmissão / Live",
+    title: "Culto de Celebração",
+    time: "19:00",
+    details: "",
+    statusLabel: "Publicado",
+    statusTone: "published",
+    assignments: [
+      {
+        id: "asg-1",
+        memberId: "u-rafael",
+        initials: "RN",
+        name: "Rafael Nunes",
+        handle: "@rafael",
+        attendanceLabel: "Presente",
+        attendanceTone: "present",
+      },
+    ],
+  },
+  {
+    id: "ev-21",
+    dateIso: "2026-11-21",
+    day: "21",
+    monthShort: "NOV",
+    weekdayShort: "SÁB.",
+    ministryId: "min-transmissao",
+    ministryName: "Transmissão / Live",
+    title: "Culto de Celebração",
+    time: "21:55",
+    details: "Chegada técnica 30 minutos antes. Conferir retorno e streaming.",
+    statusLabel: "Publicado",
+    statusTone: "published",
+    assignments: [
+      {
+        id: "asg-2",
+        memberId: "u-rafael",
+        initials: "RN",
+        name: "Rafael Nunes",
+        handle: "@rafael",
+        attendanceLabel: "Confirmado",
+        attendanceTone: "confirmed",
+      },
+      {
+        id: "asg-3",
+        memberId: "u-beatriz",
+        initials: "BC",
+        name: "Beatriz Costa",
+        handle: "@beatriz",
+        attendanceLabel: "Confirmado",
+        attendanceTone: "confirmed",
+      },
+      {
+        id: "asg-4",
+        memberId: "u-matheus",
+        initials: "MS",
+        name: "Matheus Silva",
+        handle: "@matheus",
+        attendanceLabel: "Pendente",
+        attendanceTone: "pending",
+      },
+    ],
+  },
+  {
+    id: "ev-28-foto",
+    dateIso: "2026-11-28",
+    day: "28",
+    monthShort: "NOV",
+    weekdayShort: "SÁB.",
+    ministryId: "min-fotografia",
+    ministryName: "Fotografia",
+    title: "Encontro de Jovens",
+    time: "19:30",
+    details: "",
+    statusLabel: "Rascunho",
+    statusTone: "draft",
+    assignments: [
+      {
+        id: "asg-7",
+        memberId: "u-beatriz",
+        initials: "BC",
+        name: "Beatriz Costa",
+        handle: "@beatriz",
+        attendanceLabel: "Confirmado",
+        attendanceTone: "confirmed",
+      },
+      {
+        id: "asg-8",
+        memberId: "u-camila",
+        initials: "CR",
+        name: "Camila Rocha",
+        handle: "@camila",
+        attendanceLabel: "Pendente",
+        attendanceTone: "pending",
+      },
+    ],
+  },
+  {
+    id: "ev-29",
+    dateIso: "2026-11-29",
+    day: "29",
+    monthShort: "NOV",
+    weekdayShort: "DOM.",
+    ministryId: "min-transmissao",
+    ministryName: "Transmissão / Live",
+    title: "Culto da Família",
+    time: "18:30",
+    details: "Testar links de transmissão 30 minutos antes.",
+    statusLabel: "Rascunho",
+    statusTone: "draft",
+    assignments: [
+      {
+        id: "asg-5",
+        memberId: "u-lucas",
+        initials: "LA",
+        name: "Lucas Andrade",
+        handle: "@lucas",
+        attendanceLabel: "Confirmado",
+        attendanceTone: "confirmed",
+      },
+      {
+        id: "asg-6",
+        memberId: "u-camila",
+        initials: "CR",
+        name: "Camila Rocha",
+        handle: "@camila",
+        attendanceLabel: "Confirmado",
+        attendanceTone: "confirmed",
+      },
+    ],
+  },
+];

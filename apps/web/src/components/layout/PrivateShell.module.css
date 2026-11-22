@@ -1,0 +1,825 @@
+.workspace {
+  --sidebar-collapsed-width: 72px;
+  --sidebar-expanded-width: 236px;
+  --topbar-height: 64px;
+  min-height: 100dvh;
+  display: flex;
+  background-color: var(--surface-workspace);
+  color: var(--ink-primary);
+}
+
+.desktopSidebar {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .desktopSidebar {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: var(--sidebar-collapsed-width);
+    block-size: 100dvh;
+    z-index: 50;
+    overflow: hidden;
+    background-color: var(--sidebar-bg);
+    color: #f4f5f0;
+    border-inline-end: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .desktopSidebar:hover,
+  .desktopSidebar:has(:focus-visible) {
+    inline-size: var(--sidebar-expanded-width);
+    box-shadow: 12px 0 32px rgba(0, 0, 0, 0.28);
+  }
+}
+
+.sidebarInner {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding: 1.25rem 0.9rem 1rem;
+  gap: 1.5rem;
+}
+
+.sidebarTop {
+  display: flex;
+  flex-direction: column;
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 0.45rem;
+  margin-block-end: 1.7rem;
+}
+
+.brandLink {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  width: 100%;
+}
+
+.brandLink:focus-visible,
+.navItem:focus-visible,
+.drawerCloseButton:focus-visible,
+.mobileMenuButton:focus-visible,
+.bellButton:focus-visible,
+.profileButton:focus-visible,
+.popoverTextAction:focus-visible,
+.signOutItem:focus-visible {
+  outline: 2px solid var(--accent-lime);
+  outline-offset: 2px;
+}
+
+.mobileMenuButton:focus-visible,
+.bellButton:focus-visible,
+.profileButton:focus-visible,
+.popoverTextAction:focus-visible,
+.signOutItem:focus-visible {
+  outline-color: var(--ink-primary);
+}
+
+.brandCompact {
+  display: none;
+}
+
+.brandLogo {
+  width: 120px;
+  height: auto;
+  display: block;
+}
+
+.navEyebrow {
+  padding-inline: 0.55rem;
+  margin-block-end: 0.65rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6b7069;
+  white-space: nowrap;
+}
+
+.navList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.navItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-height: 42px;
+  padding: 0.6rem 0.85rem;
+  border-radius: 9px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #8f948c;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .navItem:hover:not([aria-current="page"]) {
+    background-color: rgba(255, 255, 255, 0.04);
+    color: #d8dcd3;
+  }
+}
+
+.navItem[aria-current="page"],
+.navItemActive {
+  background-color: var(--sidebar-active);
+  color: #f7f8f3;
+  font-weight: 550;
+}
+
+.navItem[aria-current="page"]::before,
+.navItemActive::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 999px;
+  background-color: var(--accent-lime);
+}
+
+.navIcon {
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.navItem[aria-current="page"] .navIcon,
+.navItemActive .navIcon {
+  color: var(--accent-lime);
+}
+
+.navLabel {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.ministryCard {
+  display: flex;
+  align-items: center;
+  gap: 0.72rem;
+  padding: 0.72rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--sidebar-border);
+  background-color: var(--sidebar-surface);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ministryBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background-color: var(--accent-lime);
+  color: #121412;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.ministryMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ministryEyebrow {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #7c817a;
+  line-height: 1.2;
+}
+
+.ministryName {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #eef1ea;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Desktop hover-collapsible rail behavior */
+@media (min-width: 960px) {
+  .desktopSidebar .sidebarInner {
+    padding: 1.25rem 12px 1rem;
+  }
+
+  .desktopSidebar .brandRow {
+    padding-inline: 0;
+  }
+
+  .desktopSidebar .brandCompact {
+    position: absolute;
+    inset-inline-start: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--sidebar-border);
+    background-color: var(--sidebar-surface);
+    color: #f7f8f3;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    opacity: 1;
+  }
+
+  .desktopSidebar .brandLogo {
+    position: absolute;
+    inset-inline-start: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .desktopSidebar .navEyebrow {
+    padding-inline: 15px;
+    opacity: 0;
+  }
+
+  .desktopSidebar .navItem {
+    padding-inline: 15px 12px;
+  }
+
+  .desktopSidebar .navLabel {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+
+  .desktopSidebar .ministryCard {
+    padding: 6px 8px 6px 6px;
+  }
+
+  .desktopSidebar .ministryMeta {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+
+  .desktopSidebar:hover .brandCompact,
+  .desktopSidebar:has(:focus-visible) .brandCompact {
+    opacity: 0;
+  }
+
+  .desktopSidebar:hover .brandLogo,
+  .desktopSidebar:has(:focus-visible) .brandLogo {
+    opacity: 1;
+  }
+
+  .desktopSidebar:hover .navEyebrow,
+  .desktopSidebar:has(:focus-visible) .navEyebrow,
+  .desktopSidebar:hover .navLabel,
+  .desktopSidebar:has(:focus-visible) .navLabel,
+  .desktopSidebar:hover .ministryMeta,
+  .desktopSidebar:has(:focus-visible) .ministryMeta {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (min-width: 960px) and (prefers-reduced-motion: no-preference) {
+  .desktopSidebar {
+    transition:
+      inline-size 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 220ms ease;
+  }
+
+  .desktopSidebar .brandCompact,
+  .desktopSidebar .brandLogo,
+  .desktopSidebar .navEyebrow {
+    transition: opacity 180ms ease;
+  }
+
+  .desktopSidebar .navLabel,
+  .desktopSidebar .ministryMeta {
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease;
+  }
+}
+
+@media (forced-colors: active) {
+  .desktopSidebar,
+  .topbar {
+    border-color: CanvasText;
+  }
+
+  .navItem[aria-current="page"]::before,
+  .navItemActive::before {
+    background-color: Highlight;
+  }
+}
+
+/* Native <dialog> mobile navigation drawer */
+.drawerDialog {
+  --drawer-width: min(260px, 82dvw, 100dvw - 24px);
+  --drawer-backdrop: 0;
+  inset: 0;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.drawerDialog:modal {
+  overscroll-behavior: contain;
+}
+
+.drawerDialog::backdrop {
+  background: #000;
+  opacity: calc(var(--drawer-backdrop) / 2);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.drawerScroller {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--drawer-width) 100%;
+  overflow-x: scroll;
+  overscroll-behavior: none;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .drawerScroller {
+    scroll-behavior: smooth;
+  }
+}
+
+.drawerScroller::after {
+  content: "";
+  scroll-snap-align: end;
+  scroll-initial-target: nearest;
+}
+
+.drawerSheet {
+  height: 100svh;
+  background-color: var(--sidebar-bg);
+  color: #f4f5f0;
+  overflow-y: auto;
+  scroll-snap-align: start;
+  scrollbar-width: none;
+}
+
+.drawerCloseButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 8px;
+  background-color: var(--sidebar-surface);
+  color: #e6e8e0;
+  cursor: pointer;
+}
+
+@supports (animation-timeline: scroll()) {
+  .drawerDialog {
+    timeline-scope: --drawer-fade;
+    animation: fade-drawer-backdrop linear both;
+    animation-timeline: --drawer-fade;
+  }
+
+  .drawerScroller {
+    scroll-timeline: --drawer-fade x;
+  }
+
+  @keyframes fade-drawer-backdrop {
+    0% {
+      --drawer-backdrop: 1;
+    }
+    100% {
+      --drawer-backdrop: 0;
+    }
+  }
+}
+
+@property --drawer-backdrop {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+.mainColumn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding-block-start: var(--topbar-height);
+  background-color: var(--surface-workspace);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M16 12.5v7M12.5 16h7' stroke='rgba(17,19,18,0.055)' stroke-width='1' stroke-linecap='square'/%3E%3C/svg%3E");
+  background-size: 32px 32px;
+  background-position: 0 var(--topbar-height);
+}
+
+@media (min-width: 960px) {
+  .mainColumn {
+    padding-inline-start: var(--sidebar-collapsed-width);
+    background-position: var(--sidebar-collapsed-width) var(--topbar-height);
+  }
+}
+
+.topbar {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  block-size: var(--topbar-height);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-inline: clamp(1rem, 2.8vw, 2.25rem);
+  background-color: var(--surface-workspace);
+  border-block-end: 1px solid #e4e7df;
+}
+
+@media (min-width: 960px) {
+  .topbar {
+    inset-inline-start: var(--sidebar-collapsed-width);
+  }
+}
+
+.topbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mobileMenuButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+  cursor: pointer;
+}
+
+.mobileBrandLink {
+  display: inline-flex;
+  align-items: center;
+}
+
+.mobileBrandLogo {
+  width: 96px;
+  height: auto;
+  display: block;
+}
+
+@media (min-width: 960px) {
+  .mobileMenuButton,
+  .mobileBrandLink {
+    display: none;
+  }
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-inline-start: auto;
+}
+
+.bellButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .bellButton:hover {
+    background-color: rgba(17, 19, 18, 0.05);
+    color: var(--ink-primary);
+  }
+}
+
+.bellBadge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 17px;
+  height: 17px;
+  padding-inline: 4px;
+  border-radius: 999px;
+  background-color: var(--accent-lime);
+  color: #121412;
+  font-size: 0.67rem;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+
+.profileButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 42px;
+  padding: 0.25rem 0.4rem 0.25rem 0.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .profileButton:hover {
+    background-color: rgba(17, 19, 18, 0.05);
+  }
+}
+
+.profileAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background-color: #121412;
+  color: #f7f8f3;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.profileInfo {
+  display: none;
+}
+
+@media (min-width: 540px) {
+  .profileInfo {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+  }
+}
+
+.profileName {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+.profileRole {
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+}
+
+.profileChevron {
+  color: var(--ink-muted);
+}
+
+/* Topbar popovers (notifications & profile) */
+.popoverPanel {
+  width: min(310px, calc(100vw - 2rem));
+  padding: 0.85rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+  box-shadow: 0 14px 36px rgba(17, 19, 18, 0.1);
+}
+
+.profilePopover {
+  width: min(296px, calc(100vw - 2rem));
+  padding: 0;
+  overflow: hidden;
+}
+
+.popoverPanel:is(:popover-open, .\:popover-open) {
+  display: block;
+}
+
+@supports (position-area: block-end) {
+  .popoverPanel {
+    inset: auto;
+    margin: 0;
+    margin-block-start: 0.45rem;
+    position-area: block-end span-inline-start;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+  }
+}
+
+@supports not (position-area: block-end) {
+  .popoverPanel {
+    position: fixed;
+    inset-block-start: 4.25rem;
+    inset-inline-end: 1.5rem;
+    inset-block-end: auto;
+    inset-inline-start: auto;
+    margin: 0;
+  }
+}
+
+.popoverHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-block-end: 0.65rem;
+  border-block-end: 1px solid var(--border-divider);
+}
+
+.popoverTitle {
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+.popoverTextAction {
+  border: 0;
+  background: transparent;
+  color: var(--ink-secondary);
+  font-size: 0.76rem;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.notificationList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-block-start: 0.65rem;
+}
+
+.notificationItem {
+  padding: 0.65rem 0.7rem;
+  border-radius: 10px;
+  background-color: var(--surface-workspace);
+}
+
+.notificationUnread {
+  background-color: var(--status-amber-bg);
+  border: 1px solid var(--status-amber-border);
+}
+
+.notificationTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-block-end: 0.15rem;
+}
+
+.notificationDesc {
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: var(--ink-secondary);
+}
+
+.profileSummary {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.05rem;
+  border-block-end: 1px solid var(--border-divider);
+}
+
+.popoverAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background-color: var(--accent-lime);
+  color: #121412;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.profileSummaryText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.profileSummaryName {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+  line-height: 1.25;
+}
+
+.profileSummaryRole {
+  font-size: 0.77rem;
+  color: var(--ink-secondary);
+  line-height: 1.3;
+  margin-block-start: 0.1rem;
+}
+
+.profileSummaryMeta {
+  font-size: 0.73rem;
+  color: var(--ink-muted);
+  line-height: 1.3;
+  margin-block-start: 0.1rem;
+}
+
+.profileMenuGroup {
+  padding: 0.35rem;
+}
+
+.profileMenuDivider {
+  height: 1px;
+  background-color: var(--border-divider);
+}
+
+.profileMenuItem,
+.signOutItem {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 42px;
+  padding: 0.55rem 0.75rem;
+  border-radius: 9px;
+  font-size: 0.86rem;
+  font-weight: 550;
+  transition: background-color 0.15s ease;
+}
+
+.profileMenuItem {
+  color: var(--ink-primary);
+}
+
+.signOutItem {
+  color: #b23d3d;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .profileMenuItem:hover {
+    background-color: var(--surface-workspace);
+  }
+
+  .signOutItem:hover {
+    background-color: #fdf2f2;
+  }
+}
+
+.profileMenuItem:focus-visible {
+  outline: 2px solid var(--ink-primary);
+  outline-offset: 2px;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+  padding: clamp(1.35rem, 2.8vw, 2.1rem) clamp(1rem, 2.8vw, 2.25rem) 3rem;
+}

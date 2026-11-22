@@ -1,0 +1,477 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 680px) {
+  .pageHeader {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+}
+
+.headerLead {
+  min-width: 0;
+}
+
+.pageEyebrow {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-block-end: 0.35rem;
+}
+
+.pageTitle {
+  font-size: clamp(1.65rem, 2.2vw, 2.05rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--ink-primary);
+  margin-block-end: 0.35rem;
+}
+
+.pageSubtitle {
+  font-size: 0.92rem;
+  color: var(--ink-secondary);
+}
+
+.saveButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.48rem;
+  min-height: 42px;
+  padding: 0.55rem 1.15rem;
+  border: 1px solid var(--ink-primary);
+  border-radius: 10px;
+  background-color: #141614;
+  color: #f7f8f3;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .saveButton:hover {
+    background-color: var(--accent-hover);
+  }
+}
+
+.layoutGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (min-width: 820px) {
+  .layoutGrid {
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  }
+}
+
+.identityCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem 1.4rem;
+  border: 1px solid #e6e9e0;
+  border-radius: 16px;
+  background-color: var(--surface-card);
+}
+
+.avatarRing {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid #ecefe7;
+  background-color: #fafbf8;
+  margin-block-end: 1.15rem;
+}
+
+.avatarCircle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 999px;
+  background-color: #121412;
+  color: var(--accent-lime);
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.identityName {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+  margin-block-end: 0.2rem;
+}
+
+.identityHandle {
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  margin-block-end: 0.95rem;
+}
+
+.accessBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.28rem 0.72rem;
+  border-radius: 999px;
+  background-color: var(--accent-lime-soft);
+  color: var(--accent-lime-ink);
+  font-size: 0.74rem;
+  font-weight: 650;
+}
+
+.accessDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background-color: currentColor;
+}
+
+.cardsColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  padding: clamp(1.25rem, 2.5vw, 1.55rem);
+  border: 1px solid #e6e9e0;
+  border-radius: 16px;
+  background-color: var(--surface-card);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.cardEyebrow {
+  font-size: 0.67rem;
+  font-weight: 650;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-block-end: 0.24rem;
+}
+
+.cardTitle {
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink-primary);
+  margin-block-end: 0.2rem;
+}
+
+.cardSubtitle {
+  font-size: 0.84rem;
+  line-height: 1.48;
+  color: var(--ink-secondary);
+}
+
+.cardCornerIcon {
+  color: #aeb4a6;
+  flex-shrink: 0;
+  margin-block-start: 0.2rem;
+}
+
+.profileForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+}
+
+.fieldLabel {
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--ink-primary);
+}
+
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+  font: inherit;
+  font-size: max(1rem, 1em);
+  font-weight: 550;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: var(--ink-primary);
+  box-shadow: 0 0 0 3px rgba(17, 19, 18, 0.08);
+}
+
+.inputError {
+  border-color: var(--status-error);
+  background-color: var(--status-error-bg);
+}
+
+.errorMsg {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--status-error);
+}
+
+.errorIcon {
+  flex-shrink: 0;
+}
+
+.readonlyGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+
+@media (min-width: 600px) {
+  .readonlyGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.readonlyTile {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.88rem 0.95rem;
+  border: 1px solid #ecefe7;
+  border-radius: 12px;
+  background-color: #fafbf8;
+}
+
+.tileIconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background-color: #eff1eb;
+  color: var(--ink-secondary);
+  flex-shrink: 0;
+}
+
+.readonlyTile dt {
+  font-size: 0.64rem;
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-block-end: 0.15rem;
+}
+
+.readonlyTile dd {
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--ink-primary);
+}
+
+.monoValue {
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+
+/* Danger Zone */
+.dangerCard {
+  border-color: #ebd0d0;
+  background-color: #fffbfb;
+}
+
+.dangerEyebrow {
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: #a93c3c;
+  margin-block-end: 0.24rem;
+}
+
+.dangerActions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.deleteTriggerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 42px;
+  padding: 0.55rem 1.05rem;
+  border: 1px solid #e3b5b5;
+  border-radius: 10px;
+  background-color: var(--surface-card);
+  color: #b23d3d;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .deleteTriggerButton:hover {
+    background-color: #fdf2f2;
+    border-color: #d18c8c;
+  }
+}
+
+/* Destructive Confirmation Modal (<dialog>) */
+.deleteDialog {
+  margin: auto;
+  width: min(460px, calc(100vw - 2rem));
+  padding: 1.5rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+  box-shadow: 0 24px 60px rgba(17, 19, 18, 0.22);
+}
+
+.deleteDialog[open] {
+  display: block;
+}
+
+.deleteDialog:modal {
+  overscroll-behavior: contain;
+}
+
+.deleteDialog::backdrop {
+  background: rgba(12, 14, 12, 0.56);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.modalDangerBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background-color: #fdf2f2;
+  color: #b23d3d;
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-size: 1.12rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-block-end: 0.25rem;
+}
+
+.modalSubtitle {
+  font-size: 0.85rem;
+  line-height: 1.48;
+  color: var(--ink-secondary);
+}
+
+.modalActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-block-start: 0.25rem;
+}
+
+.modalCancelButton,
+.modalDeleteButton {
+  min-height: 42px;
+  padding: 0.52rem 1rem;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modalCancelButton {
+  border: 1px solid var(--border-subtle);
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+}
+
+.modalDeleteButton {
+  border: 1px solid #b23d3d;
+  background-color: #b23d3d;
+  color: #ffffff;
+}
+
+.modalDeleteButton:disabled {
+  opacity: 0.72;
+  cursor: progress;
+}
+
+.saveButton:focus-visible,
+.deleteTriggerButton:focus-visible,
+.modalCancelButton:focus-visible,
+.modalDeleteButton:focus-visible {
+  outline: 2px solid var(--ink-primary);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .saveButton,
+  .input,
+  .deleteTriggerButton,
+  .modalCancelButton,
+  .modalDeleteButton {
+    min-height: 48px;
+  }
+}

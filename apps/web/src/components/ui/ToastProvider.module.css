@@ -1,0 +1,147 @@
+.toastViewport {
+  display: none;
+  position: fixed;
+  inset: auto 1.35rem 1.35rem auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  pointer-events: none;
+  max-inline-size: min(26rem, calc(100vw - 2rem));
+}
+
+.toastViewport:is(:popover-open, .\:popover-open),
+.toastViewportFallbackOpen {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+
+.toastViewportFallbackOpen {
+  z-index: 9999;
+}
+
+.toastItem {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.72rem;
+  min-width: min(230px, calc(100vw - 2rem));
+  max-inline-size: 100%;
+  padding: 0.82rem 1rem;
+  border-radius: 14px;
+  box-shadow: 0 14px 36px rgba(10, 14, 10, 0.24);
+  font-size: 0.88rem;
+  font-weight: 550;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  opacity: 1;
+  transition:
+    opacity 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    display 240ms,
+    overlay 240ms;
+  transition-behavior: allow-discrete;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .toastItem {
+    transform: translateY(0);
+  }
+
+  @starting-style {
+    .toastItem {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toastItem {
+    transition-duration: 100ms;
+  }
+
+  @starting-style {
+    .toastItem {
+      opacity: 0;
+    }
+  }
+}
+
+.toastSuccess {
+  background-color: #122417;
+  border: 1px solid #2e5d38;
+  color: #f2faf3;
+}
+
+.toastSuccess .toastIcon {
+  color: var(--accent-lime);
+}
+
+.toastError {
+  background-color: #2b1316;
+  border: 1px solid #7c2e37;
+  color: #fdf2f2;
+}
+
+.toastError .toastIcon {
+  color: #ff7b7b;
+}
+
+.toastIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toastIcon svg {
+  width: 19px;
+  height: 19px;
+  display: block;
+}
+
+.toastMessage {
+  flex: 1;
+  min-width: 0;
+}
+
+.toastCloseButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-inline-end: -0.2rem;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toastCloseButton:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+  }
+}
+
+.toastCloseButton:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .toastCloseButton {
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
