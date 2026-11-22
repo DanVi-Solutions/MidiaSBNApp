@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const operations = [];
 const tagDescriptions = new Map();
+const mountedTags = [];
 
 export function registerOperation(operation) {
   operations.push(operation);
@@ -10,6 +11,12 @@ export function registerOperation(operation) {
 export function registerTag(name, description) {
   tagDescriptions.set(name, description);
 }
+
+export function registerMountedTag(name) {
+  mountedTags.push(name);
+}
+
+const byMountOrder = (a, b) => mountedTags.indexOf(a) - mountedTags.indexOf(b);
 
 function override({ jsonSchema }) {
   if (jsonSchema.format === "uuid") delete jsonSchema.pattern;
@@ -97,7 +104,7 @@ export function buildOpenApiDocument({ title, version, description }) {
     paths[path][op.method] = toOperation(op);
   }
 
-  const tagsInRegistrationOrder = [...new Set(operations.map((op) => op.tag))].map((name) => ({
+  const tagsInMountOrder = [...new Set(operations.map((op) => op.tag))].sort(byMountOrder).map((name) => ({
     name,
     description: tagDescriptions.get(name),
   }));
@@ -105,7 +112,7 @@ export function buildOpenApiDocument({ title, version, description }) {
   return {
     openapi: "3.1.0",
     info: { title, version, description },
-    tags: tagsInRegistrationOrder,
+    tags: tagsInMountOrder,
     paths,
     components: {
       securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" } },

@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+function isValidTimeZone(timeZone) {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(3333),
@@ -9,6 +18,10 @@ const schema = z.object({
     .string()
     .min(32, "CREDENTIAL_NUMBER_SECRET precisa ter pelo menos 32 caracteres"),
   CORS_ORIGIN: z.string().default("http://localhost:3000"),
+  APP_TIME_ZONE: z
+    .string()
+    .default("America/Sao_Paulo")
+    .refine(isValidTimeZone, "APP_TIME_ZONE precisa ser um fuso IANA válido (ex.: America/Sao_Paulo)"),
   DOCS_ENABLED: z.stringbool().optional(),
 });
 

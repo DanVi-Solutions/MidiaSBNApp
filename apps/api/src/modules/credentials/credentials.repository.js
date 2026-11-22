@@ -133,7 +133,13 @@ export const credentialsRepository = {
   },
 
   async delete(id) {
-    await prisma.credential.delete({ where: { id } });
+    await prisma.$transaction([
+      prisma.credentialSchedule.updateMany({
+        where: { credentialChangeId: id },
+        data: { changeStatus: "NONE", credentialChangeId: null },
+      }),
+      prisma.credential.delete({ where: { id } }),
+    ]);
   },
 
   async activateWithHashedNumber(id, credentialNumberHash, data = {}) {

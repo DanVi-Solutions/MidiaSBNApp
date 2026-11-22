@@ -31,6 +31,7 @@ export function createDocumentedRouter({ prefix, tag, tagDescription }) {
 
   return {
     prefix,
+    tag,
     router,
     get: register("get"),
     post: register("post"),
