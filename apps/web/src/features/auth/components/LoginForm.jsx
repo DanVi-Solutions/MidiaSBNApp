@@ -1,0 +1,259 @@
+"use client";
+
+import { useEffect, useId, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowRightIcon,
+  KeyIcon,
+  ShieldCheckIcon,
+} from "@/components/ui/icons";
+import { useToast } from "@/components/ui/ToastProvider";
+import { authenticateWithCredential } from "@/features/auth/services/authService";
+import styles from "./LoginForm.module.css";
+
+function resolveValidationMessage(input) {
+  const trimmed = input.value.trim();
+
+  if (!trimmed) {
+    return "Informe seu código de credencial.";
+  }
+
+  if (trimmed.length < 4) {
+    return "O código deve ter pelo menos 4 caracteres.";
+  }
+
+  return "";
+}
+
+export function LoginForm() {
+  const router = useRouter();
+  const toast = useToast();
+  const credentialId = useId();
+  const errorId = useId();
+  const headingId = useId();
+
+  const inputRef = useRef(null);
+  const hasInteractedRef = useRef(false);
+  const announceTimerRef = useRef(null);
+
+  const [credential, setCredential] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [hasFallbackError, setHasFallbackError] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (announceTimerRef.current !== null) {
+        window.clearTimeout(announceTimerRef.current);
+      }
+    };
+  }, []);
+
+  const scheduleAnnouncement = (message) => {
+    if (announceTimerRef.current !== null) {
+      window.clearTimeout(announceTimerRef.current);
+    }
+    setAnnouncement("");
+    if (!message) return;
+
+    announceTimerRef.current = window.setTimeout(() => {
+      setAnnouncement(`Código de credencial: ${message}`);
+    }, 350);
+  };
+
+  const applyFieldValidity = (input, { announce = false } = {}) => {
+    input.setCustomValidity("");
+    const customMsg = resolveValidationMessage(input);
+    if (customMsg) {
+      input.setCustomValidity(customMsg);
+    }
+
+    const valid = input.validity.valid && !customMsg;
+    const msg = valid ? "" : customMsg || "Informe um código de credencial válido.";
+
+    setErrorMessage(msg);
+    setHasFallbackError(!valid && !CSS.supports("selector(:user-invalid)"));
+
+    if (announce && !valid) {
+      scheduleAnnouncement(msg);
+    } else if (valid) {
+      scheduleAnnouncement("");
+    }
+
+    return { valid, message: msg };
+  };
+
+  const handleChange = (event) => {
+    const input = event.currentTarget;
+    hasInteractedRef.current = true;
+    setCredential(input.value);
+
+    input.setCustomValidity("");
+
+    // Clear errors immediately once resolved; never nag on every keystroke
+    if (errorMessage) {
+      const customMsg = resolveValidationMessage(input);
+      if (!customMsg && input.validity.valid) {
+        setErrorMessage("");
+        setHasFallbackError(false);
+        scheduleAnnouncement("");
+      }
+    }
+  };
+
+  const handleBlur = (event) => {
+    if (!hasInteractedRef.current && !errorMessage) {
+      return;
+    }
+    applyFieldValidity(event.currentTarget, { announce: true });
+  };
+
+  const handleInvalid = (event) => {
+    event.preventDefault();
+    hasInteractedRef.current = true;
+    const { message } = applyFieldValidity(event.currentTarget, {
+      announce: false,
+    });
+    toast.error(message || "Informe um código de credencial válido.");
+    event.currentTarget.focus();
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    const input = inputRef.current;
+    if (!input) return;
+
+    hasInteractedRef.current = true;
+    const { valid: isValid, message } = applyFieldValidity(input, {
+      announce: false,
+    });
+
+    if (!isValid) {
+      toast.error(message || "Informe um código de credencial válido.");
+      input.focus();
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage("");
+    setHasFallbackError(false);
+    scheduleAnnouncement("");
+
+    const result = await authenticateWithCredential(input.value);
+
+    if (result.ok) {
+      toast.success("Login realizado com sucesso.");
+      router.push("/schedule");
+      return;
+    }
+
+    setIsSubmitting(false);
+    setErrorMessage(result.error);
+    setHasFallbackError(true);
+    toast.error(
+      result.error || "Não foi possível entrar. Verifique sua credencial."
+    );
+    input.focus();
+  };
+
+  const hasError = Boolean(errorMessage);
+
+  return (
+    <aside className={styles.panel} aria-labelledby={headingId}>
+      <div className={styles.contentWrap}>
+        <div className={styles.formCard}>
+          <header className={styles.header}>
+            <p className={styles.eyebrow}>ACESSO RESTRITO</p>
+            <h1 id={headingId} className={styles.title}>
+              Bem-vindo à equipe.
+            </h1>
+            <p className={styles.subtitle}>
+              Use o código fornecido pelo responsável da Mídia Sobrenatural.
+            </p>
+          </header>
+
+          <form
+            className={styles.form}
+            method="POST"
+            aria-labelledby={headingId}
+            onSubmit={handleSubmit}
+          >
+            <div className={styles.fieldGroup}>
+              <label htmlFor={credentialId} className={styles.label}>
+                Código de credencial
+              </label>
+
+              <div
+                className={`${styles.inputShell} ${
+                  hasError ? styles.inputShellError : ""
+                }`}
+              >
+                <span className={styles.leadingIcon} aria-hidden="true">
+                  <KeyIcon />
+                </span>
+                <input
+                  ref={inputRef}
+                  id={credentialId}
+                  name="credential"
+                  type="text"
+                  value={credential}
+                  placeholder="EX: MEM-2026"
+                  required
+                  minLength={4}
+                  maxLength={32}
+                  autoComplete="username"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  enterKeyHint="done"
+                  aria-invalid={hasError ? "true" : "false"}
+                  aria-describedby={hasError ? errorId : undefined}
+                  data-error={errorId}
+                  className={`${styles.input} ${
+                    hasFallbackError ? "user-invalid-fallback" : ""
+                  }`}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  onInvalid={handleInvalid}
+                />
+              </div>
+
+              <span id={errorId} className="visually-hidden">
+                {hasError ? errorMessage : ""}
+              </span>
+            </div>
+
+            <button
+              type="submit"
+              className={styles.submitButton}
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+            >
+              <span>
+                {isSubmitting ? "Validando acesso..." : "Entrar no sistema"}
+              </span>
+              <ArrowRightIcon className={styles.submitArrow} />
+            </button>
+          </form>
+
+          <div className={styles.securityDivider}>
+            <p className={styles.securityNote}>
+              <ShieldCheckIcon className={styles.securityIcon} />
+              <span>Ambiente seguro · Acesso por credencial individual</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <footer className={styles.footer}>
+        <p className={styles.copyright}>© 2026 Mídia Sobrenatural</p>
+      </footer>
+
+      <div className="visually-hidden" aria-live="polite" role="status">
+        {announcement}
+      </div>
+    </aside>
+  );
+}

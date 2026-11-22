@@ -1,17 +1,46 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --surface-dark: #0d0f0c;
+  --surface-light: #f7f8f3;
+  --surface-card: #ffffff;
+  --ink-primary: #111312;
+  --ink-secondary: #676b64;
+  --ink-muted: #7c8078;
+  --border-subtle: #e2e4dc;
+  --border-divider: #e6e8e0;
+  --accent-hover: #232624;
+  --status-error: #b92c25;
+  --status-error-bg: #fdf2f2;
+  --sidebar-bg: #121412;
+  --sidebar-surface: #191b19;
+  --sidebar-active: #1c1f1c;
+  --sidebar-border: #242824;
+  --accent-lime: #d6ff5b;
+  --accent-lime-soft: #effbd5;
+  --accent-lime-ink: #476b12;
+  --surface-workspace: #f4f5f0;
+  --surface-callout: #f3f5ee;
+  --status-amber-bg: #fff9ec;
+  --status-amber-border: #e7cf9a;
+  --status-amber-accent: #d49a2e;
+  --status-amber-badge: #ffe5aa;
+  --status-amber-ink: #9c6812;
+  --status-info-bg: #e4f2fb;
+  --status-info-ink: #1c6591;
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 html {
   height: 100%;
+  color-scheme: light;
 }
 
 html,
@@ -22,19 +51,12 @@ body {
 
 body {
   min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--surface-light);
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
 }
 
 a {
@@ -42,8 +64,20 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+button,
+input {
+  font: inherit;
+}
+
+/* Hides content visually while keeping it accessible to screen readers */
+.visually-hidden {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
 }

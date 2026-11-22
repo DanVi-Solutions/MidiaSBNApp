@@ -1,0 +1,14 @@
+.layout {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--surface-light);
+}
+
+@media (min-width: 960px) {
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.88fr) minmax(380px, 1fr);
+    min-height: 100dvh;
+  }
+}

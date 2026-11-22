@@ -1,0 +1,327 @@
+.panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: clamp(2.5rem, 5vw, 4.5rem) clamp(1.5rem, 4vw, 3.5rem);
+  background-color: var(--surface-dark);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.plusGrid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M16 12.5v7M12.5 16h7' stroke='rgba(255,255,255,0.13)' stroke-width='1' stroke-linecap='square'/%3E%3C/svg%3E");
+  background-size: 32px 32px;
+  mask-image: radial-gradient(
+    circle at 50% 48%,
+    rgba(0, 0, 0, 0.92) 32%,
+    rgba(0, 0, 0, 0.38) 78%,
+    rgba(0, 0, 0, 0.14) 100%
+  );
+}
+
+.ambientGlow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.032) 0%,
+    rgba(255, 255, 255, 0.008) 38%,
+    transparent 68%
+  );
+}
+
+.stage {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 100%;
+}
+
+.logoStage {
+  grid-area: 1 / 1;
+  position: relative;
+  z-index: 2;
+  width: clamp(320px, 40vw, 560px);
+  max-width: 100%;
+  aspect-ratio: 684 / 302;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+.logoImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.45));
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.logoGlitchLayer {
+  position: absolute;
+  inset: 0;
+  background-image: url("/brand/logo-midia-light.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.logoGlitchLayerA {
+  filter: drop-shadow(-3px 0 0 rgba(125, 232, 218, 0.55));
+}
+
+.logoGlitchLayerB {
+  filter: drop-shadow(3px 0 0 rgba(240, 118, 108, 0.45));
+}
+
+.blobStage {
+  grid-area: 1 / 1;
+  position: relative;
+  z-index: 1;
+  width: clamp(320px, 38vw, 520px);
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.blobFallback {
+  position: absolute;
+  inset: 12.5%;
+  border-radius: 54% 46% 52% 48% / 47% 53% 47% 53%;
+  background: radial-gradient(
+    circle at 36% 32%,
+    #2b2f2a 0%,
+    #1d201c 34%,
+    #121411 72%,
+    #0b0d0a 100%
+  );
+  box-shadow:
+    inset 1px 1px 2px rgba(255, 255, 255, 0.06),
+    0 24px 64px rgba(0, 0, 0, 0.72);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.blobCanvas {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.glitchOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.glitchBar {
+  position: absolute;
+  left: -4%;
+  right: -4%;
+  opacity: 0;
+  transform: translate3d(0, 0, 0);
+}
+
+.glitchBarOne {
+  top: 23%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.14) 24%,
+    rgba(130, 230, 215, 0.12) 55%,
+    transparent 94%
+  );
+}
+
+.glitchBarTwo {
+  top: 47%;
+  height: 6px;
+  background: linear-gradient(
+    90deg,
+    transparent 8%,
+    rgba(255, 255, 255, 0.08) 42%,
+    rgba(255, 255, 255, 0.03) 76%,
+    transparent 100%
+  );
+}
+
+.glitchBarThree {
+  top: 66%;
+  height: 1.5px;
+  background: linear-gradient(
+    90deg,
+    transparent 5%,
+    rgba(235, 130, 120, 0.11) 35%,
+    rgba(255, 255, 255, 0.13) 68%,
+    transparent 96%
+  );
+}
+
+.glitchBarFour {
+  top: 81%;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 14%,
+    rgba(255, 255, 255, 0.07) 52%,
+    transparent 88%
+  );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .logoStageGlitch {
+    animation: logoJitter 220ms steps(2, end);
+  }
+
+  .logoGlitchActiveA {
+    animation: logoSliceA 220ms steps(3, end);
+  }
+
+  .logoGlitchActiveB {
+    animation: logoSliceB 220ms steps(3, end);
+  }
+
+  .glitchOverlayActive {
+    opacity: 1;
+  }
+
+  .glitchOverlayActive .glitchBarOne {
+    animation: barSweepA 210ms steps(3, end);
+  }
+
+  .glitchOverlayActive .glitchBarTwo {
+    animation: barSweepB 230ms steps(2, end);
+  }
+
+  .glitchOverlayActive .glitchBarThree {
+    animation: barSweepA 190ms steps(3, end) reverse;
+  }
+
+  .glitchOverlayActive .glitchBarFour {
+    animation: barSweepB 200ms steps(2, end);
+  }
+}
+
+@keyframes logoJitter {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  30% {
+    transform: translate3d(-2px, 0.5px, 0);
+  }
+  65% {
+    transform: translate3d(2px, -0.5px, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes logoSliceA {
+  0% {
+    opacity: 0;
+    clip-path: inset(12% 0 64% 0);
+    transform: translate3d(-4px, 0, 0);
+  }
+  35% {
+    opacity: 0.72;
+    clip-path: inset(22% 0 50% 0);
+    transform: translate3d(4px, 0, 0);
+  }
+  70% {
+    opacity: 0.52;
+    clip-path: inset(8% 0 70% 0);
+    transform: translate3d(-3px, 0, 0);
+  }
+  100% {
+    opacity: 0;
+    clip-path: inset(12% 0 64% 0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes logoSliceB {
+  0% {
+    opacity: 0;
+    clip-path: inset(56% 0 18% 0);
+    transform: translate3d(4px, 0, 0);
+  }
+  40% {
+    opacity: 0.65;
+    clip-path: inset(48% 0 24% 0);
+    transform: translate3d(-5px, 0, 0);
+  }
+  75% {
+    opacity: 0.48;
+    clip-path: inset(64% 0 12% 0);
+    transform: translate3d(3px, 0, 0);
+  }
+  100% {
+    opacity: 0;
+    clip-path: inset(56% 0 18% 0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes barSweepA {
+  0% {
+    opacity: 0.9;
+    transform: translate3d(-1.5%, 0, 0);
+  }
+  50% {
+    opacity: 0.75;
+    transform: translate3d(2%, 4px, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-1%, 0, 0);
+  }
+}
+
+@keyframes barSweepB {
+  0% {
+    opacity: 0.8;
+    transform: translate3d(1.5%, 0, 0);
+  }
+  50% {
+    opacity: 0.55;
+    transform: translate3d(-2%, -3px, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (max-width: 959px) {
+  .panel {
+    min-height: 280px;
+    padding: 2.25rem 1.5rem 2rem;
+  }
+
+  .logoStage {
+    width: clamp(245px, 70vw, 380px);
+  }
+
+  .blobStage {
+    width: clamp(220px, 58vw, 300px);
+  }
+}
