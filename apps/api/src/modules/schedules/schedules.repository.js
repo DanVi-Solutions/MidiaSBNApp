@@ -15,6 +15,8 @@ const scheduleSummarySelect = {
   description: true,
   scheduleAt: true,
   published: true,
+  selfSignup: true,
+  volunteersNeeded: true,
   recurringEventId: true,
   department: { select: { id: true, name: true } },
   _count: { select: { credentials: true } },
@@ -47,6 +49,16 @@ function visibilityFilter({ manageableDepartmentIds, memberDepartmentIds }) {
 
 const activeMembershipIn = (departmentId) => ({ departments: { some: { departmentId, pending: false } } });
 
+const availabilityAtSelect = (at, weekday) => ({
+  id: true,
+  name: true,
+  username: true,
+  availabilities: { where: { weekday }, select: { morning: true, afternoon: true, night: true } },
+  unavailabilities: { where: { startAt: { lte: at }, endAt: { gt: at } }, select: { id: true } },
+});
+
+const SCHEDULABLE_STATUSES = ["ACTIVE", "RECOVERING"];
+
 export const schedulesRepository = {
   async list({ visibility, departmentId, from, to }) {
     const rows = await prisma.schedule.findMany({
@@ -63,6 +75,37 @@ export const schedulesRepository = {
 
   async findById(id) {
     return toSchedule(await prisma.schedule.findUnique({ where: { id }, select: scheduleDetailSelect }));
+  },
+
+  async findManyByIds(ids) {
+    const rows = await prisma.schedule.findMany({ where: { id: { in: ids } }, select: scheduleDetailSelect });
+    return rows.map(toSchedule);
+  },
+
+  async listOpenForSignup({ departmentIds, credentialId, from }) {
+    const rows = await prisma.schedule.findMany({
+      where: { departmentId: { in: departmentIds }, published: true, selfSignup: true, scheduleAt: { gt: from } },
+      select: { ...scheduleSummarySelect, credentials: { where: { credentialId }, select: { id: true } } },
+      orderBy: { scheduleAt: "asc" },
+    });
+    return rows.map(({ _count, credentials, ...schedule }) => ({
+      ...schedule,
+      assignedCount: _count.credentials,
+      signedUp: credentials.length > 0,
+    }));
+  },
+
+  async signUp(scheduleId, credentialId) {
+    return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "schedule" WHERE id = ${scheduleId}::uuid FOR UPDATE`;
+      const schedule = await tx.schedule.findUnique({
+        where: { id: scheduleId },
+        select: { volunteersNeeded: true, _count: { select: { credentials: true } } },
+      });
+      if (schedule._count.credentials >= schedule.volunteersNeeded) return false;
+      await tx.credentialSchedule.create({ data: { scheduleId, credentialId } });
+      return true;
+    });
   },
 
   async create(data) {
@@ -113,16 +156,38 @@ export const schedulesRepository = {
     return count === 1;
   },
 
+  schedulableMembersAt(departmentId, { at, weekday }) {
+    return prisma.credential.findMany({
+      where: { status: { in: SCHEDULABLE_STATUSES }, ...activeMembershipIn(departmentId) },
+      select: availabilityAtSelect(at, weekday),
+    });
+  },
+
+  findAssignmentsOf(credentialIds, { from, to }) {
+    return prisma.credentialSchedule.findMany({
+      where: { credentialId: { in: credentialIds }, schedule: { scheduleAt: { gte: from, lt: to } } },
+      select: { credentialId: true, schedule: { select: { scheduleAt: true } } },
+    });
+  },
+
+  async countUpcomingAssignments(credentialIds, from) {
+    const groups = await prisma.credentialSchedule.groupBy({
+      by: ["credentialId"],
+      where: { credentialId: { in: credentialIds }, schedule: { scheduleAt: { gte: from } } },
+      _count: { _all: true },
+    });
+    return new Map(groups.map((group) => [group.credentialId, group._count._all]));
+  },
+
+  async addAssignments(assignments) {
+    const { count } = await prisma.credentialSchedule.createMany({ data: assignments, skipDuplicates: true });
+    return count;
+  },
+
   membersWithAvailabilityAt(departmentId, { at, weekday }) {
     return prisma.credential.findMany({
       where: { status: { not: "INACTIVE" }, ...activeMembershipIn(departmentId) },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        availabilities: { where: { weekday }, select: { morning: true, afternoon: true, night: true } },
-        unavailabilities: { where: { startAt: { lte: at }, endAt: { gt: at } }, select: { id: true } },
-      },
+      select: availabilityAtSelect(at, weekday),
       orderBy: { name: "asc" },
     });
   },

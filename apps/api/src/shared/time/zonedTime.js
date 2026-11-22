@@ -9,6 +9,8 @@ const toZoned = (date) => Temporal.Instant.fromEpochMilliseconds(date.getTime())
 
 const weekdayOfZoned = (zoned) => WEEKDAYS[zoned.dayOfWeek % 7];
 
+export const localDateOf = (date) => toZoned(date).toPlainDate().toString();
+
 export function weekdayAndPeriodOf(date) {
   const zoned = toZoned(date);
   const period = zoned.hour < NOON ? "morning" : zoned.hour < EVENING ? "afternoon" : "night";

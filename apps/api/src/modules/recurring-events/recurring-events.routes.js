@@ -79,6 +79,10 @@ r.post(
       "As escalas nascem **não publicadas** e sem pessoas. Pode ser chamado de novo sem duplicar: escalas que já " +
         "existem no mesmo ministério e horário são contadas em `skipped`.",
       "",
+      "**Inscrição voluntária:** o evento não define isso; quem decide é quem gera as escalas. Envie " +
+        "`selfSignup: true` e `volunteersNeeded` para que as escalas geradas fiquem abertas para os membros se " +
+        "inscreverem. Sem isso, as escalas são comuns (preenchidas manualmente ou pela distribuição automática).",
+      "",
       "**Quem pode:** o administrador, ou scheduler manager ou acima, apenas para ministérios dos quais participa.",
     ),
     params: idParams,

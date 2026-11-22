@@ -14,6 +14,24 @@ export function createSchedulesController(service = schedulesService) {
       res.json(await service.listMine(req.auth, req.validated.query));
     },
 
+    async listOpen(req, res) {
+      res.json(await service.listOpen(req.auth));
+    },
+
+    async signUp(req, res) {
+      res.status(201).json(await service.signUp(req.auth, req.validated.params.id));
+    },
+
+    async withdraw(req, res) {
+      await service.withdraw(req.auth, req.validated.params.id);
+      res.status(204).end();
+    },
+
+    async autoAssign(req, res) {
+      const result = await service.autoAssign(req.auth, req.validated.body);
+      res.status(result.dryRun ? 200 : 201).json(result);
+    },
+
     async getById(req, res) {
       res.json(await service.getById(req.auth, req.validated.params.id));
     },

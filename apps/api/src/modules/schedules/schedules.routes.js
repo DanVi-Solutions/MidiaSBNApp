@@ -4,6 +4,7 @@ import { createSchedulesController } from "./schedules.controller.js";
 import * as res from "./schedules.responses.js";
 import {
   assignBody,
+  autoAssignBody,
   assignmentParams,
   createBody,
   idParams,
@@ -30,6 +31,13 @@ export const schedulesRouter = createDocumentedRouter({
       "ministério. Ao publicar (`PATCH` com `published: true`), os membros do ministério passam a vê-la.",
     "",
     "Cada ministério só pode ter uma escala por dia e horário.",
+    "",
+    "## Formas de preencher uma escala",
+    "- **Manual:** o gestor escala cada pessoa (`POST /schedules/{id}/credentials`).",
+    "- **Distribuição automática:** o gestor seleciona várias escalas e a quantidade de pessoas de cada uma " +
+      "(`POST /schedules/auto-assign`).",
+    "- **Inscrição voluntária** (`selfSignup: true`): os próprios membros se inscrevem até completar " +
+      "`volunteersNeeded` (`POST /schedules/{id}/sign-up`). Essas escalas não entram na distribuição automática.",
     "",
     "## Período liberado",
     "Escalas só podem ser criadas, editadas, excluídas ou ter pessoas alteradas dentro de uma janela:",
@@ -97,6 +105,21 @@ r.get(
 );
 
 r.get(
+  "/open",
+  {
+    summary: "Escalas abertas para inscrição",
+    description: markdown(
+      "Lista as escalas de **inscrição voluntária** publicadas e futuras dos ministérios da pessoa logada, com as " +
+        "vagas restantes (`freeSlots`) e se ela já está inscrita (`signedUp`).",
+      "",
+      "**Quem pode:** qualquer pessoa com a conta ativa.",
+    ),
+    responses: { 200: res.openSchedules },
+  },
+  controller.listOpen,
+);
+
+r.get(
   "/:id",
   {
     summary: "Detalhar uma escala",
@@ -140,12 +163,70 @@ r.post(
       "Cria uma escala avulsa, como rascunho e sem pessoas. Para gerar as escalas do mês a partir de um modelo, " +
         "use `POST /recurring-events/{id}/apply`.",
       "",
+      "Para uma escala de inscrição voluntária, envie `selfSignup: true` e `volunteersNeeded`.",
+      "",
       manageRule,
     ),
     body: createBody,
     responses: { 201: res.schedule, 409: { description: "O ministério já tem uma escala neste dia e horário" } },
   },
   controller.create,
+);
+
+r.post(
+  "/auto-assign",
+  {
+    summary: "Distribuição automática de pessoas nas escalas",
+    description: markdown(
+      "Preenche as escalas selecionadas com membros do ministério de cada uma, até a quantidade pedida em " +
+        "`volunteers` (quem já está escalado conta). Envie `dryRun: true` para ver a proposta sem salvar.",
+      "",
+      "**Regras obrigatórias** — só entra quem:",
+      "- participa do ministério da escala e tem a conta ativa (ou em recuperação);",
+      "- marcou disponibilidade no dia da semana e período (manhã/tarde/noite) da escala;",
+      "- não registrou ausência que cubra o horário;",
+      "- não está em outra escala no mesmo horário.",
+      "",
+      "**Critérios de preferência:**",
+      "1. evitar a mesma pessoa mais de uma vez no mesmo dia (contando escalas que ela já tem) — ainda pode " +
+        "acontecer se não houver alternativa, e vem marcado em `sameDayConflict`;",
+      "2. distribuir a carga: quem tem menos escalas pela frente tem prioridade;",
+      "3. empates são sorteados.",
+      "",
+      "As escalas com menos pessoas disponíveis são preenchidas primeiro. Vagas sem candidatos aparecem em `missing`.",
+      "",
+      "Não aceita escalas de inscrição voluntária, nem escalas fora do período liberado.",
+      "",
+      "**Quem pode:** o administrador, ou scheduler manager ou acima, em escalas dos ministérios dos quais participa.",
+    ),
+    body: autoAssignBody,
+    responses: {
+      200: { description: "Prévia (`dryRun: true`), nada foi salvo", schema: res.distribution },
+      201: { description: "Distribuição salva", schema: res.distribution },
+      422: { description: "Escala de inscrição voluntária, fora do período liberado ou dados inválidos" },
+    },
+  },
+  controller.autoAssign,
+);
+
+r.post(
+  "/:id/sign-up",
+  {
+    summary: "Inscrever-me numa escala",
+    description: markdown(
+      "A pessoa logada entra numa escala de **inscrição voluntária**, se ainda houver vaga. Vagas são disputadas: " +
+        "se duas pessoas se inscreverem ao mesmo tempo na última vaga, só uma consegue.",
+      "",
+      "**Quem pode:** membros do ministério da escala, com a conta ativa, enquanto a escala estiver publicada e " +
+        "não tiver começado.",
+    ),
+    params: idParams,
+    responses: {
+      201: res.schedule,
+      409: { description: "Escala completa, não aceita inscrições, já começou, ou você já está nela" },
+    },
+  },
+  controller.signUp,
 );
 
 r.post(
@@ -198,6 +279,22 @@ r.delete(
     responses: { 204: null },
   },
   controller.delete,
+);
+
+r.delete(
+  "/:id/sign-up",
+  {
+    summary: "Cancelar minha inscrição numa escala",
+    description: markdown(
+      "Sai de uma escala de inscrição voluntária, liberando a vaga. Para escalas definidas pelos gestores, use a " +
+        "troca de escala (`POST /change-requests`).",
+      "",
+      "**Quem pode:** a própria pessoa, antes de a escala começar.",
+    ),
+    params: idParams,
+    responses: { 204: null, 409: { description: "A escala não é de inscrição voluntária ou já começou" } },
+  },
+  controller.withdraw,
 );
 
 r.delete(

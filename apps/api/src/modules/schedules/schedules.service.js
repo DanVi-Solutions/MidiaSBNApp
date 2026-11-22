@@ -8,8 +8,9 @@ import { isAdmin } from "../../shared/auth/roles.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { isUniqueViolationOn } from "../../shared/errors/prismaErrors.js";
 import { assertInsideWindow, scheduleWindow } from "../../shared/time/scheduleWindow.js";
-import { weekdayAndPeriodOf } from "../../shared/time/zonedTime.js";
+import { localDateOf, weekdayAndPeriodOf } from "../../shared/time/zonedTime.js";
 import { departmentsRepository } from "../departments/departments.repository.js";
+import { distribute } from "./schedules.distribution.js";
 import { schedulesRepository } from "./schedules.repository.js";
 
 const SAME_TIME_CONFLICT = "Este ministério já tem uma escala neste dia e horário";
@@ -18,6 +19,17 @@ function assessAvailability(member, period) {
   const hasWeeklyAvailability = member.availabilities.some((day) => day[period]);
   const isUnavailable = member.unavailabilities.length > 0;
   return { hasWeeklyAvailability, isUnavailable, available: hasWeeklyAvailability && !isUnavailable };
+}
+
+const ONE_DAY = 24 * 60 * 60 * 1000;
+
+const isAvailableAt = (member, period) =>
+  member.unavailabilities.length === 0 && member.availabilities.some((day) => day[period]);
+
+function ensureVolunteersNeededWhenSelfSignup({ selfSignup, volunteersNeeded }) {
+  if (selfSignup && !volunteersNeeded) {
+    throw AppError.unprocessable("Escalas de inscrição voluntária precisam de volunteersNeeded");
+  }
 }
 
 const byAvailabilityThenName = (a, b) => Number(b.available) - Number(a.available) || a.credential.name.localeCompare(b.credential.name);
@@ -48,6 +60,69 @@ export function createSchedulesService({ repository = schedulesRepository, depar
       if (isUniqueViolationOn(error, "schedule_department_id_schedule_at")) throw AppError.conflict(SAME_TIME_CONFLICT);
       throw error;
     }
+  }
+
+  async function findSelfSignupSchedule(auth, id) {
+    const schedule = await findSchedule(id);
+    if (!participatesIn(auth, schedule.department.id) || !schedule.published) {
+      throw AppError.notFound("Escala não encontrada");
+    }
+    if (!schedule.selfSignup) {
+      throw AppError.conflict("Esta escala não aceita inscrições: as pessoas são definidas pelos gestores");
+    }
+    if (schedule.scheduleAt <= new Date()) throw AppError.conflict("A escala já começou");
+    return schedule;
+  }
+
+  async function loadDistributionSlots(auth, requests) {
+    const schedules = await repository.findManyByIds(requests.map((request) => request.scheduleId));
+    if (schedules.length !== requests.length) throw AppError.notFound("Uma ou mais escalas não existem");
+
+    const requested = new Map(requests.map((request) => [request.scheduleId, request.volunteers]));
+
+    return Promise.all(
+      schedules.map(async (schedule) => {
+        assertCanManageSchedulesOf(auth, schedule.department.id);
+        assertInsideWindow(schedule.scheduleAt);
+        if (schedule.selfSignup) {
+          throw AppError.unprocessable(`A escala "${schedule.name}" é de inscrição voluntária e não entra na distribuição`);
+        }
+
+        const { weekday, period } = weekdayAndPeriodOf(schedule.scheduleAt);
+        const members = await repository.schedulableMembersAt(schedule.department.id, {
+          at: schedule.scheduleAt,
+          weekday,
+        });
+        const assignedIds = new Set(schedule.assignments.map((assignment) => assignment.credential.id));
+        const candidates = members
+          .filter((member) => !assignedIds.has(member.id) && isAvailableAt(member, period))
+          .map(({ availabilities, unavailabilities, ...credential }) => credential);
+
+        return {
+          schedule,
+          scheduleId: schedule.id,
+          scheduleAt: schedule.scheduleAt,
+          requested: requested.get(schedule.id),
+          alreadyAssigned: schedule.assignments.length,
+          needed: Math.max(0, requested.get(schedule.id) - schedule.assignments.length),
+          candidates,
+        };
+      }),
+    );
+  }
+
+  async function loadCommitments(slots) {
+    const candidateIds = [...new Set(slots.flatMap((slot) => slot.candidates.map((candidate) => candidate.id)))];
+    const times = slots.map((slot) => slot.scheduleAt.getTime());
+    const [assignments, upcomingLoad] = await Promise.all([
+      repository.findAssignmentsOf(candidateIds, {
+        from: new Date(Math.min(...times) - ONE_DAY),
+        to: new Date(Math.max(...times) + ONE_DAY),
+      }),
+      repository.countUpcomingAssignments(candidateIds, new Date()),
+    ]);
+    const existingAssignments = assignments.map((a) => ({ credentialId: a.credentialId, scheduleAt: a.schedule.scheduleAt }));
+    return { existingAssignments, upcomingLoad };
   }
 
   async function availabilityAt(schedule) {
@@ -82,6 +157,67 @@ export function createSchedulesService({ repository = schedulesRepository, depar
       return repository.listAssignmentsOf(auth.id, { from });
     },
 
+    async listOpen(auth) {
+      const schedules = await repository.listOpenForSignup({
+        departmentIds: auth.departmentIds,
+        credentialId: auth.id,
+        from: new Date(),
+      });
+      return schedules.map((schedule) => ({
+        ...schedule,
+        freeSlots: Math.max(0, schedule.volunteersNeeded - schedule.assignedCount),
+      }));
+    },
+
+    async signUp(auth, id) {
+      await findSelfSignupSchedule(auth, id);
+      try {
+        if (!(await repository.signUp(id, auth.id))) throw AppError.conflict("A escala já está completa");
+      } catch (error) {
+        if (isUniqueViolationOn(error, "credential_schedule")) throw AppError.conflict("Você já está nesta escala");
+        throw error;
+      }
+      return repository.findById(id);
+    },
+
+    async withdraw(auth, id) {
+      await findSelfSignupSchedule(auth, id);
+      if (!(await repository.removeAssignment(id, auth.id))) throw AppError.notFound("Você não está nesta escala");
+    },
+
+    async autoAssign(auth, { schedules: requests, dryRun }) {
+      const slots = await loadDistributionSlots(auth, requests);
+      const picksBySlot = distribute(slots, await loadCommitments(slots));
+
+      if (!dryRun) {
+        await repository.addAssignments(
+          slots.flatMap((slot) =>
+            picksBySlot.get(slot.scheduleId).map((pick) => ({ scheduleId: slot.scheduleId, credentialId: pick.credential.id })),
+          ),
+        );
+      }
+
+      const results = requests.map(({ scheduleId }) => {
+        const slot = slots.find((each) => each.scheduleId === scheduleId);
+        const assigned = picksBySlot.get(scheduleId);
+        const { id, name, scheduleAt, department } = slot.schedule;
+        return {
+          schedule: { id, name, scheduleAt, department, day: localDateOf(scheduleAt) },
+          requested: slot.requested,
+          alreadyAssigned: slot.alreadyAssigned,
+          assigned,
+          missing: slot.needed - assigned.length,
+        };
+      });
+
+      return {
+        dryRun,
+        assignedTotal: results.reduce((total, result) => total + result.assigned.length, 0),
+        missingTotal: results.reduce((total, result) => total + result.missing, 0),
+        schedules: results,
+      };
+    },
+
     async getById(auth, id) {
       const schedule = await findSchedule(id);
       if (canManageSchedulesOf(auth, schedule.department.id)) return schedule;
@@ -100,12 +236,17 @@ export function createSchedulesService({ repository = schedulesRepository, depar
       if (!(await departments.findById(data.departmentId))) throw AppError.notFound("Ministério não encontrado");
       assertCanManageSchedulesOf(auth, data.departmentId);
       assertInsideWindow(data.scheduleAt);
+      ensureVolunteersNeededWhenSelfSignup(data);
       return translateSameTimeConflict(() => repository.create(data));
     },
 
     async update(auth, id, changes) {
-      await findEditableSchedule(auth, id);
+      const current = await findEditableSchedule(auth, id);
       if (changes.scheduleAt) assertInsideWindow(changes.scheduleAt);
+      ensureVolunteersNeededWhenSelfSignup({
+        selfSignup: changes.selfSignup ?? current.selfSignup,
+        volunteersNeeded: changes.volunteersNeeded === undefined ? current.volunteersNeeded : changes.volunteersNeeded,
+      });
       return translateSameTimeConflict(() => repository.update(id, changes));
     },
 
@@ -129,11 +270,14 @@ export function createSchedulesService({ repository = schedulesRepository, depar
       }
 
       const assessment = (await availabilityAt(schedule)).find(({ credential }) => credential.id === credentialId);
+      const updated = await repository.findById(id);
+      const overCapacity = updated.volunteersNeeded && updated.assignedCount > updated.volunteersNeeded;
       const warnings = [
         ...(assessment.hasWeeklyAvailability ? [] : ["NO_WEEKLY_AVAILABILITY"]),
         ...(assessment.isUnavailable ? ["UNAVAILABLE"] : []),
+        ...(overCapacity ? ["OVER_CAPACITY"] : []),
       ];
-      return { schedule: await repository.findById(id), warnings };
+      return { schedule: updated, warnings };
     },
 
     async unassign(auth, id, credentialId) {

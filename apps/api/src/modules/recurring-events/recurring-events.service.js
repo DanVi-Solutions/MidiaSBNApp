@@ -64,7 +64,7 @@ export function createRecurringEventsService({
       await repository.delete(id);
     },
 
-    async apply(auth, id, { month, departmentIds }) {
+    async apply(auth, id, { month, departmentIds, selfSignup, volunteersNeeded = null }) {
       const event = await findEvent(id);
       assertCanSeeEvent(auth, event);
 
@@ -83,6 +83,8 @@ export function createRecurringEventsService({
           scheduleAt,
           departmentId,
           recurringEventId: event.id,
+          selfSignup,
+          volunteersNeeded,
         })),
       );
 

@@ -12,6 +12,8 @@ const scheduleBase = z.object({
   description: z.string().nullable(),
   scheduleAt: z.iso.datetime(),
   published: z.boolean().meta({ description: "`false` = rascunho, visível só para quem gerencia as escalas." }),
+  selfSignup: z.boolean().meta({ description: "`true` = os próprios membros do ministério se inscrevem." }),
+  volunteersNeeded: z.number().int().nullable().meta({ description: "Quantidade de pessoas que a escala precisa." }),
   recurringEventId: z.uuid().nullable().meta({ description: "Evento recorrente que gerou a escala, se houver." }),
   department,
   assignedCount: z.number().int().meta({ description: "Quantidade de pessoas escaladas." }),
@@ -53,10 +55,11 @@ export const schedule = scheduleBase.extend({
 
 export const assigned = z.object({
   schedule,
-  warnings: z.array(z.enum(["NO_WEEKLY_AVAILABILITY", "UNAVAILABLE"])).meta({
+  warnings: z.array(z.enum(["NO_WEEKLY_AVAILABILITY", "UNAVAILABLE", "OVER_CAPACITY"])).meta({
     description:
       "Avisos sobre a pessoa escalada: NO_WEEKLY_AVAILABILITY (não marcou disponibilidade neste dia e período), " +
-      "UNAVAILABLE (registrou uma ausência neste horário). A escalação é feita mesmo assim.",
+      "UNAVAILABLE (registrou uma ausência neste horário), OVER_CAPACITY (a escala passou de `volunteersNeeded`). " +
+      "A escalação é feita mesmo assim.",
   }),
 });
 
@@ -83,3 +86,40 @@ export const candidates = z.array(
     available: z.boolean().meta({ description: "Resumo: disponível e sem ausência registrada." }),
   }),
 );
+
+export const openSchedules = z.array(
+  scheduleBase.extend({
+    freeSlots: z.number().int().meta({ description: "Vagas restantes." }),
+    signedUp: z.boolean().meta({ description: "`true` se a pessoa logada já está inscrita." }),
+  }),
+);
+
+export const distribution = z.object({
+  dryRun: z.boolean(),
+  assignedTotal: z.number().int().meta({ description: "Total de pessoas escaladas (ou que seriam, em `dryRun`)." }),
+  missingTotal: z.number().int().meta({ description: "Total de vagas que não puderam ser preenchidas." }),
+  schedules: z.array(
+    z.object({
+      schedule: z.object({
+        id: z.uuid(),
+        name: z.string(),
+        scheduleAt: z.iso.datetime(),
+        day: z.string().meta({ description: "Data local da escala.", example: "2026-12-06" }),
+        department,
+      }),
+      requested: z.number().int().meta({ description: "Quantidade total desejada." }),
+      alreadyAssigned: z.number().int().meta({ description: "Pessoas que já estavam na escala antes da distribuição." }),
+      assigned: z.array(
+        z.object({
+          credential: person,
+          sameDayConflict: z.boolean().meta({
+            description: "`true` se a pessoa ficou com mais de uma escala no mesmo dia (evitado ao máximo).",
+          }),
+        }),
+      ),
+      missing: z.number().int().meta({
+        description: "Vagas não preenchidas por falta de pessoas disponíveis no ministério.",
+      }),
+    }),
+  ),
+});

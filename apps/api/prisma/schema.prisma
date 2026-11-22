@@ -112,6 +112,8 @@ model Schedule {
   published        Boolean  @default(false)
   description      String?  @db.VarChar(255)
   recurringEventId String?  @map("recurring_event_id") @db.Uuid
+  selfSignup       Boolean  @default(false) @map("self_signup")
+  volunteersNeeded Int?     @map("volunteers_needed") @db.SmallInt
 
   credentials CredentialSchedule[]
 
