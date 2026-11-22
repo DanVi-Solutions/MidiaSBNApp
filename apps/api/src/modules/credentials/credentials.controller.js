@@ -1,3 +1,4 @@
+import { userAgentOf } from "../../shared/http/userAgent.js";
 import { credentialsService } from "./credentials.service.js";
 
 export function createCredentialsController(service = credentialsService) {
@@ -10,6 +11,10 @@ export function createCredentialsController(service = credentialsService) {
       res.json(await service.firstAccess(req.auth, req.validated.body));
     },
 
+    async completeRecovery(req, res) {
+      res.json(await service.completeRecovery(req.auth));
+    },
+
     async updateMe(req, res) {
       res.json(await service.updateMe(req.auth, req.validated.body));
     },
@@ -20,10 +25,6 @@ export function createCredentialsController(service = credentialsService) {
 
     async list(req, res) {
       res.json(await service.list(req.auth));
-    },
-
-    async listByDepartment(req, res) {
-      res.json(await service.listByDepartment(req.auth, req.validated.params.departmentId));
     },
 
     async create(req, res) {
@@ -44,7 +45,8 @@ export function createCredentialsController(service = credentialsService) {
     },
 
     async regenerateCredentialNumber(req, res) {
-      res.json(await service.regenerateCredentialNumber(req.auth, req.validated.params.id));
+      const { id } = req.validated.params;
+      res.json(await service.regenerateCredentialNumber(req.auth, id, { userAgent: userAgentOf(req) }));
     },
 
     async changeRole(req, res) {

@@ -9,9 +9,9 @@ export function ensureNotInactive(credential) {
 
 export const toStoredRefreshToken = ({ tokenHash, expiresAt }) => ({ tokenHash, expiresAt });
 
-export async function buildSession(credential, refresh) {
+export async function buildSession(credential, refresh, sessionId) {
   return {
-    accessToken: await signAccessToken(credential.id),
+    accessToken: await signAccessToken(credential.id, sessionId),
     refreshToken: refresh.token,
     refreshTokenExpiresAt: refresh.expiresAt,
     credential,

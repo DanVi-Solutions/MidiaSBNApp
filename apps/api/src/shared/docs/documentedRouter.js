@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { authenticate, requireStatus } from "../middlewares/authenticate.js";
 import { validate } from "../middlewares/validate.js";
-import { registerOperation } from "./openapi.js";
+import { registerOperation, registerTag } from "./openapi.js";
 
-export function createDocumentedRouter({ prefix, tag }) {
+export function createDocumentedRouter({ prefix, tag, tagDescription }) {
   const router = Router();
+  registerTag(tag, tagDescription);
 
   const register = (method) => (path, options, ...handlers) => {
     const { auth = true, statuses = ["ACTIVE"], params, query, body, before = [] } = options;

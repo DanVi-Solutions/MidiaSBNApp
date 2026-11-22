@@ -1,11 +1,11 @@
 import { createDocumentedRouter } from "../../shared/docs/documentedRouter.js";
+import { markdown } from "../../shared/docs/markdown.js";
 import { createCredentialsController } from "./credentials.controller.js";
 import * as res from "./credentials.responses.js";
 import {
   changeRoleBody,
   changeStatusBody,
   createBody,
-  departmentIdParams,
   firstAccessBody,
   idParams,
   setDepartmentsBody,
@@ -17,14 +17,40 @@ import {
 
 const controller = createCredentialsController();
 
-export const credentialsRouter = createDocumentedRouter({ prefix: "/credentials", tag: "Credentials" });
+const managesTarget =
+  "papel abaixo do seu e participa de ao menos um ministério (`department`) em comum com você";
+
+export const credentialsRouter = createDocumentedRouter({
+  prefix: "/credentials",
+  tag: "Credentials",
+  tagDescription: markdown(
+    "**Credenciais**: as contas das pessoas (voluntários e gestores).",
+    "",
+    "**Ciclo de vida do código de acesso:**",
+    "1. O gestor cria a credencial → recebe o código e o envia à pessoa (status `PENDING`).",
+    "2. A pessoa entra e faz o primeiro acesso → recebe um código **novo**, que passa a ser guardado " +
+      "criptografado (status `ACTIVE`).",
+    "3. Se a pessoa esquecer o código, um gestor gera outro e envia (status `RECOVERING`).",
+    "4. A pessoa entra com ele e conclui a recuperação → recebe um código **novo**, criptografado (status `ACTIVE`).",
+    "",
+    "Código criptografado não pode ser consultado por ninguém: ele só aparece na resposta que o gerou.",
+  ),
+});
 const r = credentialsRouter;
 
 r.get(
   "/",
   {
-    summary: "Obter todas as credenciais",
-    description: "Administrador: todas. Scheduler manager ou acima: as dos departamentos dos quais participa.",
+    summary: "Listar credenciais",
+    description: markdown(
+      "Retorna as pessoas visíveis para quem está logado, em ordem alfabética. Nunca inclui o código de acesso.",
+      "",
+      "**Quem pode e o que vê:**",
+      "- administrador: todas as pessoas;",
+      "- scheduler manager ou acima: as pessoas dos ministérios dos quais participa.",
+      "",
+      "Para listar os membros de um único ministério, use `GET /departments/{id}/credentials`.",
+    ),
     responses: { 200: res.credentialList },
   },
   controller.list,
@@ -33,10 +59,17 @@ r.get(
 r.get(
   "/me",
   {
-    summary: "Dados da própria credencial",
-    description: "Único endpoint de leitura que retorna o código da credencial.",
+    summary: "Meus dados",
+    description: markdown(
+      "Retorna a conta da pessoa logada, com papel, situação e ministérios.",
+      "",
+      "`credentialNumber` vem preenchido apenas enquanto a conta está `PENDING` ou `RECOVERING` (o código ainda " +
+        "não foi criptografado). Com a conta `ACTIVE`, vem `null`.",
+      "",
+      "**Quem pode:** qualquer pessoa logada, inclusive com o primeiro acesso ou a recuperação pendentes.",
+    ),
     statuses: null,
-    responses: { 200: res.credentialWithNumber },
+    responses: { 200: res.credentialWithOptionalNumber },
   },
   controller.getMe,
 );
@@ -44,7 +77,13 @@ r.get(
 r.get(
   "/username-availability",
   {
-    summary: "Verificar se um username está disponível",
+    summary: "Verificar se um username está livre",
+    description: markdown(
+      "Use na tela de primeiro acesso ou de edição de perfil, antes de enviar o formulário. O username da " +
+        "própria pessoa conta como livre.",
+      "",
+      "**Quem pode:** qualquer pessoa logada.",
+    ),
     statuses: null,
     query: usernameQuery,
     responses: { 200: res.usernameAvailability },
@@ -55,30 +94,37 @@ r.get(
 r.get(
   "/transfers",
   {
-    summary: "Transferências aguardando minha aprovação",
-    description: "General manager: pedidos para os seus departamentos. Administrador: todos.",
+    summary: "Listar trocas de ministério aguardando minha aprovação",
+    description: markdown(
+      "Funciona como a caixa de notificações de transferências: lista os pedidos de troca de ministério que " +
+        "a pessoa logada pode aprovar ou recusar.",
+      "",
+      "**Quem pode e o que vê:**",
+      "- general manager: pedidos cujo ministério de destino é um dos seus;",
+      "- administrador: todos os pedidos.",
+    ),
     responses: { 200: res.transferList },
   },
   controller.listTransfers,
 );
 
 r.get(
-  "/departments/:departmentId",
-  {
-    summary: "Obter as credenciais de um departamento",
-    description: "Administrador: qualquer departamento. Scheduler manager ou acima: apenas os seus.",
-    params: departmentIdParams,
-    responses: { 200: res.credentialList },
-  },
-  controller.listByDepartment,
-);
-
-r.get(
   "/:id",
   {
-    summary: "Detalhar credencial",
+    summary: "Detalhar uma credencial",
+    description: markdown(
+      "Retorna os dados da pessoa, seus ministérios e o pedido de troca de ministério pendente, se houver.",
+      "",
+      "Para department manager ou acima que gerencia a pessoa, inclui `credentialNumber` enquanto a conta está " +
+        "`PENDING` ou `RECOVERING` — assim o gestor pode copiar o código de novo e reenviar.",
+      "",
+      "**Quem pode:**",
+      "- a própria pessoa;",
+      "- o administrador;",
+      "- scheduler manager ou acima que participe de um ministério em comum com a pessoa.",
+    ),
     params: idParams,
-    responses: { 200: res.credential },
+    responses: { 200: res.credentialWithOptionalNumber },
   },
   controller.getById,
 );
@@ -87,11 +133,18 @@ r.post(
   "/",
   {
     summary: "Criar credencial",
-    description:
-      "Gera o código da credencial e cria com status PENDING.\n\n" +
-      "- **Administrador**: qualquer papel (general manager com 1+ departamentos, administrador sem departamento, demais com 1).\n" +
-      "- **General manager**: até general manager, somente nos seus departamentos.\n" +
-      "- **Department manager**: scheduler manager ou voluntário, no seu departamento.",
+    description: markdown(
+      "Cadastra uma pessoa só com o nome, o papel e os ministérios. O sistema gera o código de acesso " +
+        "(`credentialNumber`), que vem na resposta para o gestor enviar à pessoa. A conta nasce `PENDING`.",
+      "",
+      "**Quem pode criar o quê:**",
+      "| Quem cria | Papéis permitidos | Ministérios |",
+      "|---|---|---|",
+      "| Administrador | Todos | Administrador: nenhum. General manager: um ou mais. Demais: exatamente um. |",
+      "| General manager | General manager ou abaixo | Somente ministérios dos quais participa. General manager: um ou mais. Demais: exatamente um. |",
+      "| Department manager | Scheduler manager ou voluntário | Exatamente um, o seu. |",
+      "| Scheduler manager e voluntário | Nenhum | — |",
+    ),
     body: createBody,
     responses: { 201: res.credentialWithNumber },
   },
@@ -101,20 +154,55 @@ r.post(
 r.post(
   "/me/first-access",
   {
-    summary: "Primeiro acesso",
-    description: "Define o username (e opcionalmente corrige o nome). Muda o status de PENDING para ACTIVE.",
+    summary: "Fazer o primeiro acesso",
+    description: markdown(
+      "Primeira coisa que a pessoa faz depois de entrar com o código recebido do gestor:",
+      "1. escolhe o `username` (e pode corrigir o nome);",
+      "2. a conta passa de `PENDING` para `ACTIVE`;",
+      "3. o sistema gera um **código de acesso novo**, que é devolvido nesta resposta e guardado criptografado.",
+      "",
+      "⚠️ Mostre o novo `credentialNumber` para a pessoa copiar: ele **não pode ser consultado depois**. O código " +
+        "antigo deixa de funcionar. A sessão atual continua válida.",
+      "",
+      "**Quem pode:** a própria pessoa, com a conta `PENDING`.",
+    ),
     statuses: ["PENDING"],
     body: firstAccessBody,
-    responses: { 200: res.credential, 409: { description: "Username já está em uso" } },
+    responses: { 200: res.credentialWithNumber, 409: { description: "Username já está em uso" } },
   },
   controller.firstAccess,
 );
 
 r.post(
+  "/me/complete-recovery",
+  {
+    summary: "Concluir a recuperação de acesso",
+    description: markdown(
+      "Para quem perdeu o código e entrou com o código temporário gerado por um gestor (conta `RECOVERING`):",
+      "1. a conta volta para `ACTIVE`;",
+      "2. o sistema gera um **código de acesso novo**, devolvido nesta resposta e guardado criptografado.",
+      "",
+      "⚠️ Mostre o novo `credentialNumber` para a pessoa copiar: ele **não pode ser consultado depois**. O código " +
+        "temporário deixa de funcionar. A sessão atual continua válida.",
+      "",
+      "**Quem pode:** a própria pessoa, com a conta `RECOVERING`.",
+    ),
+    statuses: ["RECOVERING"],
+    responses: { 200: res.credentialWithNumber },
+  },
+  controller.completeRecovery,
+);
+
+r.post(
   "/transfers/:transferId/approve",
   {
-    summary: "Aprovar transferência",
-    description: "Apenas general manager do departamento de destino (ou administrador).",
+    summary: "Aprovar troca de ministério",
+    description: markdown(
+      "Efetiva o pedido: a pessoa sai do ministério de origem e entra no de destino, e o pedido é apagado. " +
+        "A resposta traz a pessoa já no ministério novo.",
+      "",
+      "**Quem pode:** general manager do ministério de destino, ou o administrador.",
+    ),
     params: transferIdParams,
     responses: { 200: res.transferReviewed },
   },
@@ -124,8 +212,12 @@ r.post(
 r.post(
   "/transfers/:transferId/reject",
   {
-    summary: "Recusar transferência",
-    description: "Apenas general manager do departamento de destino (ou administrador).",
+    summary: "Recusar troca de ministério",
+    description: markdown(
+      "Apaga o pedido. A pessoa continua no ministério de origem.",
+      "",
+      "**Quem pode:** general manager do ministério de destino, ou o administrador.",
+    ),
     params: transferIdParams,
     responses: { 200: res.transferReviewed },
   },
@@ -135,12 +227,30 @@ r.post(
 r.post(
   "/:id/credential-number",
   {
-    summary: "Gerar novo código de credencial",
-    description:
-      "O próprio usuário ou department manager+. Apaga todas as sessões; " +
-      "se for o próprio usuário, devolve uma sessão nova.",
+    summary: "Gerar um novo código de acesso",
+    description: markdown(
+      "Gera um código novo e **desconecta a pessoa de todos os dispositivos**. O código anterior deixa de funcionar.",
+      "",
+      "**Gestor gerando para outra pessoa (recuperação de acesso):** use quando a pessoa esqueceu o código. O " +
+        "código novo vem na resposta para o gestor enviar, e a conta passa a `RECOVERING` (ou continua " +
+        "`PENDING`, se ela ainda não fez o primeiro acesso). Enquanto isso, o gestor pode copiá-lo de novo em " +
+        "`GET /credentials/{id}`.",
+      "",
+      "**Pessoa trocando o próprio código:** o código novo já nasce criptografado, e a resposta traz uma sessão " +
+        "nova (`accessToken` e `refreshToken`) para ela continuar logada neste dispositivo.",
+      "",
+      "**Quem pode:**",
+      "- a própria pessoa;",
+      `- department manager ou acima, sobre quem tem ${managesTarget};`,
+      "- o administrador, sobre qualquer pessoa.",
+      "",
+      "Não funciona para contas desativadas: reative a conta, que já gera um código.",
+    ),
     params: idParams,
-    responses: { 200: res.regeneratedNumber },
+    responses: {
+      200: res.regeneratedNumber,
+      409: { description: "Conta desativada" },
+    },
   },
   controller.regenerateCredentialNumber,
 );
@@ -148,16 +258,26 @@ r.post(
 r.post(
   "/:id/transfer",
   {
-    summary: "Transferir de departamento",
-    description:
-      "General manager+. Imediata (200) se o destino também for seu departamento; " +
-      "caso contrário fica pendente (202) até um general manager do destino aprovar.",
+    summary: "Trocar uma pessoa de ministério",
+    description: markdown(
+      "Move a pessoa do ministério `fromDepartmentId` para o `toDepartmentId`.",
+      "",
+      "- **Destino também é um ministério seu:** a troca acontece na hora (200).",
+      "- **Destino é de outro general manager:** vira um pedido (202), que aparece em `GET /credentials/transfers` " +
+        "para os general managers do destino aprovarem ou recusarem. Enquanto isso, a pessoa continua na origem.",
+      "",
+      "Cada pessoa só pode ter um pedido pendente por vez.",
+      "",
+      "**Quem pode:**",
+      `- general manager, sobre quem tem ${managesTarget}, partindo de um ministério seu;`,
+      "- o administrador (a troca é sempre imediata).",
+    ),
     params: idParams,
     body: transferBody,
     responses: {
       200: res.transferCompleted,
-      202: { description: "Aguardando aprovação", schema: res.transferPending },
-      409: { description: "Já existe uma transferência pendente" },
+      202: { description: "Pedido criado, aguardando aprovação", schema: res.transferPending },
+      409: { description: "A pessoa já está no destino ou já tem um pedido pendente" },
     },
   },
   controller.transfer,
@@ -166,8 +286,16 @@ r.post(
 r.put(
   "/:id/departments",
   {
-    summary: "Definir departamentos (administrador)",
-    description: "Substitui todos os departamentos. General manager: 1+; demais: exatamente 1.",
+    summary: "Definir os ministérios de uma pessoa",
+    description: markdown(
+      "Substitui **todos** os ministérios da pessoa pela lista enviada, na hora e sem aprovação. Um pedido de " +
+        "troca pendente é cancelado.",
+      "",
+      "A quantidade precisa respeitar o papel: general manager com um ou mais, administrador com nenhum, demais " +
+        "com exatamente um.",
+      "",
+      "**Quem pode:** apenas o administrador. Gestores usam `POST /credentials/{id}/transfer`.",
+    ),
     params: idParams,
     body: setDepartmentsBody,
     responses: { 200: res.credential },
@@ -178,7 +306,12 @@ r.put(
 r.patch(
   "/me",
   {
-    summary: "Editar o próprio nome e/ou username",
+    summary: "Editar meu nome e/ou username",
+    description: markdown(
+      "Envie apenas os campos que quer mudar.",
+      "",
+      "**Quem pode:** a própria pessoa, com a conta `ACTIVE`.",
+    ),
     body: updateMeBody,
     responses: { 200: res.credential, 409: { description: "Username já está em uso" } },
   },
@@ -188,13 +321,27 @@ r.patch(
 r.patch(
   "/:id/status",
   {
-    summary: "Desativar ou reativar credencial",
-    description:
-      "INACTIVE: o próprio usuário ou general manager+ (encerra todas as sessões). " +
-      "ACTIVE (reativar): apenas general manager+.",
+    summary: "Desativar ou reativar uma conta",
+    description: markdown(
+      "**`INACTIVE` (desativar):** a pessoa não consegue mais entrar e é desconectada de todos os dispositivos. " +
+        "Use no lugar de excluir quando a pessoa já participou de escalas, para preservar o histórico.",
+      "",
+      "**`ACTIVE` (reativar):** só para contas desativadas. Gera um código temporário (na resposta, para o gestor " +
+        "enviar) e deixa a conta `RECOVERING` até a pessoa entrar e concluir a recuperação.",
+      "",
+      "Contas `PENDING` não podem ser desativadas nem reativadas.",
+      "",
+      "**Quem pode:**",
+      "- desativar: a própria pessoa, ou general manager ou acima sobre quem gerencia;",
+      "- reativar: general manager ou acima sobre quem gerencia;",
+      "- o administrador, sobre qualquer pessoa.",
+    ),
     params: idParams,
     body: changeStatusBody,
-    responses: { 200: res.credential, 409: { description: "Status atual não permite a mudança" } },
+    responses: {
+      200: res.credentialWithOptionalNumber,
+      409: { description: "A situação atual da conta não permite a mudança" },
+    },
   },
   controller.changeStatus,
 );
@@ -202,10 +349,20 @@ r.patch(
 r.patch(
   "/:id/role",
   {
-    summary: "Alterar papel",
-    description:
-      "Department manager: até scheduler manager. General manager: até general manager, " +
-      "com departamentos que ele possui. Se `departmentIds` for omitido, mantém os atuais.",
+    summary: "Alterar o papel de uma pessoa",
+    description: markdown(
+      "Promove ou rebaixa a pessoa. Ao mudar para um papel que exige outra quantidade de ministérios (ex.: " +
+        "general manager com vários → voluntário com um), informe `departmentIds`.",
+      "",
+      "**Quem pode atribuir o quê:**",
+      "| Quem altera | Papéis que pode atribuir | Ministérios |",
+      "|---|---|---|",
+      "| Administrador | Todos | Quaisquer |",
+      "| General manager | General manager ou abaixo | Somente os seus |",
+      "| Department manager | Scheduler manager ou voluntário | O seu |",
+      "",
+      `Só vale para quem tem ${managesTarget}. Ninguém altera o próprio papel.`,
+    ),
     params: idParams,
     body: changeRoleBody,
     responses: { 200: res.credential },
@@ -216,12 +373,22 @@ r.patch(
 r.delete(
   "/:id",
   {
-    summary: "Excluir credencial",
-    description: "O próprio usuário ou general manager+ (sobre papéis abaixo do seu, nos seus departamentos).",
+    summary: "Excluir uma conta",
+    description: markdown(
+      "Remove a conta definitivamente, com seus ministérios, sessões e disponibilidades.",
+      "",
+      "Se a pessoa já participou de alguma escala, a exclusão é recusada (409) para preservar o histórico: " +
+        "desative a conta em `PATCH /credentials/{id}/status`.",
+      "",
+      "**Quem pode:**",
+      "- a própria pessoa;",
+      `- general manager ou acima, sobre quem tem ${managesTarget};`,
+      "- o administrador, sobre qualquer pessoa.",
+    ),
     params: idParams,
     responses: {
       204: null,
-      409: { description: "A credencial participa de escalas; desative-a em vez de excluir" },
+      409: { description: "A pessoa participa de escalas; desative a conta em vez de excluir" },
     },
   },
   controller.delete,

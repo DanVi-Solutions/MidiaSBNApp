@@ -8,6 +8,7 @@ const credentialSelect = {
   username: true,
   status: true,
   role: true,
+  credentialNumber: true,
   departments: {
     select: {
       id: true,
@@ -61,6 +62,11 @@ function toTransfer(row) {
 const cancelPendingTransfers = (credentialId) =>
   prisma.credentialDepartment.deleteMany({ where: { credentialId, pending: true } });
 
+const endAllSessions = (credentialId) => prisma.refreshToken.deleteMany({ where: { credentialId } });
+
+const updateCredential = (id, data) =>
+  prisma.credential.update({ where: { id }, data, select: credentialSelect });
+
 export const credentialsRepository = {
   async findAuthById(id) {
     const row = await prisma.credential.findUnique({
@@ -81,12 +87,8 @@ export const credentialsRepository = {
     };
   },
 
-  async findById(id, { withCredentialNumber = false } = {}) {
-    const row = await prisma.credential.findUnique({
-      where: { id },
-      select: { ...credentialSelect, credentialNumber: withCredentialNumber },
-    });
-    return toCredential(row);
+  async findById(id) {
+    return toCredential(await prisma.credential.findUnique({ where: { id }, select: credentialSelect }));
   },
 
   async list({ departmentIds = null } = {}) {
@@ -109,7 +111,7 @@ export const credentialsRepository = {
         status: "PENDING",
         departments: { create: departmentIds.map((departmentId) => ({ departmentId })) },
       },
-      select: { ...credentialSelect, credentialNumber: true },
+      select: credentialSelect,
     });
     return toCredential(row);
   },
@@ -127,32 +129,46 @@ export const credentialsRepository = {
   },
 
   async update(id, data) {
-    const row = await prisma.credential.update({ where: { id }, data, select: credentialSelect });
-    return toCredential(row);
+    return toCredential(await updateCredential(id, data));
   },
 
   async delete(id) {
     await prisma.credential.delete({ where: { id } });
   },
 
-  async setStatus(id, status) {
+  async activateWithHashedNumber(id, credentialNumberHash, data = {}) {
+    const row = await updateCredential(id, {
+      ...data,
+      status: "ACTIVE",
+      credentialNumber: null,
+      credentialNumberHash,
+    });
+    return toCredential(row);
+  },
+
+  async rotateHashedNumber(id, credentialNumberHash, newSession) {
+    const [, , session] = await prisma.$transaction([
+      prisma.credential.update({ where: { id }, data: { credentialNumberHash } }),
+      endAllSessions(id),
+      prisma.refreshToken.create({ data: { credentialId: id, ...newSession }, select: { id: true } }),
+    ]);
+    return session.id;
+  },
+
+  async issueReadableNumber(id, credentialNumber, status) {
     const [row] = await prisma.$transaction([
-      prisma.credential.update({ where: { id }, data: { status }, select: credentialSelect }),
-      ...(status === "INACTIVE"
-        ? [prisma.refreshToken.deleteMany({ where: { credentialId: id } })]
-        : []),
+      updateCredential(id, { status, credentialNumber, credentialNumberHash: null }),
+      endAllSessions(id),
     ]);
     return toCredential(row);
   },
 
-  async replaceCredentialNumber(id, credentialNumber, newRefreshToken) {
-    await prisma.$transaction([
-      prisma.credential.update({ where: { id }, data: { credentialNumber } }),
-      prisma.refreshToken.deleteMany({ where: { credentialId: id } }),
-      ...(newRefreshToken
-        ? [prisma.refreshToken.create({ data: { credentialId: id, ...newRefreshToken } })]
-        : []),
+  async deactivate(id) {
+    const [row] = await prisma.$transaction([
+      updateCredential(id, { status: "INACTIVE", credentialNumber: null }),
+      endAllSessions(id),
     ]);
+    return toCredential(row);
   },
 
   async replaceDepartments(id, departmentIds, role) {
@@ -165,7 +181,6 @@ export const credentialsRepository = {
     ]);
     return this.findById(id);
   },
-
 
   async moveDepartment(credentialId, fromDepartmentId, toDepartmentId) {
     await prisma.$transaction([
@@ -213,16 +228,19 @@ export const credentialsRepository = {
     return rows.map(toTransfer);
   },
 
-  async approveTransfer(transfer) {
-    await prisma.$transaction([
-      prisma.credentialDepartment.deleteMany({
-        where: { credentialId: transfer.credentialId, departmentId: transfer.from.id, pending: false },
-      }),
-      prisma.credentialDepartment.update({
-        where: { id: transfer.id },
-        data: { pending: false, transferFromDepartmentId: null, transferRequestedById: null },
-      }),
-    ]);
+  async approveTransfer({ id, credentialId, from, to }) {
+    await prisma.$transaction(async (tx) => {
+      await tx.credentialDepartment.delete({ where: { id } });
+
+      const moved = await tx.credentialDepartment.updateMany({
+        where: { credentialId, departmentId: from.id, pending: false },
+        data: { departmentId: to.id },
+      });
+
+      if (moved.count === 0) {
+        await tx.credentialDepartment.create({ data: { credentialId, departmentId: to.id } });
+      }
+    });
   },
 
   async rejectTransfer(id) {

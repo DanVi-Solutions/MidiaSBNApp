@@ -1,16 +1,12 @@
+import { hashCredentialNumber } from "../../shared/auth/credentialNumberHash.js";
 import { isAdmin } from "../../shared/auth/roles.js";
 import { generateRefreshToken, signAccessToken } from "../../shared/auth/tokens.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { isPrismaError, isUniqueViolationOn } from "../../shared/errors/prismaErrors.js";
 import { generateCredentialNumber, retryOnCredentialNumberCollision } from "./credential-number.js";
 import * as policy from "./credentials.policy.js";
+import { toPublicCredential, withCredentialNumber } from "./credentials.presenter.js";
 import { credentialsRepository } from "./credentials.repository.js";
-
-function toPublicCredential(credential) {
-  if (!credential) return credential;
-  const { departmentIds, ...publicCredential } = credential;
-  return publicCredential;
-}
 
 const sameSet = (a, b) => a.length === b.length && a.every((id) => b.includes(id));
 
@@ -27,7 +23,7 @@ export function createCredentialsService({
   async function ensureDepartmentsExist(ids) {
     if (ids.length === 0) return;
     if ((await repository.countDepartments(ids)) !== ids.length) {
-      throw AppError.unprocessable("Um ou mais departamentos não existem");
+      throw AppError.unprocessable("Um ou mais ministérios não existem");
     }
   }
 
@@ -46,15 +42,38 @@ export function createCredentialsService({
     }
   }
 
+  function withNewNumber(operation) {
+    return retryOnCredentialNumberCollision(
+      async (credentialNumber) => ({ credentialNumber, result: await operation(credentialNumber) }),
+      generateNumber,
+    );
+  }
+
+  async function activateWithNewHashedNumber(id, data) {
+    const { credentialNumber, result } = await withNewNumber((number) =>
+      repository.activateWithHashedNumber(id, hashCredentialNumber(number), data),
+    );
+    return withCredentialNumber(result, credentialNumber);
+  }
+
+  async function issueNewReadableNumber(id, status) {
+    const { credentialNumber, result } = await withNewNumber((number) =>
+      repository.issueReadableNumber(id, number, status),
+    );
+    return withCredentialNumber(result, credentialNumber);
+  }
+
   return {
     async getMe(auth) {
-      return toPublicCredential(await repository.findById(auth.id, { withCredentialNumber: true }));
+      return withCredentialNumber(await repository.findById(auth.id));
     },
 
     async getById(auth, id) {
       const target = await findTarget(id);
       policy.assertCanView(auth, target);
-      return toPublicCredential(target);
+      return policy.canHandOutCredentialNumber(auth, target)
+        ? withCredentialNumber(target)
+        : toPublicCredential(target);
     },
 
     async list(auth) {
@@ -65,24 +84,14 @@ export function createCredentialsService({
       return credentials.map(toPublicCredential);
     },
 
-    async listByDepartment(auth, departmentId) {
-      if ((await repository.countDepartments([departmentId])) === 0) {
-        throw AppError.notFound("Departamento não encontrado");
-      }
-      policy.assertCanListDepartment(auth, departmentId);
-      const credentials = await repository.list({ departmentIds: [departmentId] });
-      return credentials.map(toPublicCredential);
-    },
-
     async create(auth, { name, role, departmentIds }) {
       policy.assertCanCreate(auth, { role, departmentIds });
       await ensureDepartmentsExist(departmentIds);
 
-      const created = await retryOnCredentialNumberCollision(
-        (credentialNumber) => repository.create({ name, role, credentialNumber, departmentIds }),
-        generateNumber,
+      const { result } = await withNewNumber((credentialNumber) =>
+        repository.create({ name, role, credentialNumber, departmentIds }),
       );
-      return toPublicCredential(created);
+      return withCredentialNumber(result);
     },
 
     async checkUsername(auth, username) {
@@ -91,10 +100,13 @@ export function createCredentialsService({
 
     async firstAccess(auth, { name, username }) {
       await ensureUsernameAvailable(username, auth.id);
-      const updated = await translateUsernameConflict(() =>
-        repository.update(auth.id, { username, status: "ACTIVE", ...(name && { name }) }),
+      return translateUsernameConflict(() =>
+        activateWithNewHashedNumber(auth.id, { username, ...(name && { name }) }),
       );
-      return toPublicCredential(updated);
+    },
+
+    async completeRecovery(auth) {
+      return activateWithNewHashedNumber(auth.id);
     },
 
     async updateMe(auth, { name, username }) {
@@ -124,30 +136,33 @@ export function createCredentialsService({
     async changeStatus(auth, id, { status }) {
       const target = await findTarget(id);
       policy.assertCanChangeStatus(auth, target, status);
-      return toPublicCredential(await repository.setStatus(id, status));
+
+      if (status === "INACTIVE") return toPublicCredential(await repository.deactivate(id));
+      return issueNewReadableNumber(id, "RECOVERING");
     },
 
-    async regenerateCredentialNumber(auth, id) {
+    async regenerateCredentialNumber(auth, id, { userAgent }) {
       const target = await findTarget(id);
       policy.assertCanRegenerateNumber(auth, target);
 
-      const isSelf = auth.id === target.id;
-      const refresh = isSelf ? generateRefreshToken() : null;
+      if (auth.id !== target.id) {
+        const statusAfterReset = target.status === "PENDING" ? "PENDING" : "RECOVERING";
+        return issueNewReadableNumber(id, statusAfterReset);
+      }
 
-      const credentialNumber = await retryOnCredentialNumberCollision(async (number) => {
-        await repository.replaceCredentialNumber(
-          id,
-          number,
-          refresh && { tokenHash: refresh.tokenHash, expiresAt: refresh.expiresAt },
-        );
-        return number;
-      }, generateNumber);
-
-      if (!isSelf) return { credentialNumber };
+      const refresh = generateRefreshToken();
+      const { credentialNumber, result: sessionId } = await withNewNumber((number) =>
+        repository.rotateHashedNumber(id, hashCredentialNumber(number), {
+          tokenHash: refresh.tokenHash,
+          expiresAt: refresh.expiresAt,
+          userAgent,
+        }),
+      );
 
       return {
+        ...toPublicCredential(target),
         credentialNumber,
-        accessToken: await signAccessToken(id),
+        accessToken: await signAccessToken(id, sessionId),
         refreshToken: refresh.token,
         refreshTokenExpiresAt: refresh.expiresAt,
       };
@@ -216,7 +231,10 @@ export function createCredentialsService({
       }
 
       await repository.approveTransfer(transfer);
-      return { status: "APPROVED", credential: toPublicCredential(await repository.findById(transfer.credentialId)) };
+      return {
+        status: "APPROVED",
+        credential: toPublicCredential(await repository.findById(transfer.credentialId)),
+      };
     },
   };
 }

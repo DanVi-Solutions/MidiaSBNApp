@@ -1,9 +1,14 @@
 import { z } from "zod";
 
 const operations = [];
+const tagDescriptions = new Map();
 
 export function registerOperation(operation) {
   operations.push(operation);
+}
+
+export function registerTag(name, description) {
+  tagDescriptions.set(name, description);
 }
 
 function override({ jsonSchema }) {
@@ -92,7 +97,10 @@ export function buildOpenApiDocument({ title, version, description }) {
     paths[path][op.method] = toOperation(op);
   }
 
-  const tagsInRegistrationOrder = [...new Set(operations.map((op) => op.tag))].map((name) => ({ name }));
+  const tagsInRegistrationOrder = [...new Set(operations.map((op) => op.tag))].map((name) => ({
+    name,
+    description: tagDescriptions.get(name),
+  }));
 
   return {
     openapi: "3.1.0",

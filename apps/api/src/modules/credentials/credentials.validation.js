@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { ROLE_LIST } from "../../shared/auth/roles.js";
 
-const name = z.string().trim().min(2, "Nome muito curto").max(80, "Nome muito longo");
+const name = z
+  .string()
+  .trim()
+  .min(2, "Nome muito curto")
+  .max(80, "Nome muito longo")
+  .meta({ description: "Nome de exibição da pessoa (2 a 80 caracteres).", example: "Maria" });
 
 export const username = z
   .string()
@@ -14,8 +19,10 @@ export const username = z
       .regex(/^[a-z0-9_.]{3,15}$/, "Use de 3 a 15 caracteres: letras, números, _ ou ."),
   )
   .meta({
-    description: "3 a 15 caracteres: letras, números, _ ou . — o @ inicial é opcional e salvo sem ele, em minúsculas",
-    example: "@fulano",
+    description:
+      "Apelido único (3 a 15 caracteres: letras, números, `_` ou `.`). O `@` inicial é opcional; " +
+      "é salvo sem ele e em minúsculas.",
+    example: "@maria",
   });
 
 const uuid = z.uuid("ID inválido");
@@ -23,15 +30,24 @@ const uuid = z.uuid("ID inválido");
 const departmentIds = z
   .array(uuid)
   .max(50)
-  .transform((ids) => [...new Set(ids)]);
+  .transform((ids) => [...new Set(ids)])
+  .meta({
+    description:
+      "IDs dos ministérios (`department`). ADMINISTRATOR: nenhum. GENERAL_MANAGER: um ou mais. Demais papéis: " +
+      "exatamente um.",
+  });
 
-const role = z.enum(ROLE_LIST, "Papel inválido");
+const role = z.enum(ROLE_LIST, "Papel inválido").meta({
+  description:
+    "Papel da pessoa, do maior para o menor: ADMINISTRATOR, GENERAL_MANAGER, DEPARTMENT_MANAGER, " +
+    "SCHEDULER_MANAGER, VOLUNTEER.",
+});
 
-export const idParams = z.object({ id: uuid });
+export const idParams = z.object({ id: uuid.meta({ description: "ID da credencial" }) });
 
-export const departmentIdParams = z.object({ departmentId: uuid });
-
-export const transferIdParams = z.object({ transferId: uuid });
+export const transferIdParams = z.object({
+  transferId: uuid.meta({ description: "ID do pedido de transferência (veja `GET /credentials/transfers`)" }),
+});
 
 export const createBody = z.object({
   name,
@@ -40,7 +56,7 @@ export const createBody = z.object({
 });
 
 export const firstAccessBody = z.object({
-  name: name.optional(),
+  name: name.optional().meta({ description: "Opcional: corrige o nome cadastrado pelo gestor." }),
   username,
 });
 
@@ -52,16 +68,22 @@ export const usernameQuery = z.object({ username });
 
 export const changeRoleBody = z.object({
   role,
-  departmentIds: departmentIds.optional(),
+  departmentIds: departmentIds.optional().meta({
+    description:
+      "Opcional. Novos ministérios da pessoa. Se omitido, mantém os atuais — o que só funciona se a quantidade " +
+      "continuar válida para o novo papel.",
+  }),
 });
 
 export const setDepartmentsBody = z.object({ departmentIds });
 
 export const changeStatusBody = z.object({
-  status: z.enum(["ACTIVE", "INACTIVE"], "Use ACTIVE ou INACTIVE"),
+  status: z.enum(["ACTIVE", "INACTIVE"], "Use ACTIVE ou INACTIVE").meta({
+    description: "`INACTIVE` desativa a conta. `ACTIVE` reativa uma conta inativa.",
+  }),
 });
 
 export const transferBody = z.object({
-  fromDepartmentId: uuid,
-  toDepartmentId: uuid,
+  fromDepartmentId: uuid.meta({ description: "Ministério de onde a pessoa sai" }),
+  toDepartmentId: uuid.meta({ description: "Ministério para onde a pessoa vai" }),
 });

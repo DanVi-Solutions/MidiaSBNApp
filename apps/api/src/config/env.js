@@ -5,6 +5,9 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(3333),
   DATABASE_URL: z.string().min(1, "DATABASE_URL é obrigatória"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET precisa ter pelo menos 32 caracteres"),
+  CREDENTIAL_NUMBER_SECRET: z
+    .string()
+    .min(32, "CREDENTIAL_NUMBER_SECRET precisa ter pelo menos 32 caracteres"),
   CORS_ORIGIN: z.string().default("http://localhost:3000"),
   DOCS_ENABLED: z.stringbool().optional(),
 });

@@ -7,8 +7,8 @@ const REFRESH_TOKEN_TTL_DAYS = 30;
 
 const secret = new TextEncoder().encode(env.JWT_SECRET);
 
-export function signAccessToken(credentialId) {
-  return new SignJWT({})
+export function signAccessToken(credentialId, sessionId) {
+  return new SignJWT({ sid: sessionId })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(credentialId)
     .setIssuedAt()

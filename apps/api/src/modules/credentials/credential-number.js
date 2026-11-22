@@ -1,11 +1,11 @@
 import { randomInt } from "node:crypto";
 import { isUniqueViolationOn } from "../../shared/errors/prismaErrors.js";
 
-export const UNAMBIGUOUS_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const UNAMBIGUOUS_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const LENGTH = 10;
 const MAX_COLLISION_ATTEMPTS = 5;
 
-export function randomFromAlphabet(length) {
+function randomFromAlphabet(length) {
   let code = "";
   for (let i = 0; i < length; i++) code += UNAMBIGUOUS_ALPHABET[randomInt(UNAMBIGUOUS_ALPHABET.length)];
   return code;

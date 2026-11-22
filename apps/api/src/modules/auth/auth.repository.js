@@ -5,15 +5,22 @@ const deleteExpiredRefreshTokens = (credentialId) =>
   prisma.refreshToken.deleteMany({ where: { credentialId, expiresAt: { lt: new Date() } } });
 
 export const authRepository = {
-  findCredentialByNumber(credentialNumber) {
-    return prisma.credential.findUnique({ where: { credentialNumber }, select: sessionCredentialSelect });
+  findCredentialByNumber(credentialNumber, credentialNumberHash) {
+    return prisma.credential.findFirst({
+      where: { OR: [{ credentialNumber }, { credentialNumberHash }] },
+      select: sessionCredentialSelect,
+    });
   },
 
-  async createRefreshToken(credentialId, { tokenHash, expiresAt }) {
-    await prisma.$transaction([
+  async openSession(credentialId, { tokenHash, expiresAt, userAgent }) {
+    const [, session] = await prisma.$transaction([
       deleteExpiredRefreshTokens(credentialId),
-      prisma.refreshToken.create({ data: { credentialId, tokenHash, expiresAt } }),
+      prisma.refreshToken.create({
+        data: { credentialId, tokenHash, expiresAt, userAgent },
+        select: { id: true },
+      }),
     ]);
+    return session.id;
   },
 
   findRefreshToken(tokenHash) {
@@ -23,18 +30,15 @@ export const authRepository = {
     });
   },
 
-  async rotateRefreshToken(currentTokenId, credentialId, { tokenHash, expiresAt }) {
-    await prisma.$transaction([
-      prisma.refreshToken.delete({ where: { id: currentTokenId } }),
-      prisma.refreshToken.create({ data: { credentialId, tokenHash, expiresAt } }),
-    ]);
+  async rotateRefreshToken(sessionId, currentTokenHash, { tokenHash, expiresAt }) {
+    const { count } = await prisma.refreshToken.updateMany({
+      where: { id: sessionId, tokenHash: currentTokenHash },
+      data: { tokenHash, expiresAt },
+    });
+    return count === 1;
   },
 
   async deleteRefreshToken(tokenHash) {
     await prisma.refreshToken.deleteMany({ where: { tokenHash } });
-  },
-
-  async deleteAllRefreshTokens(credentialId) {
-    await prisma.refreshToken.deleteMany({ where: { credentialId } });
   },
 };
