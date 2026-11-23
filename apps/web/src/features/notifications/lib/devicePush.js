@@ -6,7 +6,6 @@ import {
 } from "@/features/notifications/services/notificationsService";
 
 const SERVICE_WORKER_URL = "/sw.js";
-const PROMPT_STORAGE_KEY = "midia_sbn_device_push_prompt";
 
 export const NOTIFICATION_RECEIVED_MESSAGE = "midia-sbn:notification-received";
 export const NOTIFICATION_OPENED_MESSAGE = "midia-sbn:notification-opened";
@@ -180,37 +179,5 @@ export async function readDevicePushState() {
     return relinked.ok ? DEVICE_PUSH_STATE.ON : DEVICE_PUSH_STATE.OFF;
   } catch {
     return DEVICE_PUSH_STATE.OFF;
-  }
-}
-
-export function shouldOfferDevicePush() {
-  if (needsHomeScreenInstall()) return true;
-  return isDevicePushSupported() && Notification.permission === "default";
-}
-
-export function rememberDevicePushPrompt(credentialId) {
-  if (!isBrowser() || !credentialId) return;
-  try {
-    window.localStorage.setItem(PROMPT_STORAGE_KEY, credentialId);
-  } catch {
-    return;
-  }
-}
-
-export function hasPendingDevicePushPrompt(credentialId) {
-  if (!isBrowser() || !credentialId) return false;
-  try {
-    return window.localStorage.getItem(PROMPT_STORAGE_KEY) === credentialId;
-  } catch {
-    return false;
-  }
-}
-
-export function forgetDevicePushPrompt() {
-  if (!isBrowser()) return;
-  try {
-    window.localStorage.removeItem(PROMPT_STORAGE_KEY);
-  } catch {
-    return;
   }
 }

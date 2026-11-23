@@ -154,7 +154,7 @@ function attendanceBadgeOf(person) {
   if (person.changeStatus === "REJECTED") {
     return { tone: "pending", label: "Troca recusada" };
   }
-  return { tone: "pending", label: "Aguardando confirmação" };
+  return { tone: "pending", label: "A confirmar" };
 }
 
 const HERO_PILL_TONE = {
@@ -493,6 +493,7 @@ export function MonthlyScheduleView() {
       events.filter(
         (item) =>
           !item.selfSignup &&
+          item.assignedCount === 0 &&
           Date.parse(item.scheduleAt) > nowMs &&
           canManageScheduleOf(currentUser, item.ministryId) &&
           (!isGeneralManager ||
@@ -698,6 +699,17 @@ export function MonthlyScheduleView() {
       roleCode === ROLES.GENERAL_MANAGER;
     return isLeader && userDepartmentIds.includes(ministryId);
   };
+
+  const declinesToResolve = events.flatMap((eventItem) =>
+    eventItem.published &&
+    Date.parse(eventItem.scheduleAt) > nowMs &&
+    canResolveDeclinesOf(eventItem.ministryId)
+      ? eventItem.assignments
+          .filter((person) => person.changeStatus === "DECLINED")
+          .map((person) => ({ event: eventItem, person }))
+      : []
+  );
+  const nextDeclineToResolve = declinesToResolve[0] ?? null;
 
   const handleOpenAbsenceModal = (targetSchedule) => {
     const dialog = absenceDialogRef.current;
@@ -1164,6 +1176,49 @@ export function MonthlyScheduleView() {
         </section>
       )}
 
+      {nextDeclineToResolve && (
+        <section
+          className={styles.substitutionBanner}
+          aria-label="Voluntário precisa ser substituído"
+        >
+          <div className={styles.substitutionMain}>
+            <span className={styles.substitutionIconWrap} aria-hidden="true">
+              <SwapIcon />
+            </span>
+
+            <div className={styles.substitutionBody}>
+              <p className={styles.substitutionEyebrow}>AÇÃO NECESSÁRIA</p>
+              <h2 className={styles.substitutionTitle}>
+                {nextDeclineToResolve.person.name} não pode participar de{" "}
+                {nextDeclineToResolve.event.title} (
+                {nextDeclineToResolve.event.fullDateLabel},{" "}
+                {nextDeclineToResolve.event.time}) e não indicou ninguém
+              </h2>
+              {declinesToResolve.length > 1 && (
+                <p className={styles.bannerNote}>
+                  Mais {declinesToResolve.length - 1}{" "}
+                  {declinesToResolve.length === 2
+                    ? "pessoa aguarda"
+                    : "pessoas aguardam"}{" "}
+                  substituição.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className={styles.detailsButton}
+            onClick={() =>
+              openWorkspaceDrawer("replace-declined", nextDeclineToResolve)
+            }
+          >
+            <SwapIcon />
+            <span>Substituir</span>
+          </button>
+        </section>
+      )}
+
       {rejectedRequest && (
         <section
           className={styles.substitutionBanner}
@@ -1561,20 +1616,22 @@ export function MonthlyScheduleView() {
                             </span>
 
                             <div className={styles.memberDetails}>
-                              <span className={styles.memberName}>
-                                {person.name}
-                              </span>
+                              <div className={styles.memberNameRow}>
+                                <span className={styles.memberName}>
+                                  {person.name}
+                                </span>
+                                <span
+                                  className={`${styles.attendanceBadge} ${badgeToneClass}`}
+                                >
+                                  <span
+                                    className={styles.statusDot}
+                                    aria-hidden="true"
+                                  />
+                                  {badgeLabel}
+                                </span>
+                              </div>
                               <span className={styles.memberHandle}>
                                 {person.handle || "Primeiro acesso"}
-                              </span>
-                              <span
-                                className={`${styles.attendanceBadge} ${badgeToneClass}`}
-                              >
-                                <span
-                                  className={styles.statusDot}
-                                  aria-hidden="true"
-                                />
-                                {badgeLabel}
                               </span>
                             </div>
 
@@ -1628,17 +1685,7 @@ export function MonthlyScheduleView() {
 
                       {canManageThis && isInEditableWindow && (
                         <>
-                          {isPublished ? (
-                            <button
-                              type="button"
-                              disabled
-                              aria-label={`Escala ${event.title} já publicada`}
-                              className={`${styles.cardActionButton} ${styles.cardPublishedButton}`}
-                            >
-                              <SendIcon />
-                              <span>Publicado</span>
-                            </button>
-                          ) : (
+                          {!isPublished && (
                             <button
                               type="button"
                               className={`${styles.cardActionButton} ${styles.cardPublishButton}`}

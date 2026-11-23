@@ -232,8 +232,61 @@ export function dismissHiddenModalDialogs() {
   });
 }
 
+const SHEET_QUERY = "(max-width: 640px)";
+const SHEET_GRAB_AREA = 72;
+const SHEET_CLOSE_DISTANCE = 110;
+const sheetGestureReady = new WeakSet();
+
+function enableSheetSwipeToClose(dialog) {
+  if (sheetGestureReady.has(dialog) || typeof window === "undefined") return;
+  sheetGestureReady.add(dialog);
+
+  let startY = null;
+  let offset = 0;
+
+  const reset = () => {
+    startY = null;
+    offset = 0;
+    dialog.removeAttribute("data-sheet-dragging");
+    dialog.style.removeProperty("transform");
+  };
+
+  dialog.addEventListener(
+    "touchstart",
+    (event) => {
+      if (!window.matchMedia(SHEET_QUERY).matches || event.touches.length !== 1) return;
+      const touchY = event.touches[0].clientY;
+      if (touchY - dialog.getBoundingClientRect().top > SHEET_GRAB_AREA) return;
+      startY = touchY;
+    },
+    { passive: true }
+  );
+
+  dialog.addEventListener(
+    "touchmove",
+    (event) => {
+      if (startY === null) return;
+      offset = Math.max(0, event.touches[0].clientY - startY);
+      dialog.setAttribute("data-sheet-dragging", "");
+      dialog.style.transform = `translateY(${offset}px)`;
+    },
+    { passive: true }
+  );
+
+  const finish = () => {
+    if (startY === null) return;
+    const shouldClose = offset > SHEET_CLOSE_DISTANCE;
+    reset();
+    if (shouldClose) closeAnimatedRightDrawer(dialog);
+  };
+
+  dialog.addEventListener("touchend", finish);
+  dialog.addEventListener("touchcancel", reset);
+}
+
 export function openRightDrawer(dialog) {
   if (!dialog || isDialogInHiddenSubtree(dialog)) return false;
+  enableSheetSwipeToClose(dialog);
   const isCollapsed = dialog.hasAttribute(COLLAPSED_ATTR);
   if (dialog.open && !isCollapsed && !dialog.hasAttribute(CLOSING_ATTR)) {
     return false;

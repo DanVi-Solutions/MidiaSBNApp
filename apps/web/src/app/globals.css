@@ -93,3 +93,56 @@ dialog[data-side-drawer="right"][open][data-collapsed="true"] {
 dialog[data-side-drawer="right"][open][data-collapsed="true"]::backdrop {
   display: none;
 }
+
+/* On phones, right-side drawers become bottom sheets that slide up and cover 80% of the screen */
+@media (max-width: 640px) {
+  dialog[data-side-drawer="right"] {
+    inset-block: auto 0;
+    inset-inline: 0;
+    width: 100vw;
+    height: 80dvh;
+    max-height: 80dvh;
+    border: 0;
+    border-block-start: 1px solid var(--border-subtle);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -16px 48px rgba(17, 19, 18, 0.18);
+    overflow: hidden;
+  }
+
+  dialog[data-side-drawer="right"]::before {
+    content: "";
+    flex-shrink: 0;
+    align-self: center;
+    width: 44px;
+    height: 5px;
+    margin-block: 10px 2px;
+    border-radius: 999px;
+    background-color: #d4d7cf;
+  }
+
+  dialog[data-side-drawer="right"][data-sheet-dragging] {
+    transition: none !important;
+  }
+}
+
+@media (max-width: 640px) and (prefers-reduced-motion: no-preference) {
+  dialog[data-side-drawer="right"] {
+    transform: translateY(100%);
+  }
+
+  dialog[data-side-drawer="right"][open]:where(:not([data-closing])) {
+    transform: translateY(0);
+  }
+
+  @starting-style {
+    dialog[data-side-drawer="right"][open]:where(:not([data-closing])) {
+      transform: translateY(100%);
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  dialog[data-side-drawer="right"][open][data-collapsed="true"] {
+    transform: translateY(100%) !important;
+  }
+}

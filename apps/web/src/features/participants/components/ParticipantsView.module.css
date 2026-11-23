@@ -1296,6 +1296,10 @@
     content: var(--label-5);
   }
 
+  .table tbody td.actionsCell:not(:has(button)) {
+    display: none;
+  }
+
   .ministriesGroup {
     justify-content: flex-end;
   }

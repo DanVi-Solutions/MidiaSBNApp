@@ -37,16 +37,17 @@ import {
   listCredentials,
   listDepartments,
 } from "@/features/participants/services/credentialsService";
-import { DevicePushPrompt } from "@/features/notifications/components/DevicePushPrompt";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { useNotificationCenter } from "@/features/notifications/hooks/useNotificationCenter";
 import {
-  forgetDevicePushPrompt,
-  hasPendingDevicePushPrompt,
   reconnectDevicePush,
   registerServiceWorker,
-  shouldOfferDevicePush,
 } from "@/features/notifications/lib/devicePush";
+import { WelcomeOnboarding } from "@/features/onboarding/components/WelcomeOnboarding";
+import {
+  forgetWelcomeOnboarding,
+  hasPendingWelcomeOnboarding,
+} from "@/features/onboarding/lib/welcomeOnboarding";
 import {
   ACTIVE_MINISTRY,
   CURRENT_USER,
@@ -212,9 +213,15 @@ function SidebarContent({
             className={styles.brandLink}
             onClick={handleLinkClick}
           >
-            <span className={styles.brandCompact} aria-hidden="true">
-              M
-            </span>
+            <Image
+              src="/brand/logo-mark.svg"
+              alt=""
+              aria-hidden="true"
+              width={36}
+              height={36}
+              priority
+              className={styles.brandCompact}
+            />
             <Image
               src="/brand/logo-midia-light.png"
               alt="Mídia Sobrenatural"
@@ -287,7 +294,7 @@ export function PrivateShell({ children }) {
   const [activeRightDrawer, setActiveRightDrawer] = useState(null);
   const [schedulesVersion, setSchedulesVersion] = useState(0);
   const [workspaceCodeModal, setWorkspaceCodeModal] = useState(null);
-  const [isDevicePushPromptOpen, setIsDevicePushPromptOpen] = useState(false);
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   const [activeMinistry, setActiveMinistry] = useState(ACTIVE_MINISTRY);
   const [departments, setDepartments] = useState([]);
   const [participants, setParticipants] = useState([]);
@@ -657,24 +664,16 @@ export function PrivateShell({ children }) {
   useEffect(() => {
     if (!isAuthenticated || !deviceUserId) return undefined;
     registerServiceWorker();
-    if (currentUserIsAdmin) return undefined;
+    if (!currentUserIsAdmin) reconnectDevicePush();
 
-    reconnectDevicePush();
-    if (!hasPendingDevicePushPrompt(deviceUserId)) return undefined;
-    if (!shouldOfferDevicePush()) {
-      forgetDevicePushPrompt();
-      return undefined;
-    }
-    const openPrompt = window.setTimeout(
-      () => setIsDevicePushPromptOpen(true),
-      600
-    );
-    return () => window.clearTimeout(openPrompt);
+    if (!hasPendingWelcomeOnboarding(deviceUserId)) return undefined;
+    const openWelcome = window.setTimeout(() => setIsWelcomeOpen(true), 300);
+    return () => window.clearTimeout(openWelcome);
   }, [currentUserIsAdmin, deviceUserId, isAuthenticated]);
 
-  const closeDevicePushPrompt = useCallback(() => {
-    forgetDevicePushPrompt();
-    setIsDevicePushPromptOpen(false);
+  const closeWelcome = useCallback(() => {
+    forgetWelcomeOnboarding();
+    setIsWelcomeOpen(false);
   }, []);
 
   const openWorkspaceDrawer = useCallback((type, payload = {}) => {
@@ -1034,8 +1033,8 @@ export function PrivateShell({ children }) {
         modalState={workspaceCodeModal}
         onClose={closeWorkspaceCodeModal}
       />
-      {isDevicePushPromptOpen && (
-        <DevicePushPrompt onClose={closeDevicePushPrompt} />
+      {isWelcomeOpen && (
+        <WelcomeOnboarding user={currentUser} onFinish={closeWelcome} />
       )}
     </PrivateWorkspaceContext.Provider>
   );
