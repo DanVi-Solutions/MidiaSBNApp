@@ -28,4 +28,4 @@ USER node
 
 EXPOSE 3333
 
-CMD ["sh", "-c", "prisma migrate deploy && exec node src/server.js"]
+CMD ["sh", "-c", "prisma migrate deploy && node prisma/seed.js && exec node src/server.js"]
