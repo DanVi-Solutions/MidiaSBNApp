@@ -38,7 +38,7 @@ export const NEXT_SCHEDULE = {
   fullDateLabel: "Sábado, 21 de Novembro",
   time: "21:55",
   notice: "Chegada técnica 30 minutos antes. Conferir retorno e streaming.",
-  checkInHint: "Check-in disponível 30 minutos antes do início",
+  checkInHint: "Check-in liberado 10 minutos antes do início, após confirmar a presença",
 };
 
 export const MINISTRY_TEAMMATES = [

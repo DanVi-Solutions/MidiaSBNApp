@@ -12,7 +12,7 @@ COMPOSE_ENV_FILES := $(foreach f,.env apps/web/.env,$(if $(wildcard $(f)),--env-
 COMPOSE := docker compose $(COMPOSE_ENV_FILES)
 
 .DEFAULT_GOAL := help
-.PHONY: help setup up down restart logs ps dev db-up db-migrate db-seed db-studio
+.PHONY: help setup up down restart logs ps dev db-up db-migrate db-seed db-studio push-keys
 
 help: ## Lista os comandos disponíveis
 	@echo "Uso: make <comando> [APP=web|api]\n"
@@ -64,3 +64,6 @@ db-seed: ### Executa o seed do banco de dados (Postgres) no serviço API
 
 db-studio: ### Inicia o Prisma Studio para o banco de dados (Postgres) no serviço API
 	npm run db:studio -w apps/api
+
+push-keys: ### Gera as chaves VAPID das notificações no dispositivo (copie para apps/api/.env)
+	@cd apps/api && node --input-type=module -e 'import webpush from "web-push"; const keys = webpush.generateVAPIDKeys(); console.log("VAPID_PUBLIC_KEY=\"" + keys.publicKey + "\""); console.log("VAPID_PRIVATE_KEY=\"" + keys.privateKey + "\"");'

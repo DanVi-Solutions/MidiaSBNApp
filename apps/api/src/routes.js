@@ -5,6 +5,7 @@ import { availabilitiesRouter } from "./modules/availabilities/availabilities.ro
 import { changeRequestsRouter } from "./modules/change-requests/change-requests.routes.js";
 import { credentialsRouter } from "./modules/credentials/credentials.routes.js";
 import { departmentsRouter } from "./modules/departments/departments.routes.js";
+import { notificationsRouter } from "./modules/notifications/notifications.routes.js";
 import { recurringEventsRouter } from "./modules/recurring-events/recurring-events.routes.js";
 import { schedulesRouter } from "./modules/schedules/schedules.routes.js";
 import { sessionsRouter } from "./modules/sessions/sessions.routes.js";
@@ -26,6 +27,7 @@ const modules = [
   recurringEventsRouter,
   schedulesRouter,
   changeRequestsRouter,
+  notificationsRouter,
 ];
 
 for (const module of modules) {

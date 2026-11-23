@@ -10,6 +10,7 @@ import {
   idParams,
   listQuery,
   mineQuery,
+  ownAssignmentParams,
   updateBody,
 } from "./schedules.validation.js";
 
@@ -93,8 +94,9 @@ r.get(
   {
     summary: "Minhas escalas",
     description: markdown(
-      "Lista as escalas **publicadas** em que a pessoa logada está, a partir de `from` (padrão: agora). Cada item " +
-        "traz o `id` da participação, usado para pedir troca em `POST /change-requests`.",
+      "Lista as escalas **publicadas** em que a pessoa logada está, a partir de `from` (padrão: o início de hoje, " +
+        "para incluir as que já começaram e ainda aceitam check-in). Cada item traz o `id` da participação, a " +
+        "situação da presença (`confirmedAt`, `checkedInAt`) e a janela de check-in (`checkIn`).",
       "",
       "**Quem pode:** qualquer pessoa com a conta ativa.",
     ),
@@ -102,6 +104,55 @@ r.get(
     responses: { 200: res.myAssignments },
   },
   controller.listMine,
+);
+
+r.post(
+  "/me/:assignmentId/confirmation",
+  {
+    summary: "Confirmar presença",
+    description: markdown(
+      "A pessoa escalada confirma que vai participar. Só depois da confirmação o check-in é liberado.",
+      "",
+      "Para indicar que **não** vai participar, peça uma substituição em `POST /change-requests`: o pedido desfaz " +
+        "a confirmação. Se o substituto aceitar, a participação passa para ele já confirmada.",
+      "",
+      "- Confirmar de novo não muda nada.",
+      "- Uma substituição recusada é encerrada ao confirmar: a pessoa assume que vai.",
+      "- Se o horário da escala mudar, a confirmação é desfeita e precisa ser feita de novo.",
+      "",
+      "**Quem pode:** a própria pessoa escalada, até o início da escala.",
+    ),
+    params: ownAssignmentParams,
+    responses: {
+      200: res.myAssignment,
+      409: { description: "A escala já começou ou há um pedido de substituição aguardando resposta" },
+    },
+  },
+  controller.confirmPresence,
+);
+
+r.post(
+  "/me/:assignmentId/check-in",
+  {
+    summary: "Fazer check-in",
+    description: markdown(
+      "Registra que a pessoa chegou para servir. Não usa localização: basta a pessoa confirmar no app.",
+      "",
+      "**Regras:**",
+      "- a presença precisa ter sido confirmada antes (`POST /schedules/me/{assignmentId}/confirmation`);",
+      "- abre 10 minutos antes do início e fecha no fim do dia da escala, às 23:59 (veja `checkIn` em " +
+        "`GET /schedules/me`);",
+      "- só uma vez por escala.",
+      "",
+      "**Quem pode:** a própria pessoa escalada.",
+    ),
+    params: ownAssignmentParams,
+    responses: {
+      200: res.myAssignment,
+      409: { description: "Presença não confirmada, check-in fora do horário ou já realizado" },
+    },
+  },
+  controller.checkIn,
 );
 
 r.get(
@@ -191,7 +242,8 @@ r.post(
       "1. evitar a mesma pessoa mais de uma vez no mesmo dia (contando escalas que ela já tem) — ainda pode " +
         "acontecer se não houver alternativa, e vem marcado em `sameDayConflict`;",
       "2. distribuir a carga: quem tem menos escalas pela frente tem prioridade;",
-      "3. empates são sorteados.",
+      "3. empates são sorteados. A resposta traz o `seed` do sorteio: reenvie-o ao confirmar uma prévia para " +
+        "salvar exatamente as mesmas pessoas.",
       "",
       "As escalas com menos pessoas disponíveis são preenchidas primeiro. Vagas sem candidatos aparecem em `missing`.",
       "",

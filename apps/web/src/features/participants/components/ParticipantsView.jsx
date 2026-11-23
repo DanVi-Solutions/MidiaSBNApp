@@ -152,6 +152,8 @@ export function ParticipantsView() {
   const toast = useToast();
 
   const searchInputId = useId();
+  const ministryFilterId = useId();
+  const statusFilterId = useId();
   const tableCaptionId = useId();
   const confirmModalTitleId = useId();
 
@@ -160,6 +162,8 @@ export function ParticipantsView() {
   const copyTimerRef = useRef(null);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [ministryFilter, setMinistryFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [confirmModal, setConfirmModal] = useState(null);
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
   const [copiedParticipantId, setCopiedParticipantId] = useState("");
@@ -170,6 +174,9 @@ export function ParticipantsView() {
   const roleCode = resolveRoleCode(currentUser);
   const isVolunteer = roleCode === ROLES.VOLUNTEER;
   const isGeneralManager = roleCode === ROLES.GENERAL_MANAGER;
+  const canFilterByMinistry = isAdmin(currentUser) || isGeneralManager;
+  const canFilterByStatus =
+    canFilterByMinistry || roleCode === ROLES.DEPARTMENT_MANAGER;
   const activeMinistryId =
     activeMinistry?.id && !activeMinistry.isGlobal ? activeMinistry.id : "";
 
@@ -185,18 +192,62 @@ export function ParticipantsView() {
     [activeMinistryId, currentUser, isGeneralManager, participants]
   );
 
+  const ministryFilterOptions = useMemo(() => {
+    const byId = new Map();
+    for (const person of visibleParticipants) {
+      for (const department of person.departments || []) {
+        byId.set(department.id, department.name);
+      }
+    }
+    return [...byId]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }, [visibleParticipants]);
+
+  const showMinistryFilter =
+    canFilterByMinistry && ministryFilterOptions.length > 1;
+  const selectedMinistryId =
+    showMinistryFilter &&
+    ministryFilterOptions.some((option) => option.id === ministryFilter)
+      ? ministryFilter
+      : "";
+  const selectedStatus = canFilterByStatus ? statusFilter : "";
+  const hasActiveFilters = Boolean(
+    searchQuery || selectedMinistryId || selectedStatus
+  );
+
   const filteredParticipants = useMemo(() => {
     const query = normalizeText(searchQuery);
-    if (!query) return visibleParticipants;
 
     return visibleParticipants.filter((person) => {
+      if (
+        selectedMinistryId &&
+        !person.departmentIds?.includes(selectedMinistryId)
+      ) {
+        return false;
+      }
+
       const displayStatus = getDisplayMemberStatus(currentUser, person);
+      if (selectedStatus && displayStatus !== selectedStatus) return false;
+
       const displayStatusLabel = (
         STATUS_META[displayStatus] || STATUS_META[CREDENTIAL_STATUS.ACTIVE]
       ).label;
       return doesParticipantMatchQuery(person, query, displayStatusLabel);
     });
-  }, [currentUser, visibleParticipants, searchQuery]);
+  }, [
+    currentUser,
+    visibleParticipants,
+    searchQuery,
+    selectedMinistryId,
+    selectedStatus,
+  ]);
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setMinistryFilter("");
+    setStatusFilter("");
+  };
 
   const hasAnyRowActions = useMemo(
     () =>
@@ -248,7 +299,7 @@ export function ParticipantsView() {
     if (!canCreate) return;
     openWorkspaceDrawer("participant-form", {
       mode: "create",
-      onCreated: () => setSearchQuery(""),
+      onCreated: clearFilters,
     });
   };
 
@@ -288,7 +339,7 @@ export function ParticipantsView() {
 
     if (!code) {
       toast.error(
-        "Este código já foi criptografado e não pode mais ser consultado."
+        "Somente o próprio participante sabe este código; ele não pode mais ser consultado."
       );
       return;
     }
@@ -518,7 +569,55 @@ export function ParticipantsView() {
           />
         </div>
 
-        <span className={styles.countLabel}>{countLabel}</span>
+        <div className={styles.filterRightGroup}>
+          {showMinistryFilter && (
+            <>
+              <label htmlFor={ministryFilterId} className="visually-hidden">
+                Filtrar por ministério
+              </label>
+              <select
+                id={ministryFilterId}
+                value={selectedMinistryId}
+                className={styles.filterSelect}
+                onChange={(event) =>
+                  setMinistryFilter(event.currentTarget.value)
+                }
+              >
+                <option value="">Todos os ministérios</option>
+                {ministryFilterOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+
+          {canFilterByStatus && (
+            <>
+              <label htmlFor={statusFilterId} className="visually-hidden">
+                Filtrar por status
+              </label>
+              <select
+                id={statusFilterId}
+                value={selectedStatus}
+                className={styles.filterSelect}
+                onChange={(event) =>
+                  setStatusFilter(event.currentTarget.value)
+                }
+              >
+                <option value="">Todos os status</option>
+                {Object.entries(STATUS_META).map(([status, meta]) => (
+                  <option key={status} value={status}>
+                    {meta.label}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+
+          <span className={styles.countLabel}>{countLabel}</span>
+        </div>
       </search>
 
       {isLoadingParticipants && visibleParticipants.length === 0 ? (
@@ -539,17 +638,17 @@ export function ParticipantsView() {
       ) : filteredParticipants.length === 0 ? (
         <div className={styles.emptyCard}>
           <p className={styles.emptyTitle}>
-            {searchQuery
+            {hasActiveFilters
               ? "Nenhum participante encontrado para esta busca."
               : "Nenhum participante visível no momento."}
           </p>
-          {searchQuery && (
+          {hasActiveFilters && (
             <button
               type="button"
               className={styles.clearButton}
-              onClick={() => setSearchQuery("")}
+              onClick={clearFilters}
             >
-              Limpar busca
+              Limpar filtros
             </button>
           )}
         </div>

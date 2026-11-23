@@ -318,20 +318,12 @@ export function MinistryFormDrawer({ mode = "create", ministry = null, onClose }
             />
           </div>
 
-          <div className={styles.infoNote}>
-            {isEditingMinistry ? (
-              <>
-                As alterações de nome e descrição serão aplicadas imediatamente
-                para todos os membros deste ministério.
-              </>
-            ) : (
-              <>
-                Depois de criar o ministério, você poderá vincular usuários e
-                definir o <strong>Líder Geral</strong> diretamente pelo cartão do
-                ministério.
-              </>
-            )}
-          </div>
+          {isEditingMinistry && (
+            <div className={styles.infoNote}>
+              As alterações de nome e descrição serão aplicadas imediatamente
+              para todos os membros deste ministério.
+            </div>
+          )}
 
           {createFormError && (
             <div className={styles.formBannerError} role="alert">

@@ -383,7 +383,7 @@ function CredentialOnboardingContent({
               <span className={styles.stepDot} aria-hidden="true">
                 2
               </span>
-              <span>Novo código definitivo</span>
+              <span>Novo código</span>
             </li>
           </ol>
         </nav>
@@ -403,7 +403,7 @@ function CredentialOnboardingContent({
             </h2>
             <p className={styles.subtitle}>
               Confirme suas informações abaixo para ativar sua conta e gerar seu
-              código definitivo de acesso.
+              novo código de acesso.
             </p>
           </div>
 
@@ -632,11 +632,11 @@ function CredentialOnboardingContent({
               id={mode === "recovery" ? recoveryHeadingId : stepTwoHeadingId}
               className={styles.title}
             >
-              Seu novo código de acesso definitivo
+              Seu novo código de acesso
             </h2>
             <p className={styles.subtitle}>
               {mode === "recovery"
-                ? "Copie e guarde este código antes de acessar o sistema. Ao confirmar sua entrada, o código temporário será substituído definitivamente."
+                ? "Copie e guarde este código antes de acessar o sistema. Ao confirmar sua entrada, o código temporário será substituído."
                 : "Copie e guarde este código antes de acessar o sistema. Ao confirmar sua entrada, sua conta será ativada e o código inicial será substituído."}
             </p>
           </div>
@@ -646,7 +646,7 @@ function CredentialOnboardingContent({
               <div className={styles.codeCardTop}>
                 <span className={styles.codeLabel}>
                   <KeyIcon />
-                  <span>Novo código definitivo</span>
+                  <span>Novo código</span>
                 </span>
                 <button
                   ref={copyButtonRef}
@@ -673,10 +673,9 @@ function CredentialOnboardingContent({
                 </p>
                 <p className={styles.calloutText}>
                   Ao clicar em <strong>Acessar o sistema</strong>, seu código
-                  anterior deixará de funcionar e este novo código passará a ser
-                  armazenado criptografado —{" "}
-                  <strong>sem possibilidade de nova consulta</strong> por
-                  administradores ou líderes.
+                  anterior deixará de ser válido e{" "}
+                  <strong>somente você saberá este novo código</strong>. Anote-o
+                  em um lugar seguro.
                 </p>
               </div>
             </div>

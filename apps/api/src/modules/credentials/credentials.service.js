@@ -8,6 +8,9 @@ import {
 } from "../../shared/auth/tokens.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { isPrismaError, isUniqueViolationOn } from "../../shared/errors/prismaErrors.js";
+import { messages } from "../notifications/notifications.messages.js";
+import { notifier as defaultNotifier } from "../notifications/notifications.notifier.js";
+import { notificationsRepository } from "../notifications/notifications.repository.js";
 import { generateCredentialNumber, retryOnCredentialNumberCollision } from "./credential-number.js";
 import * as policy from "./credentials.policy.js";
 import { toPublicCredential, withCredentialNumber } from "./credentials.presenter.js";
@@ -20,9 +23,13 @@ const canSeeActualStatus = (auth) => isAtLeast(auth.role, ROLES.DEPARTMENT_MANAG
 const maskStatusForMemberView = (credential) =>
   credential?.status === "RECOVERING" ? { ...credential, status: "ACTIVE" } : credential;
 
+const departmentNamesOf = (credential) => (credential.departments ?? []).map((department) => department.name);
+
 export function createCredentialsService({
   repository = credentialsRepository,
   generateNumber = generateCredentialNumber,
+  notifier = defaultNotifier,
+  recipients = notificationsRepository,
 } = {}) {
   async function findTarget(id) {
     const target = await repository.findById(id);
@@ -105,6 +112,14 @@ export function createCredentialsService({
         throw AppError.conflict("Não foi possível confirmar este código. Gere um novo código e tente novamente.");
       }
       throw error;
+    }
+  }
+
+  async function announceMembershipChange(auth, before, after) {
+    const options = { except: auth.id };
+    if (before.role !== after.role) await notifier.to([after.id], messages.roleChanged(after.role), options);
+    if (!sameSet(before.departmentIds ?? [], after.departmentIds ?? [])) {
+      await notifier.to([after.id], messages.departmentChanged(departmentNamesOf(after)), options);
     }
   }
 
@@ -276,17 +291,20 @@ export function createCredentialsService({
       policy.assertCanChangeRole(auth, target, role, finalDepartmentIds);
       await ensureDepartmentsExist(finalDepartmentIds);
 
-      if (sameSet(finalDepartmentIds, target.departmentIds)) {
-        return toPublicCredential(await repository.update(id, { role }));
-      }
-      return toPublicCredential(await repository.replaceDepartments(id, finalDepartmentIds, role));
+      const updated = sameSet(finalDepartmentIds, target.departmentIds)
+        ? await repository.update(id, { role })
+        : await repository.replaceDepartments(id, finalDepartmentIds, role);
+      await announceMembershipChange(auth, target, updated);
+      return toPublicCredential(updated);
     },
 
     async setDepartments(auth, id, departmentIds) {
       const target = await findTarget(id);
       policy.assertCanSetDepartments(auth, target, departmentIds);
       await ensureDepartmentsExist(departmentIds);
-      return toPublicCredential(await repository.replaceDepartments(id, departmentIds));
+      const updated = await repository.replaceDepartments(id, departmentIds);
+      await announceMembershipChange(auth, target, updated);
+      return toPublicCredential(updated);
     },
 
     async transfer(auth, id, { fromDepartmentId, toDepartmentId }) {
@@ -297,7 +315,9 @@ export function createCredentialsService({
 
       if (immediate) {
         await repository.moveDepartment(id, fromDepartmentId, toDepartmentId);
-        return { status: "COMPLETED", credential: toPublicCredential(await repository.findById(id)) };
+        const moved = await repository.findById(id);
+        await announceMembershipChange(auth, target, moved);
+        return { status: "COMPLETED", credential: toPublicCredential(moved) };
       }
 
       if (await repository.hasPendingTransfer(id)) {
@@ -309,6 +329,10 @@ export function createCredentialsService({
         fromDepartmentId,
         toDepartmentId,
         requestedById: auth.id,
+      });
+      await notifier.safely(async () => {
+        const reviewers = await recipients.transferReviewersOf(toDepartmentId);
+        await notifier.to(reviewers, messages.transferRequested(transfer), { except: auth.id });
       });
       return { status: "PENDING", transfer };
     },
@@ -328,14 +352,17 @@ export function createCredentialsService({
 
       if (!approve) {
         await repository.rejectTransfer(transferId);
+        if (transfer.requestedBy) {
+          await notifier.to([transfer.requestedBy.id], messages.transferRejected(transfer), { except: auth.id });
+        }
         return { status: "REJECTED" };
       }
 
+      const before = await repository.findById(transfer.credentialId);
       await repository.approveTransfer(transfer);
-      return {
-        status: "APPROVED",
-        credential: toPublicCredential(await repository.findById(transfer.credentialId)),
-      };
+      const moved = await repository.findById(transfer.credentialId);
+      await announceMembershipChange(auth, before, moved);
+      return { status: "APPROVED", credential: toPublicCredential(moved) };
     },
   };
 }

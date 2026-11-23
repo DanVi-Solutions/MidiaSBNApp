@@ -1,0 +1,111 @@
+.dialog {
+  margin: auto;
+  width: min(420px, calc(100vw - 2rem));
+  padding: 1.5rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+  box-shadow: 0 24px 60px rgba(17, 19, 18, 0.22);
+}
+
+.dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.dialog::backdrop {
+  background: rgba(12, 14, 12, 0.56);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background-color: var(--accent-lime-soft);
+  color: var(--accent-lime-ink);
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.text,
+.installHint {
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--ink-secondary);
+}
+
+.installHint {
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  background-color: var(--surface-callout);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primaryButton {
+  border: 1px solid var(--ink-primary);
+  background-color: #141614;
+  color: #f7f8f3;
+}
+
+.secondaryButton {
+  border: 1px solid var(--border-subtle);
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.primaryButton:focus-visible,
+.secondaryButton:focus-visible {
+  outline: 2px solid var(--ink-primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .primaryButton:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+  }
+
+  .secondaryButton:hover:not(:disabled) {
+    background-color: var(--surface-workspace);
+  }
+}

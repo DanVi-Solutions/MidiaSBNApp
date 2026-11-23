@@ -23,6 +23,12 @@ const schema = z.object({
     .default("America/Sao_Paulo")
     .refine(isValidTimeZone, "APP_TIME_ZONE precisa ser um fuso IANA válido (ex.: America/Sao_Paulo)"),
   DOCS_ENABLED: z.stringbool().optional(),
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z
+    .string()
+    .regex(/^(mailto:|https:\/\/)/, "VAPID_SUBJECT precisa começar com mailto: ou https://")
+    .optional(),
 });
 
 const parsed = schema.safeParse(process.env);

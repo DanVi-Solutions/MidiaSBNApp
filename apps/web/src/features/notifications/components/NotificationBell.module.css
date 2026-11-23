@@ -1,0 +1,152 @@
+.bellButton {
+  composes: bellButton from "../../../components/layout/PrivateShell.module.css";
+}
+
+.bellBadge {
+  composes: bellBadge from "../../../components/layout/PrivateShell.module.css";
+}
+
+.popoverPanel {
+  composes: popoverPanel from "../../../components/layout/PrivateShell.module.css";
+  width: min(360px, calc(100vw - 2rem));
+}
+
+.popoverHeader {
+  composes: popoverHeader from "../../../components/layout/PrivateShell.module.css";
+}
+
+.popoverTitle {
+  composes: popoverTitle from "../../../components/layout/PrivateShell.module.css";
+}
+
+.popoverTextAction {
+  composes: popoverTextAction from "../../../components/layout/PrivateShell.module.css";
+  padding: 0.2rem 0;
+}
+
+.popoverTextAction:focus-visible,
+.notificationOpen:focus-visible,
+.dismissButton:focus-visible {
+  outline: 2px solid var(--ink-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.notificationList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-block-size: min(420px, 60dvh);
+  margin-block-start: 0.65rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.notificationItem {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background-color: var(--surface-workspace);
+}
+
+.notificationUnread {
+  border-color: var(--status-amber-border);
+  background-color: var(--status-amber-bg);
+}
+
+.notificationOpen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.65rem 0.4rem 0.65rem 0.7rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.notificationTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.unreadDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background-color: var(--status-amber-accent);
+  flex-shrink: 0;
+}
+
+.notificationDesc {
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: var(--ink-secondary);
+}
+
+.notificationTime {
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+}
+
+.dismissButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0.3rem 0.3rem 0 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.dismissButton svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .notificationOpen:hover .notificationTitle {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .dismissButton:hover {
+    background-color: rgba(17, 19, 18, 0.06);
+    color: var(--ink-primary);
+  }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 1rem 0.2rem 0.4rem;
+  font-size: 0.8rem;
+  color: var(--ink-secondary);
+}
+
+.popoverFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-block-start: 0.65rem;
+  padding-block-start: 0.6rem;
+  border-block-start: 1px solid var(--border-divider);
+}

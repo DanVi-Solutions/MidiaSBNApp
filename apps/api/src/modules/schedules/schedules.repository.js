@@ -5,8 +5,21 @@ const personSelect = { select: { id: true, name: true, username: true, role: tru
 const assignmentSelect = {
   id: true,
   changeStatus: true,
+  confirmedAt: true,
+  checkedInAt: true,
   credential: personSelect,
   credentialChange: { select: { id: true, name: true } },
+};
+
+const ownAssignmentSelect = {
+  id: true,
+  changeStatus: true,
+  confirmedAt: true,
+  checkedInAt: true,
+  credentialChange: { select: { id: true, name: true } },
+  schedule: {
+    select: { id: true, name: true, description: true, scheduleAt: true, department: { select: { id: true, name: true } } },
+  },
 };
 
 const scheduleSummarySelect = {
@@ -121,6 +134,13 @@ export const schedulesRepository = {
     await prisma.schedule.delete({ where: { id } });
   },
 
+  async resetAfterReschedule(scheduleId) {
+    await prisma.credentialSchedule.updateMany({
+      where: { scheduleId },
+      data: { reminderSentAt: null, confirmedAt: null, checkedInAt: null },
+    });
+  },
+
   async deleteBefore(date) {
     const { count } = await prisma.schedule.deleteMany({ where: { scheduleAt: { lt: date } } });
     return count;
@@ -129,16 +149,32 @@ export const schedulesRepository = {
   listAssignmentsOf(credentialId, { from }) {
     return prisma.credentialSchedule.findMany({
       where: { credentialId, schedule: { published: true, scheduleAt: { gte: from } } },
-      select: {
-        id: true,
-        changeStatus: true,
-        credentialChange: { select: { id: true, name: true } },
-        schedule: {
-          select: { id: true, name: true, description: true, scheduleAt: true, department: { select: { id: true, name: true } } },
-        },
-      },
+      select: ownAssignmentSelect,
       orderBy: { schedule: { scheduleAt: "asc" } },
     });
+  },
+
+  findOwnAssignment(id, credentialId) {
+    return prisma.credentialSchedule.findFirst({
+      where: { id, credentialId, schedule: { published: true } },
+      select: ownAssignmentSelect,
+    });
+  },
+
+  async confirmPresence(id) {
+    const { count } = await prisma.credentialSchedule.updateMany({
+      where: { id, changeStatus: { not: "REQUESTED" } },
+      data: { confirmedAt: new Date(), changeStatus: "NONE", credentialChangeId: null },
+    });
+    return count === 1;
+  },
+
+  async checkIn(id) {
+    const { count } = await prisma.credentialSchedule.updateMany({
+      where: { id, checkedInAt: null, confirmedAt: { not: null } },
+      data: { checkedInAt: new Date() },
+    });
+    return count === 1;
   },
 
   findMember(departmentId, credentialId) {

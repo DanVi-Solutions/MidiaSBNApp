@@ -33,6 +33,7 @@
 }
 
 .publishAllButton,
+.autoAssignButton,
 .newScheduleButton {
   display: inline-flex;
   align-items: center;
@@ -57,7 +58,14 @@
   color: var(--ink-primary);
 }
 
-.publishAllButton:disabled {
+.autoAssignButton {
+  border: 1px solid var(--border-subtle);
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+}
+
+.publishAllButton:disabled,
+.autoAssignButton:disabled {
   border-color: var(--border-subtle);
   background-color: var(--surface-workspace);
   color: var(--ink-muted);
@@ -89,6 +97,11 @@
   .publishAllButton:not(:disabled):hover {
     background-color: var(--accent-lime-soft);
     border-color: #bdd084;
+  }
+
+  .autoAssignButton:not(:disabled):hover {
+    background-color: var(--surface-workspace);
+    border-color: #c2c7ba;
   }
 
   .newScheduleButton:hover {
@@ -509,6 +522,58 @@
 @media (hover: hover) and (pointer: fine) {
   .absenceButton:hover {
     background-color: rgba(17, 19, 18, 0.06);
+  }
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.heroPrimaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--ink-primary);
+  border-radius: 10px;
+  background-color: #141614;
+  color: #f7f8f3;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.heroPrimaryButton svg,
+.cardSignupButton svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.heroPrimaryButton:disabled {
+  border-color: var(--border-subtle);
+  background-color: var(--surface-workspace);
+  color: var(--ink-muted);
+  cursor: default;
+}
+
+.cardSignupButton:disabled {
+  border-color: var(--border-subtle);
+  background-color: var(--surface-workspace);
+  color: var(--ink-muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .heroPrimaryButton:hover:not(:disabled) {
+    background-color: var(--accent-hover);
   }
 }
 
@@ -2318,6 +2383,8 @@
 
 .publishAllButton:focus-visible,
 .newScheduleButton:focus-visible,
+.autoAssignButton:focus-visible,
+.heroPrimaryButton:focus-visible,
 .cardActionButton:focus-visible,
 .detailsButton:focus-visible,
 .drawerCloseButton:focus-visible,

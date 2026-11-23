@@ -80,7 +80,7 @@
   background-color: var(--surface-card);
 }
 
-@media (min-width: 640px) {
+@media (min-width: 960px) {
   .searchCard {
     flex-direction: row;
     align-items: center;
@@ -89,12 +89,83 @@
   }
 }
 
+.filterRightGroup {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.filterRightGroup .filterSelect {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+@media (min-width: 960px) {
+  .filterRightGroup {
+    flex-shrink: 0;
+  }
+
+  .filterRightGroup .filterSelect {
+    flex: 0 0 auto;
+    min-width: 224px;
+  }
+}
+
+.filterSelect,
+.filterSelect::picker(select) {
+  appearance: base-select;
+}
+
+.filterSelect {
+  min-height: 44px;
+  min-width: 224px;
+  padding: 0.55rem 0.95rem;
+  border: 1px solid #e5e8df;
+  border-radius: 10px;
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+  font: inherit;
+  font-size: 0.87rem;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.filterSelect::picker(select) {
+  margin-block-start: 0.35rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background-color: var(--surface-card);
+  box-shadow: 0 12px 28px rgba(17, 19, 18, 0.1);
+}
+
+.filterSelect::picker-icon {
+  color: var(--ink-secondary);
+}
+
+.filterSelect option {
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  color: var(--ink-primary);
+  cursor: pointer;
+}
+
+.filterSelect option:hover {
+  background-color: var(--surface-workspace);
+}
+
+.filterSelect option::checkmark {
+  color: var(--accent-lime-ink);
+}
+
 .searchFieldWrap {
   position: relative;
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
   width: 100%;
-  max-width: 340px;
+  min-width: 0;
   border: 1px solid #e7eae1;
   border-radius: 10px;
   background-color: var(--surface-card);
@@ -454,6 +525,7 @@
 .drawerCloseButton:focus-visible,
 .input:focus-visible,
 .select:focus-visible,
+.filterSelect:focus-visible,
 .drawerCancelButton:focus-visible,
 .drawerSubmitButton:focus-visible,
 .confirmCloseBtn:focus-visible,

@@ -2,6 +2,9 @@ import { AppError } from "../../shared/errors/AppError.js";
 import { assertCanListDepartment, assertCanView } from "../credentials/credentials.policy.js";
 import { credentialsRepository } from "../credentials/credentials.repository.js";
 import { departmentsRepository } from "../departments/departments.repository.js";
+import { messages } from "../notifications/notifications.messages.js";
+import { notifier as defaultNotifier } from "../notifications/notifications.notifier.js";
+import { notificationsRepository } from "../notifications/notifications.repository.js";
 import { unavailabilitiesRepository } from "./unavailabilities.repository.js";
 
 const DEFAULT_RANGE_DAYS = 60;
@@ -19,6 +22,8 @@ export function createUnavailabilitiesService({
   repository = unavailabilitiesRepository,
   credentials = credentialsRepository,
   departments = departmentsRepository,
+  notifier = defaultNotifier,
+  recipients = notificationsRepository,
 } = {}) {
   async function findMine(auth, id) {
     const unavailability = await repository.findOwned(id, auth.id);
@@ -26,8 +31,24 @@ export function createUnavailabilitiesService({
     return unavailability;
   }
 
-  async function withConflicts(auth, unavailability) {
+  function warnScheduleManagers(auth, conflictingAssignments) {
+    return notifier.safely(async () => {
+      const person = await credentials.findById(auth.id);
+      const entries = await Promise.all(
+        conflictingAssignments.map(async ({ schedule }) => {
+          const managers = await recipients.scheduleManagersOf(schedule.department.id);
+          const message = messages.unavailabilityConflict(person.name, schedule);
+          return managers.map((credentialId) => ({ credentialId, message }));
+        }),
+      );
+      await notifier.send(entries.flat(), { except: auth.id });
+    });
+  }
+
+  async function withConflicts(auth, unavailability, previousConflictIds = new Set()) {
     const conflictingAssignments = await repository.findAssignmentsDuring(auth.id, unavailability);
+    const newConflicts = conflictingAssignments.filter((assignment) => !previousConflictIds.has(assignment.id));
+    if (newConflicts.length > 0) await warnScheduleManagers(auth, newConflicts);
     return { ...unavailability, conflictingAssignments };
   }
 
@@ -61,7 +82,12 @@ export function createUnavailabilitiesService({
     async update(auth, id, changes) {
       const current = await findMine(auth, id);
       ensureValidRange({ ...current, ...changes });
-      return withConflicts(auth, await repository.update(id, changes));
+      const previousConflicts = await repository.findAssignmentsDuring(auth.id, current);
+      return withConflicts(
+        auth,
+        await repository.update(id, changes),
+        new Set(previousConflicts.map((assignment) => assignment.id)),
+      );
     },
 
     async delete(auth, id) {

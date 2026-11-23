@@ -22,9 +22,11 @@ import {
   regenerateOwnCredentialRequest,
   updateProfileRequest,
 } from "@/features/profile/services/profileService";
+import { DevicePushCard } from "@/features/notifications/components/DevicePushCard";
 import {
   computeInitials,
   CREDENTIAL_STATUS,
+  isAdmin,
   normalizeUsername,
   validateDisplayName,
   validateUsername,
@@ -328,7 +330,7 @@ export function ProfileView() {
       variant: "hashed-self",
       title: "Seu novo código de acesso",
       subtitle:
-        "Sua credencial foi substituída por um novo código já criptografado.",
+        "Sua credencial foi substituída por um novo código.",
       personName: currentUser.name,
       status: CREDENTIAL_STATUS.ACTIVE,
       credentialNumber: result.data.credentialNumber,
@@ -558,9 +560,9 @@ export function ProfileView() {
                   Informações pessoais e de acesso
                 </h2>
                 <p className={styles.cardSubtitle}>
-                  Seu código de acesso é criptografado e nunca fica visível após
-                  o primeiro acesso. Você pode gerar um novo código a qualquer
-                  momento.
+                  Somente você sabe o seu código de acesso, e ele não fica
+                  visível após o primeiro acesso. Você pode gerar um novo código
+                  a qualquer momento.
                 </p>
               </div>
               <ShieldCheckIcon className={styles.cardCornerIcon} />
@@ -599,7 +601,7 @@ export function ProfileView() {
                   <div>
                     <dt>CÓDIGO DE CREDENCIAL</dt>
                     <dd className={styles.monoValue}>
-                      Protegido (criptografado)
+                      Protegido
                     </dd>
                   </div>
                   <button
@@ -624,6 +626,8 @@ export function ProfileView() {
               </div>
             </dl>
           </section>
+
+          {!isAdmin(currentUser) && <DevicePushCard />}
 
           <section
             className={`${styles.card} ${styles.dangerCard}`}
@@ -676,8 +680,7 @@ export function ProfileView() {
                 Trocar seu código de credencial?
               </h2>
               <p className={styles.modalSubtitle}>
-                Um novo código definitivo e já <strong>criptografado</strong>{" "}
-                será gerado imediatamente. Seu código atual deixará de funcionar
+                Um novo código será gerado imediatamente. Seu código atual deixará de funcionar
                 e todos os outros dispositivos conectados serão desconectados.
               </p>
             </div>

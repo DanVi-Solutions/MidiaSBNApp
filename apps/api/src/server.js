@@ -1,6 +1,8 @@
 import { app } from "./app.js";
 import { prisma } from "./config/database.js";
 import { env } from "./config/env.js";
+import { startNotificationJobs } from "./modules/notifications/notifications.jobs.js";
+import { pushConfig } from "./modules/notifications/notifications.push.js";
 import { startScheduleCleanupJob } from "./modules/schedules/schedules.cleanup.js";
 
 const server = app.listen(env.PORT, () => {
@@ -8,10 +10,16 @@ const server = app.listen(env.PORT, () => {
 });
 
 const cleanupJob = startScheduleCleanupJob();
+const notificationJobs = startNotificationJobs();
+
+if (!pushConfig.enabled) {
+  console.warn("Notificações no dispositivo desativadas: defina VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY e VAPID_SUBJECT");
+}
 
 async function shutdown(signal) {
   console.log(`${signal} recebido, encerrando...`);
   clearInterval(cleanupJob);
+  clearInterval(notificationJobs);
   server.close(async () => {
     await prisma.$disconnect();
     process.exit(0);

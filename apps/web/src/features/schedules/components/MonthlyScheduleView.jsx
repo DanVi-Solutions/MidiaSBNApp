@@ -14,6 +14,7 @@ import {
   ArrowRightIcon,
   CalendarIcon,
   CalendarPlusIcon,
+  CheckCircleIcon,
   ClockIcon,
   CloseIcon,
   InfoCircleIcon,
@@ -28,6 +29,8 @@ import { usePrivateWorkspace } from "@/components/layout/PrivateShell";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
   cancelChangeRequest,
+  checkInToSchedule,
+  confirmPresence,
   deleteSchedule,
   formatScheduleForUi,
   getScheduleById,
@@ -40,6 +43,11 @@ import {
   signUpForSchedule,
   updateSchedule,
 } from "@/features/schedules/services/schedulesService";
+import {
+  ATTENDANCE_PHASE,
+  attendancePhaseOf,
+  formatClock,
+} from "@/features/schedules/utils/attendance";
 import {
   APP_TIME_ZONE,
   compareScheduleEvents,
@@ -94,6 +102,93 @@ function setupClosedByFallback(dialog, onDismiss) {
     dialog.removeEventListener("pointerdown", handlePointerDown);
     dialog.removeEventListener("pointerup", handlePointerUp);
   };
+}
+
+const LIVE_CLOCK_INTERVAL = 30 * 1000;
+
+const ATTENDANCE_BADGE_TONE = {
+  pending: styles.attendancePending,
+  confirmed: styles.attendanceConfirmed,
+  present: styles.attendancePresent,
+};
+
+const DRAFT_BADGE = { tone: "confirmed", label: "Escalado" };
+
+function attendanceBadgeOf(person) {
+  if (person.changeStatus === "REQUESTED") {
+    return { tone: "pending", label: "Troca pendente" };
+  }
+  if (person.checkedInAt) return { tone: "present", label: "Check-in feito" };
+  if (person.confirmedAt) return { tone: "confirmed", label: "Confirmado" };
+  if (person.changeStatus === "REJECTED") {
+    return { tone: "pending", label: "Troca recusada" };
+  }
+  return { tone: "pending", label: "Aguardando confirmação" };
+}
+
+const HERO_PILL_TONE = {
+  amber: styles.statusPillAmber,
+  info: styles.statusPillInfo,
+  lime: styles.statusPillLime,
+};
+
+function describeHeroAttendance(schedule, nowMs) {
+  const phase = attendancePhaseOf({
+    assignment: schedule,
+    scheduleAt: schedule.scheduleAt,
+    checkIn: schedule.checkIn,
+    nowMs,
+  });
+  const target = { ...schedule, phase };
+  const opensAt = schedule.checkIn ? formatClock(schedule.checkIn.opensAt) : "";
+  const closesAt = schedule.checkIn ? formatClock(schedule.checkIn.closesAt) : "";
+
+  switch (phase) {
+    case ATTENDANCE_PHASE.SUBSTITUTION_REQUESTED:
+      return {
+        target,
+        pill: {
+          tone: "amber",
+          label: schedule.credentialChange?.name
+            ? `Substituição solicitada (${schedule.credentialChange.name})`
+            : "Substituição solicitada",
+        },
+        hint: "Aguardando a resposta de quem você indicou.",
+      };
+    case ATTENDANCE_PHASE.NEEDS_CONFIRMATION:
+      return {
+        target,
+        pill:
+          schedule.changeStatus === "REJECTED"
+            ? { tone: "amber", label: "Indicação recusada" }
+            : { tone: "amber", label: "Confirme sua presença" },
+        hint: "Confirme sua presença para liberar o check-in.",
+      };
+    case ATTENDANCE_PHASE.WAITING_CHECK_IN:
+      return {
+        target,
+        pill: { tone: "info", label: "Presença confirmada" },
+        hint: `O check-in abre às ${opensAt}, 10 minutos antes do início.`,
+      };
+    case ATTENDANCE_PHASE.CHECK_IN_OPEN:
+      return {
+        target,
+        pill: { tone: "info", label: "Presença confirmada" },
+        hint: `Check-in aberto até as ${closesAt}.`,
+      };
+    case ATTENDANCE_PHASE.CHECKED_IN:
+      return {
+        target,
+        pill: { tone: "lime", label: "Check-in feito" },
+        hint: `Check-in feito às ${formatClock(schedule.checkedInAt)}.`,
+      };
+    default:
+      return {
+        target,
+        pill: { tone: "amber", label: "Check-in encerrado" },
+        hint: "O prazo de check-in desta escala terminou.",
+      };
+  }
 }
 
 function normalizeText(value) {
@@ -181,7 +276,6 @@ export function MonthlyScheduleView() {
     userIsAdmin ? "all-ministries" : "my-ministry"
   );
 
-  // Absence modal state
   const [absenceTargetSchedule, setAbsenceTargetSchedule] = useState(null);
   const [suggestedSubstituteId, setSuggestedSubstituteId] = useState("");
   const [substituteError, setSubstituteError] = useState("");
@@ -189,10 +283,10 @@ export function MonthlyScheduleView() {
   const [isSubmittingAbsence, setIsSubmittingAbsence] = useState(false);
   const [cancelingAssignmentId, setCancelingAssignmentId] = useState("");
 
-  // Self-signup row action state
   const [busySignupScheduleId, setBusySignupScheduleId] = useState("");
+  const [confirmingAssignmentId, setConfirmingAssignmentId] = useState("");
+  const [liveNowMs, setLiveNowMs] = useState(0);
 
-  // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState(null);
   const [confirmError, setConfirmError] = useState("");
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
@@ -344,6 +438,18 @@ export function MonthlyScheduleView() {
   }, []);
 
   useEffect(() => {
+    const tick = () => setLiveNowMs(Date.now());
+    const firstTick = window.setTimeout(tick, 0);
+    const timer = window.setInterval(tick, LIVE_CLOCK_INTERVAL);
+    return () => {
+      window.clearTimeout(firstTick);
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  const nowMs = liveNowMs || referenceNowMs;
+
+  useEffect(() => {
     const cleanAbsence = setupClosedByFallback(absenceDialogRef.current, () => {
       if (!isSubmittingAbsence) {
         absenceDialogRef.current?.close("cancel");
@@ -376,6 +482,29 @@ export function MonthlyScheduleView() {
     [activeMinistryId, currentUser, events, isGeneralManager, scheduleWindow]
   );
 
+  const autoAssignableSchedules = useMemo(
+    () =>
+      events.filter(
+        (item) =>
+          !item.selfSignup &&
+          Date.parse(item.scheduleAt) > nowMs &&
+          canManageScheduleOf(currentUser, item.ministryId) &&
+          (!isGeneralManager ||
+            !activeMinistryId ||
+            item.ministryId === activeMinistryId) &&
+          (!scheduleWindow ||
+            isScheduleAtInsideWindow(item.scheduleAt, scheduleWindow))
+      ),
+    [
+      activeMinistryId,
+      currentUser,
+      events,
+      isGeneralManager,
+      nowMs,
+      scheduleWindow,
+    ]
+  );
+
   const pendingReceivedRequest = changeRequests.received[0] || null;
 
   const sentChangeByAssignmentId = useMemo(
@@ -388,11 +517,26 @@ export function MonthlyScheduleView() {
     [changeRequests.sent]
   );
 
+  const myAssignmentById = useMemo(
+    () => new Map(myAssignments.map((assignment) => [assignment.id, assignment])),
+    [myAssignments]
+  );
+
   const nextUserSchedule = useMemo(() => {
     if (isManagementOnly || myAssignments.length === 0) return null;
 
-    const first = myAssignments[0];
-    if (!first?.schedule) return null;
+    const first = myAssignments.find((assignment) => {
+      if (!assignment?.schedule) return false;
+      if (Date.parse(assignment.checkIn?.closesAt) < nowMs) return false;
+      const phase = attendancePhaseOf({
+        assignment,
+        scheduleAt: assignment.schedule.scheduleAt,
+        checkIn: assignment.checkIn,
+        nowMs,
+      });
+      return phase !== ATTENDANCE_PHASE.CONFIRMATION_MISSED;
+    });
+    if (!first) return null;
 
     const { dateIso, time } = extractDateAndTimeInZone(
       first.schedule.scheduleAt,
@@ -416,8 +560,11 @@ export function MonthlyScheduleView() {
       changeStatus: matchingSent?.changeStatus || first.changeStatus || "NONE",
       credentialChange:
         matchingSent?.credentialChange || first.credentialChange || null,
+      confirmedAt: first.confirmedAt ?? null,
+      checkedInAt: first.checkedInAt ?? null,
+      checkIn: first.checkIn ?? null,
     };
-  }, [isManagementOnly, myAssignments, sentChangeByAssignmentId]);
+  }, [isManagementOnly, myAssignments, nowMs, sentChangeByAssignmentId]);
 
   // Real eligible teammates for requesting substitution in the selected schedule
   const eligibleSubstitutes = useMemo(() => {
@@ -597,6 +744,113 @@ export function MonthlyScheduleView() {
     );
   };
 
+  const handleConfirmPresence = async (target) => {
+    if (confirmingAssignmentId || !target?.assignmentId) return;
+    setConfirmingAssignmentId(target.assignmentId);
+    const res = await confirmPresence(target.assignmentId);
+    setConfirmingAssignmentId("");
+
+    if (!res.ok) {
+      toast.error(res.error || "Não foi possível confirmar sua presença.");
+      return;
+    }
+
+    await refreshSchedules();
+    toast.success(`Presença confirmada em "${target.title}".`);
+  };
+
+  const openCheckInConfirm = (target) => {
+    openConfirmModal({ type: "check-in", attendance: target });
+  };
+
+  const renderAttendanceActions = (target, variant) => {
+    const secondaryClass =
+      variant === "hero"
+        ? styles.absenceButton
+        : `${styles.cardActionButton} ${styles.cardWithdrawButton}`;
+    const primaryClass =
+      variant === "hero"
+        ? styles.heroPrimaryButton
+        : `${styles.cardActionButton} ${styles.cardSignupButton}`;
+    const isBeforeStart = nowMs < Date.parse(target.scheduleAt);
+    const isConfirming = confirmingAssignmentId === target.assignmentId;
+    const isCanceling = cancelingAssignmentId === target.assignmentId;
+
+    const absenceButton = isBeforeStart && (
+      <button
+        type="button"
+        className={secondaryClass}
+        onClick={() => handleOpenAbsenceModal(target)}
+      >
+        {target.changeStatus === "REJECTED"
+          ? "Indicar outra pessoa"
+          : "Não conseguirei participar"}
+      </button>
+    );
+
+    switch (target.phase) {
+      case ATTENDANCE_PHASE.SUBSTITUTION_REQUESTED:
+        return (
+          <button
+            type="button"
+            disabled={isCanceling}
+            className={secondaryClass}
+            onClick={() =>
+              handleCancelAbsence(target.assignmentId, target.fullDateLabel)
+            }
+          >
+            {isCanceling ? "Cancelando..." : "Cancelar pedido de troca"}
+          </button>
+        );
+      case ATTENDANCE_PHASE.NEEDS_CONFIRMATION:
+        return (
+          <>
+            {absenceButton}
+            <button
+              type="button"
+              disabled={isConfirming}
+              aria-busy={isConfirming}
+              className={primaryClass}
+              onClick={() => handleConfirmPresence(target)}
+            >
+              <CheckCircleIcon />
+              <span>{isConfirming ? "Confirmando..." : "Confirmar presença"}</span>
+            </button>
+          </>
+        );
+      case ATTENDANCE_PHASE.WAITING_CHECK_IN:
+        return (
+          <>
+            {absenceButton}
+            <button type="button" disabled className={primaryClass}>
+              <ClockIcon />
+              <span>
+                {target.checkIn
+                  ? `Check-in às ${formatClock(target.checkIn.opensAt)}`
+                  : "Check-in em breve"}
+              </span>
+            </button>
+          </>
+        );
+      case ATTENDANCE_PHASE.CHECK_IN_OPEN:
+        return (
+          <>
+            {absenceButton}
+            <button
+              type="button"
+              className={primaryClass}
+              onClick={() => openCheckInConfirm(target)}
+            >
+              <CheckCircleIcon />
+              <span>Fazer check-in</span>
+            </button>
+          </>
+        );
+      default:
+        return null;
+    }
+  };
+
   const handleSignUpClick = async (eventItem) => {
     if (busySignupScheduleId) return;
     setBusySignupScheduleId(eventItem.id);
@@ -660,6 +914,22 @@ export function MonthlyScheduleView() {
     setConfirmError("");
     setIsConfirmingAction(true);
 
+    if (confirmModal.type === "check-in" && confirmModal.attendance) {
+      const target = confirmModal.attendance;
+      const res = await checkInToSchedule(target.assignmentId);
+      setIsConfirmingAction(false);
+
+      if (!res.ok) {
+        setConfirmError(res.error || "Não foi possível fazer o check-in.");
+        return;
+      }
+
+      confirmDialogRef.current?.close("confirm");
+      await refreshSchedules();
+      toast.success(`Check-in feito em "${target.title}".`);
+      return;
+    }
+
     if (confirmModal.type === "delete" && confirmModal.event) {
       const targetName = confirmModal.event.title;
       const res = await deleteSchedule(confirmModal.event.id);
@@ -722,6 +992,10 @@ export function MonthlyScheduleView() {
     }
   };
 
+  const heroAttendance = nextUserSchedule
+    ? describeHeroAttendance(nextUserSchedule, nowMs)
+    : null;
+
   const hasActiveFilters =
     Boolean(searchQuery.trim()) ||
     (!isGeneralManager && scopeFilter !== defaultScopeFilter);
@@ -767,6 +1041,20 @@ export function MonthlyScheduleView() {
                   {draftEvents.length}
                 </span>
               )}
+            </button>
+
+            <button
+              type="button"
+              disabled={autoAssignableSchedules.length === 0}
+              className={styles.autoAssignButton}
+              onClick={() =>
+                openWorkspaceDrawer("auto-assign", {
+                  schedules: autoAssignableSchedules,
+                })
+              }
+            >
+              <UsersIcon />
+              <span>Distribuição automática</span>
             </button>
 
             <button
@@ -834,31 +1122,14 @@ export function MonthlyScheduleView() {
                 <h2 className={styles.heroTitle}>{nextUserSchedule.title}</h2>
               </div>
 
-              {nextUserSchedule.changeStatus === "REQUESTED" ? (
-                <span
-                  className={`${styles.statusPill} ${styles.statusPillAmber}`}
-                >
-                  <span className={styles.statusDot} aria-hidden="true" />
-                  Substituição solicitada
-                  {nextUserSchedule.credentialChange?.name
-                    ? ` (${nextUserSchedule.credentialChange.name})`
-                    : ""}
-                </span>
-              ) : nextUserSchedule.changeStatus === "REJECTED" ? (
-                <span
-                  className={`${styles.statusPill} ${styles.statusPillAmber}`}
-                >
-                  <span className={styles.statusDot} aria-hidden="true" />
-                  Indicação recusada
-                </span>
-              ) : (
-                <span
-                  className={`${styles.statusPill} ${styles.statusPillInfo}`}
-                >
-                  <span className={styles.statusDot} aria-hidden="true" />
-                  Você está escalado
-                </span>
-              )}
+              <span
+                className={`${styles.statusPill} ${
+                  HERO_PILL_TONE[heroAttendance.pill.tone]
+                }`}
+              >
+                <span className={styles.statusDot} aria-hidden="true" />
+                {heroAttendance.pill.label}
+              </span>
             </div>
 
             <div className={styles.heroFacts}>
@@ -882,37 +1153,12 @@ export function MonthlyScheduleView() {
             <div className={styles.heroFooterRow}>
               <span className={styles.checkInHint}>
                 <ClockIcon className={styles.checkInIcon} />
-                <span>Confira o horário de chegada com sua liderança</span>
+                <span>{heroAttendance.hint}</span>
               </span>
 
-              {nextUserSchedule.changeStatus === "REQUESTED" ||
-              nextUserSchedule.changeStatus === "REJECTED" ? (
-                <button
-                  type="button"
-                  disabled={
-                    cancelingAssignmentId === nextUserSchedule.assignmentId
-                  }
-                  className={styles.absenceButton}
-                  onClick={() =>
-                    handleCancelAbsence(
-                      nextUserSchedule.assignmentId,
-                      nextUserSchedule.fullDateLabel
-                    )
-                  }
-                >
-                  {cancelingAssignmentId === nextUserSchedule.assignmentId
-                    ? "Cancelando..."
-                    : "Cancelar pedido de troca"}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className={styles.absenceButton}
-                  onClick={() => handleOpenAbsenceModal(nextUserSchedule)}
-                >
-                  Não conseguirei participar
-                </button>
-              )}
+              <div className={styles.heroActions}>
+                {renderAttendanceActions(heroAttendance.target, "hero")}
+              </div>
             </div>
           </div>
         </section>
@@ -1056,19 +1302,45 @@ export function MonthlyScheduleView() {
             const isMemberOfDepartment = userDepartmentIds.includes(
               event.ministryId
             );
-            const isUpcoming =
-              new Date(event.scheduleAt).getTime() > referenceNowMs;
+            const isUpcoming = Date.parse(event.scheduleAt) > nowMs;
             const canSelfAct =
               !isManagementOnly &&
               isMemberOfDepartment &&
               isPublished &&
               event.selfSignup &&
               isUpcoming;
-            const canRequestAbsenceOnCard =
-              !isManagementOnly &&
-              isPublished &&
-              isUpcoming &&
-              Boolean(myEventAssignment);
+            const myAttendance =
+              !isManagementOnly && isPublished && myEventAssignment
+                ? (() => {
+                    const assignment = {
+                      ...myEventAssignment,
+                      changeStatus: myChangeStatus,
+                    };
+                    const checkIn =
+                      myAssignmentById.get(myEventAssignment.id)?.checkIn ??
+                      null;
+                    return {
+                      assignmentId: myEventAssignment.id,
+                      scheduleId: event.id,
+                      ministryId: event.ministryId,
+                      title: event.title,
+                      fullDateLabel: event.fullDateLabel,
+                      time: event.time,
+                      scheduleAt: event.scheduleAt,
+                      changeStatus: myChangeStatus,
+                      checkIn,
+                      phase: attendancePhaseOf({
+                        assignment,
+                        scheduleAt: event.scheduleAt,
+                        checkIn,
+                        nowMs,
+                      }),
+                    };
+                  })()
+                : null;
+            const myAttendanceActions = myAttendance
+              ? renderAttendanceActions(myAttendance, "card")
+              : null;
             const hasFreeSlots =
               typeof event.volunteersNeeded === "number" &&
               event.assignedCount < event.volunteersNeeded;
@@ -1148,15 +1420,11 @@ export function MonthlyScheduleView() {
                   ) : (
                     <div className={styles.assignmentsGrid}>
                       {event.assignments.map((person) => {
-                        let badgeToneClass = styles.attendanceConfirmed;
-                        let badgeLabel = "Escalado";
-                        if (person.changeStatus === "REQUESTED") {
-                          badgeToneClass = styles.attendancePending;
-                          badgeLabel = "Troca pendente";
-                        } else if (person.changeStatus === "REJECTED") {
-                          badgeToneClass = styles.attendancePending;
-                          badgeLabel = "Troca recusada";
-                        }
+                        const badge = isPublished
+                          ? attendanceBadgeOf(person)
+                          : DRAFT_BADGE;
+                        const badgeToneClass = ATTENDANCE_BADGE_TONE[badge.tone];
+                        const badgeLabel = badge.label;
 
                         return (
                           <div
@@ -1194,7 +1462,7 @@ export function MonthlyScheduleView() {
                     </div>
                   )}
 
-                  {(canManageThis || canSelfAct || canRequestAbsenceOnCard) && (
+                  {(canManageThis || canSelfAct || myAttendanceActions) && (
                     <div className={styles.eventActionsBar}>
                       {canSelfAct &&
                         !isUserScheduled &&
@@ -1212,44 +1480,7 @@ export function MonthlyScheduleView() {
                           </button>
                         )}
 
-                      {canRequestAbsenceOnCard &&
-                        (myChangeStatus === "REQUESTED" ||
-                        myChangeStatus === "REJECTED" ? (
-                          <button
-                            type="button"
-                            disabled={
-                              cancelingAssignmentId === myEventAssignment.id
-                            }
-                            className={`${styles.cardActionButton} ${styles.cardWithdrawButton}`}
-                            onClick={() =>
-                              handleCancelAbsence(
-                                myEventAssignment.id,
-                                event.fullDateLabel
-                              )
-                            }
-                          >
-                            {cancelingAssignmentId === myEventAssignment.id
-                              ? "Cancelando..."
-                              : "Cancelar pedido de troca"}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className={`${styles.cardActionButton} ${styles.cardWithdrawButton}`}
-                            onClick={() =>
-                              handleOpenAbsenceModal({
-                                assignmentId: myEventAssignment.id,
-                                scheduleId: event.id,
-                                ministryId: event.ministryId,
-                                title: event.title,
-                                fullDateLabel: event.fullDateLabel,
-                                time: event.time,
-                              })
-                            }
-                          >
-                            Não conseguirei participar
-                          </button>
-                        ))}
+                      {myAttendanceActions}
 
                       {canManageThis && !isInEditableWindow && (
                         <span className={styles.lockedWindowBadge}>
@@ -1445,11 +1676,13 @@ export function MonthlyScheduleView() {
             <div>
               <p className={styles.confirmEyebrow}>CONFIRMAÇÃO NECESSÁRIA</p>
               <h2 id={confirmModalTitleId} className={styles.confirmTitle}>
-                {confirmModal?.type === "delete"
-                  ? "Excluir escala?"
-                  : confirmModal?.type === "publish-all"
-                    ? "Publicar todas as escalas?"
-                    : "Publicar escala?"}
+                {confirmModal?.type === "check-in"
+                  ? "Fazer check-in?"
+                  : confirmModal?.type === "delete"
+                    ? "Excluir escala?"
+                    : confirmModal?.type === "publish-all"
+                      ? "Publicar todas as escalas?"
+                      : "Publicar escala?"}
               </h2>
             </div>
 
@@ -1504,6 +1737,16 @@ export function MonthlyScheduleView() {
                         participantes do ministério.
                       </>
                     )}
+                  {confirmModal?.type === "check-in" &&
+                    confirmModal.attendance && (
+                      <>
+                        Tem certeza que deseja fazer o check-in em{" "}
+                        <strong>{confirmModal.attendance.title}</strong> (
+                        {confirmModal.attendance.fullDateLabel},{" "}
+                        {confirmModal.attendance.time})? Faça o check-in quando
+                        já estiver no local para servir.
+                      </>
+                    )}
                   {confirmModal?.type === "publish-all" && (
                     <>
                       Todas as{" "}
@@ -1549,11 +1792,13 @@ export function MonthlyScheduleView() {
             >
               {isConfirmingAction
                 ? "Processando..."
-                : confirmModal?.type === "delete"
-                  ? "Excluir escala"
-                  : confirmModal?.type === "publish-all"
-                    ? "Publicar todas"
-                    : "Publicar escala"}
+                : confirmModal?.type === "check-in"
+                  ? "Fazer check-in"
+                  : confirmModal?.type === "delete"
+                    ? "Excluir escala"
+                    : confirmModal?.type === "publish-all"
+                      ? "Publicar todas"
+                      : "Publicar escala"}
             </button>
           </div>
         </form>

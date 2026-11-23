@@ -22,6 +22,8 @@ export function formatAssignmentForUi(rawAssignment) {
     roleCode: credential.role || "",
     changeStatus,
     credentialChange: rawAssignment.credentialChange ?? null,
+    confirmedAt: rawAssignment.confirmedAt ?? null,
+    checkedInAt: rawAssignment.checkedInAt ?? null,
   };
 }
 
@@ -214,5 +216,30 @@ export function rejectChangeRequest(assignmentId) {
 export function cancelChangeRequest(assignmentId) {
   return apiRequest(`/change-requests/${encodeURIComponent(assignmentId)}`, {
     method: "DELETE",
+  });
+}
+
+export function confirmPresence(assignmentId) {
+  return apiRequest(
+    `/schedules/me/${encodeURIComponent(assignmentId)}/confirmation`,
+    { method: "POST" }
+  );
+}
+
+export function checkInToSchedule(assignmentId) {
+  return apiRequest(
+    `/schedules/me/${encodeURIComponent(assignmentId)}/check-in`,
+    { method: "POST" }
+  );
+}
+
+export function autoAssignSchedules({ schedules, dryRun = false, seed }) {
+  return apiRequest("/schedules/auto-assign", {
+    method: "POST",
+    body: {
+      schedules,
+      dryRun,
+      ...(typeof seed === "number" ? { seed } : {}),
+    },
   });
 }

@@ -14,6 +14,14 @@ export function createSchedulesController(service = schedulesService) {
       res.json(await service.listMine(req.auth, req.validated.query));
     },
 
+    async confirmPresence(req, res) {
+      res.json(await service.confirmPresence(req.auth, req.validated.params.assignmentId));
+    },
+
+    async checkIn(req, res) {
+      res.json(await service.checkIn(req.auth, req.validated.params.assignmentId));
+    },
+
     async listOpen(req, res) {
       res.json(await service.listOpen(req.auth));
     },

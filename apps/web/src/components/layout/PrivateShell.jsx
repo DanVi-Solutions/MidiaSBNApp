@@ -12,7 +12,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  BellIcon,
   CalendarCheckIcon,
   CalendarIcon,
   ChartBarsIcon,
@@ -38,10 +37,19 @@ import {
   listCredentials,
   listDepartments,
 } from "@/features/participants/services/credentialsService";
+import { DevicePushPrompt } from "@/features/notifications/components/DevicePushPrompt";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
+import { useNotificationCenter } from "@/features/notifications/hooks/useNotificationCenter";
+import {
+  forgetDevicePushPrompt,
+  hasPendingDevicePushPrompt,
+  reconnectDevicePush,
+  registerServiceWorker,
+  shouldOfferDevicePush,
+} from "@/features/notifications/lib/devicePush";
 import {
   ACTIVE_MINISTRY,
   CURRENT_USER,
-  INITIAL_SUBSTITUTION_REQUEST,
 } from "@/features/schedules/data/mockScheduleData";
 import {
   formatRecurringEventForUi,
@@ -97,15 +105,6 @@ const NAV_ITEMS = [
     href: "/reports",
     label: "Relatórios",
     icon: ChartBarsIcon,
-  },
-];
-
-const INITIAL_NOTIFICATIONS = [
-  {
-    id: INITIAL_SUBSTITUTION_REQUEST.id,
-    title: "Substituição sugerida",
-    description: `${INITIAL_SUBSTITUTION_REQUEST.requesterHandle} indicou você para ${INITIAL_SUBSTITUTION_REQUEST.eventTitle} (${INITIAL_SUBSTITUTION_REQUEST.dateTimeLabel}).`,
-    read: false,
   },
 ];
 
@@ -275,13 +274,11 @@ export function PrivateShell({ children }) {
   const router = useRouter();
   const toast = useToast();
   const drawerId = useId();
-  const notificationsId = useId();
   const profileMenuId = useId();
 
   const drawerDialogRef = useRef(null);
   const drawerScrollerRef = useRef(null);
   const drawerSheetRef = useRef(null);
-  const notificationsPopoverRef = useRef(null);
   const profilePopoverRef = useRef(null);
   const drawerKeyRef = useRef(0);
 
@@ -290,7 +287,7 @@ export function PrivateShell({ children }) {
   const [activeRightDrawer, setActiveRightDrawer] = useState(null);
   const [schedulesVersion, setSchedulesVersion] = useState(0);
   const [workspaceCodeModal, setWorkspaceCodeModal] = useState(null);
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+  const [isDevicePushPromptOpen, setIsDevicePushPromptOpen] = useState(false);
   const [activeMinistry, setActiveMinistry] = useState(ACTIVE_MINISTRY);
   const [departments, setDepartments] = useState([]);
   const [participants, setParticipants] = useState([]);
@@ -303,7 +300,8 @@ export function PrivateShell({ children }) {
   const [isLoadingRecurringEvents, setIsLoadingRecurringEvents] = useState(false);
   const [recurringEventsError, setRecurringEventsError] = useState("");
 
-  const unreadCount = notifications.filter((item) => !item.read).length;
+  const isAuthenticated = authStatus === "authenticated";
+  const notificationCenter = useNotificationCenter({ enabled: isAuthenticated });
 
   const rememberCredentialNumber = useCallback((id, code) => {
     if (!id || !code) return;
@@ -653,14 +651,30 @@ export function PrivateShell({ children }) {
     });
   }, []);
 
-  const markNotificationRead = useCallback((id) => {
-    setNotifications((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, read: true } : item))
-    );
-  }, []);
+  const currentUserIsAdmin = isAdmin(currentUser);
+  const deviceUserId = currentUser?.id || "";
 
-  const markAllNotificationsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+  useEffect(() => {
+    if (!isAuthenticated || !deviceUserId) return undefined;
+    registerServiceWorker();
+    if (currentUserIsAdmin) return undefined;
+
+    reconnectDevicePush();
+    if (!hasPendingDevicePushPrompt(deviceUserId)) return undefined;
+    if (!shouldOfferDevicePush()) {
+      forgetDevicePushPrompt();
+      return undefined;
+    }
+    const openPrompt = window.setTimeout(
+      () => setIsDevicePushPromptOpen(true),
+      600
+    );
+    return () => window.clearTimeout(openPrompt);
+  }, [currentUserIsAdmin, deviceUserId, isAuthenticated]);
+
+  const closeDevicePushPrompt = useCallback(() => {
+    forgetDevicePushPrompt();
+    setIsDevicePushPromptOpen(false);
   }, []);
 
   const openWorkspaceDrawer = useCallback((type, payload = {}) => {
@@ -833,9 +847,9 @@ export function PrivateShell({ children }) {
   return (
     <PrivateWorkspaceContext.Provider
       value={{
-        unreadCount,
-        markNotificationRead,
-        markAllNotificationsRead,
+        unreadCount: notificationCenter.unreadCount,
+        markNotificationRead: notificationCenter.markRead,
+        markAllNotificationsRead: notificationCenter.markAllRead,
         activeMinistry,
         setActiveMinistry: selectActiveMinistry,
         ministries,
@@ -935,59 +949,7 @@ export function PrivateShell({ children }) {
             </div>
 
             <div className={styles.topbarRight}>
-              <button
-                type="button"
-                popoverTarget={notificationsId}
-                aria-label={
-                  unreadCount > 0
-                    ? `Notificações (${unreadCount} não lida${unreadCount > 1 ? "s" : ""})`
-                    : "Notificações"
-                }
-                className={styles.bellButton}
-              >
-                <BellIcon />
-                {unreadCount > 0 && (
-                  <span className={styles.bellBadge} aria-hidden="true">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              <div
-                ref={notificationsPopoverRef}
-                id={notificationsId}
-                popover="auto"
-                className={styles.popoverPanel}
-              >
-                <div className={styles.popoverHeader}>
-                  <span className={styles.popoverTitle}>Notificações</span>
-                  {unreadCount > 0 && (
-                    <button
-                      type="button"
-                      className={styles.popoverTextAction}
-                      onClick={markAllNotificationsRead}
-                    >
-                      Marcar como lidas
-                    </button>
-                  )}
-                </div>
-
-                <ul className={styles.notificationList}>
-                  {notifications.map((item) => (
-                    <li
-                      key={item.id}
-                      className={`${styles.notificationItem} ${
-                        !item.read ? styles.notificationUnread : ""
-                      }`}
-                    >
-                      <p className={styles.notificationTitle}>{item.title}</p>
-                      <p className={styles.notificationDesc}>
-                        {item.description}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <NotificationBell center={notificationCenter} />
 
               <button
                 type="button"
@@ -1072,6 +1034,9 @@ export function PrivateShell({ children }) {
         modalState={workspaceCodeModal}
         onClose={closeWorkspaceCodeModal}
       />
+      {isDevicePushPromptOpen && (
+        <DevicePushPrompt onClose={closeDevicePushPrompt} />
+      )}
     </PrivateWorkspaceContext.Provider>
   );
 }

@@ -11,6 +11,13 @@ const changeStatus = z.enum(["NONE", "REQUESTED", "REJECTED"]).meta({
   description: "Pedido de troca: NONE (nenhum), REQUESTED (aguardando o substituto), REJECTED (substituto recusou).",
 });
 
+const attendance = {
+  confirmedAt: z.iso.datetime().nullable().meta({
+    description: "Quando a pessoa confirmou presença. `null` = ainda não confirmou. O check-in só libera depois disso.",
+  }),
+  checkedInAt: z.iso.datetime().nullable().meta({ description: "Quando a pessoa fez o check-in. `null` = ainda não fez." }),
+};
+
 const scheduleBase = z.object({
   id: z.uuid(),
   name: z.string(),
@@ -50,6 +57,7 @@ export const schedule = scheduleBase.extend({
     z.object({
       id: z.uuid().meta({ description: "ID da participação (usado nos pedidos de troca)." }),
       changeStatus,
+      ...attendance,
       credential: person,
       credentialChange: z.object({ id: z.uuid(), name: z.string() }).nullable().meta({
         description: "Substituto indicado no pedido de troca, se houver.",
@@ -68,20 +76,27 @@ export const assigned = z.object({
   }),
 });
 
-export const myAssignments = z.array(
-  z.object({
-    id: z.uuid().meta({ description: "ID da participação. Use em `POST /change-requests` para pedir troca." }),
-    changeStatus,
-    credentialChange: z.object({ id: z.uuid(), name: z.string() }).nullable(),
-    schedule: z.object({
-      id: z.uuid(),
-      name: z.string(),
-      description: z.string().nullable(),
-      scheduleAt: z.iso.datetime(),
-      department,
-    }),
+export const myAssignment = z.object({
+  id: z.uuid().meta({
+    description: "ID da participação. Use para confirmar presença, fazer check-in e pedir troca (`POST /change-requests`).",
   }),
-);
+  changeStatus,
+  ...attendance,
+  credentialChange: z.object({ id: z.uuid(), name: z.string() }).nullable(),
+  schedule: z.object({
+    id: z.uuid(),
+    name: z.string(),
+    description: z.string().nullable(),
+    scheduleAt: z.iso.datetime(),
+    department,
+  }),
+  checkIn: z.object({
+    opensAt: z.iso.datetime().meta({ description: "A partir de quando o check-in é aceito (10 minutos antes do início)." }),
+    closesAt: z.iso.datetime().meta({ description: "Até quando o check-in é aceito: o fim do dia da escala (23:59:59)." }),
+  }),
+});
+
+export const myAssignments = z.array(myAssignment);
 
 export const candidates = z.array(
   z.object({
@@ -101,6 +116,9 @@ export const openSchedules = z.array(
 
 export const distribution = z.object({
   dryRun: z.boolean(),
+  seed: z.number().int().meta({
+    description: "Semente usada nos sorteios. Reenvie com `dryRun: false` para salvar a mesma proposta da prévia.",
+  }),
   assignedTotal: z.number().int().meta({ description: "Total de pessoas escaladas (ou que seriam, em `dryRun`)." }),
   missingTotal: z.number().int().meta({ description: "Total de vagas que não puderam ser preenchidas." }),
   schedules: z.array(

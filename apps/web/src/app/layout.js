@@ -18,6 +18,19 @@ export const metadata = {
     template: "%s | Mídia Sobrenatural",
   },
   description: "Sistema interno da equipe Mídia Sobrenatural.",
+  applicationName: "Mídia Sobrenatural",
+  appleWebApp: {
+    capable: true,
+    title: "Mídia SBN",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
+};
+
+export const viewport = {
+  themeColor: "#121412",
 };
 
 export default function RootLayout({ children }) {

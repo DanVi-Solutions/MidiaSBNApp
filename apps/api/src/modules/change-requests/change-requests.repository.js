@@ -55,7 +55,7 @@ export const changeRequestsRepository = {
   request(id, substituteId) {
     return prisma.credentialSchedule.update({
       where: { id },
-      data: { changeStatus: "REQUESTED", credentialChangeId: substituteId },
+      data: { changeStatus: "REQUESTED", credentialChangeId: substituteId, confirmedAt: null },
       select: requestSelect,
     });
   },
@@ -75,7 +75,14 @@ export const changeRequestsRepository = {
   async accept(id, substituteId) {
     const { count } = await prisma.credentialSchedule.updateMany({
       where: { id, changeStatus: "REQUESTED", credentialChangeId: substituteId },
-      data: { credentialId: substituteId, changeStatus: "NONE", credentialChangeId: null },
+      data: {
+        credentialId: substituteId,
+        changeStatus: "NONE",
+        credentialChangeId: null,
+        reminderSentAt: null,
+        confirmedAt: new Date(),
+        checkedInAt: null,
+      },
     });
     return count === 1;
   },

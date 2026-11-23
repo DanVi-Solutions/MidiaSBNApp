@@ -8,9 +8,14 @@ import { ROLES, isAdmin, isAtLeast } from "../../shared/auth/roles.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { isUniqueViolationOn } from "../../shared/errors/prismaErrors.js";
 import { assertInsideWindow, scheduleWindow } from "../../shared/time/scheduleWindow.js";
+import { formatMoment } from "../../shared/time/formatting.js";
 import { localDateOf, weekdayAndPeriodOf } from "../../shared/time/zonedTime.js";
 import { departmentsRepository } from "../departments/departments.repository.js";
-import { distribute } from "./schedules.distribution.js";
+import { messages } from "../notifications/notifications.messages.js";
+import { notifier as defaultNotifier } from "../notifications/notifications.notifier.js";
+import { notificationsRepository } from "../notifications/notifications.repository.js";
+import { checkInWindowOf, stillCheckingIn } from "./schedules.attendance.js";
+import { distribute, randomSeed, seededRandom } from "./schedules.distribution.js";
 import { schedulesRepository } from "./schedules.repository.js";
 
 const SAME_TIME_CONFLICT = "Este ministério já tem uma escala neste dia e horário";
@@ -49,7 +54,20 @@ function ensureVolunteersNeededWhenSelfSignup({ selfSignup, volunteersNeeded }) 
 
 const byAvailabilityThenName = (a, b) => Number(b.available) - Number(a.available) || a.credential.name.localeCompare(b.credential.name);
 
-export function createSchedulesService({ repository = schedulesRepository, departments = departmentsRepository } = {}) {
+const withCheckInWindow = (assignment) => ({ ...assignment, checkIn: checkInWindowOf(assignment.schedule.scheduleAt) });
+
+const ASSIGNMENT_NOT_FOUND = "Participação na escala não encontrada";
+
+const assigneeIdsOf = (schedule) => (schedule.assignments ?? []).map((assignment) => assignment.credential.id);
+
+const OUTDATED_AFTER_LEAVING = ["SCHEDULE_ASSIGNED", "SCHEDULE_CHANGED", "SCHEDULE_REMINDER", "SELF_SIGNUP_OPENED"];
+
+export function createSchedulesService({
+  repository = schedulesRepository,
+  departments = departmentsRepository,
+  notifier = defaultNotifier,
+  recipients = notificationsRepository,
+} = {}) {
   async function findSchedule(id) {
     const schedule = await repository.findById(id);
     if (!schedule) throw AppError.notFound("Escala não encontrada");
@@ -142,6 +160,38 @@ export function createSchedulesService({ repository = schedulesRepository, depar
     return { existingAssignments, upcomingLoad };
   }
 
+  function announceOpenSlots(auth, schedule) {
+    return notifier.safely(async () => {
+      const members = await recipients.membersOf(schedule.department.id);
+      const assigned = new Set(assigneeIdsOf(schedule));
+      await notifier.to(
+        members.filter((id) => !assigned.has(id)),
+        messages.selfSignupOpened(schedule),
+        { except: auth.id },
+      );
+    });
+  }
+
+  async function announceUpdate(auth, before, after) {
+    const assignees = assigneeIdsOf(after);
+    const options = { except: auth.id };
+
+    if (!after.published) return;
+
+    if (!before.published) {
+      await notifier.to(assignees, messages.scheduleAssigned(after), options);
+      if (after.selfSignup) await announceOpenSlots(auth, after);
+      return;
+    }
+
+    if (before.scheduleAt.getTime() !== after.scheduleAt.getTime()) {
+      await notifier.to(assignees, messages.scheduleMoved(after), options);
+    } else if (before.name !== after.name) {
+      await notifier.to(assignees, messages.scheduleRenamed(after, before.name), options);
+    }
+    if (!before.selfSignup && after.selfSignup) await announceOpenSlots(auth, after);
+  }
+
   async function availabilityAt(schedule, excludeRoles = []) {
     const { weekday, period } = weekdayAndPeriodOf(schedule.scheduleAt);
     const members = await repository.membersWithAvailabilityAt(schedule.department.id, {
@@ -171,8 +221,38 @@ export function createSchedulesService({ repository = schedulesRepository, depar
       return repository.list({ visibility, departmentId, from, to });
     },
 
-    listMine(auth, { from = new Date() }) {
-      return repository.listAssignmentsOf(auth.id, { from });
+    async listMine(auth, { from = stillCheckingIn() }) {
+      return (await repository.listAssignmentsOf(auth.id, { from })).map(withCheckInWindow);
+    },
+
+    async confirmPresence(auth, assignmentId) {
+      const assignment = await repository.findOwnAssignment(assignmentId, auth.id);
+      if (!assignment) throw AppError.notFound(ASSIGNMENT_NOT_FOUND);
+      if (assignment.schedule.scheduleAt <= new Date()) throw AppError.conflict("A escala já começou");
+      if (assignment.changeStatus === "REQUESTED") {
+        throw AppError.conflict("Você pediu substituição nesta escala. Cancele o pedido antes de confirmar presença");
+      }
+
+      if (!assignment.confirmedAt) await repository.confirmPresence(assignmentId);
+      await notifier.discardAboutSchedule(auth.id, assignment.schedule.id, ["CHANGE_REQUEST_REJECTED"]);
+      return withCheckInWindow(await repository.findOwnAssignment(assignmentId, auth.id));
+    },
+
+    async checkIn(auth, assignmentId) {
+      const assignment = await repository.findOwnAssignment(assignmentId, auth.id);
+      if (!assignment) throw AppError.notFound(ASSIGNMENT_NOT_FOUND);
+      if (assignment.checkedInAt) throw AppError.conflict("Você já fez o check-in nesta escala");
+      if (!assignment.confirmedAt) throw AppError.conflict("Confirme sua presença antes de fazer o check-in");
+
+      const { opensAt, closesAt } = checkInWindowOf(assignment.schedule.scheduleAt);
+      const now = new Date();
+      if (now < opensAt) {
+        throw AppError.conflict(`O check-in abre 10 minutos antes do início (${formatMoment(opensAt)})`);
+      }
+      if (now > closesAt) throw AppError.conflict("O prazo para o check-in desta escala terminou");
+
+      if (!(await repository.checkIn(assignmentId))) throw AppError.conflict("Você já fez o check-in nesta escala");
+      return withCheckInWindow(await repository.findOwnAssignment(assignmentId, auth.id));
     },
 
     async listOpen(auth) {
@@ -195,6 +275,7 @@ export function createSchedulesService({ repository = schedulesRepository, depar
         if (isUniqueViolationOn(error, "credential_schedule")) throw AppError.conflict("Você já está nesta escala");
         throw error;
       }
+      await notifier.discardAboutSchedule(auth.id, id, ["SELF_SIGNUP_OPENED"]);
       return repository.findById(id);
     },
 
@@ -204,15 +285,26 @@ export function createSchedulesService({ repository = schedulesRepository, depar
       );
     },
 
-    async autoAssign(auth, { schedules: requests, dryRun }) {
+    async autoAssign(auth, { schedules: requests, dryRun, seed = randomSeed() }) {
       const slots = await loadDistributionSlots(auth, requests);
-      const picksBySlot = distribute(slots, await loadCommitments(slots));
+      const picksBySlot = distribute(slots, { ...(await loadCommitments(slots)), random: seededRandom(seed) });
 
       if (!dryRun) {
         await repository.addAssignments(
           slots.flatMap((slot) =>
             picksBySlot.get(slot.scheduleId).map((pick) => ({ scheduleId: slot.scheduleId, credentialId: pick.credential.id })),
           ),
+        );
+        await notifier.send(
+          slots
+            .filter((slot) => slot.schedule.published)
+            .flatMap((slot) =>
+              picksBySlot.get(slot.scheduleId).map((pick) => ({
+                credentialId: pick.credential.id,
+                message: messages.scheduleAssigned(slot.schedule),
+              })),
+            ),
+          { except: auth.id },
         );
       }
 
@@ -231,6 +323,7 @@ export function createSchedulesService({ repository = schedulesRepository, depar
 
       return {
         dryRun,
+        seed,
         assignedTotal: results.reduce((total, result) => total + result.assigned.length, 0),
         missingTotal: results.reduce((total, result) => total + result.missing, 0),
         schedules: results,
@@ -266,12 +359,18 @@ export function createSchedulesService({ repository = schedulesRepository, depar
         selfSignup: changes.selfSignup ?? current.selfSignup,
         volunteersNeeded: changes.volunteersNeeded === undefined ? current.volunteersNeeded : changes.volunteersNeeded,
       });
-      return translateSameTimeConflict(() => repository.update(id, changes));
+      const updated = await translateSameTimeConflict(() => repository.update(id, changes));
+      if (updated.scheduleAt.getTime() !== current.scheduleAt.getTime()) await repository.resetAfterReschedule(id);
+      await announceUpdate(auth, current, updated);
+      return updated;
     },
 
     async delete(auth, id) {
-      await findEditableSchedule(auth, id);
+      const schedule = await findEditableSchedule(auth, id);
       await repository.delete(id);
+      if (schedule.published) {
+        await notifier.to(assigneeIdsOf(schedule), messages.scheduleCancelled(schedule), { except: auth.id });
+      }
     },
 
     async assign(auth, id, credentialId) {
@@ -293,6 +392,7 @@ export function createSchedulesService({ repository = schedulesRepository, depar
         ({ credential }) => credential.id === credentialId,
       );
       const updated = await repository.findById(id);
+      if (updated.published) await notifier.to([credentialId], messages.scheduleAssigned(updated), { except: auth.id });
       const overCapacity = updated.volunteersNeeded && updated.assignedCount > updated.volunteersNeeded;
       const warnings = [
         ...(assessment?.hasWeeklyAvailability ? [] : ["NO_WEEKLY_AVAILABILITY"]),
@@ -318,6 +418,8 @@ export function createSchedulesService({ repository = schedulesRepository, depar
       if (!(await repository.removeAssignment(id, credentialId))) {
         throw AppError.notFound("A pessoa não está nesta escala");
       }
+      await notifier.discardAboutSchedule(credentialId, id, OUTDATED_AFTER_LEAVING);
+      if (schedule.published) await notifier.to([credentialId], messages.scheduleUnassigned(schedule), { except: auth.id });
     },
   };
 }

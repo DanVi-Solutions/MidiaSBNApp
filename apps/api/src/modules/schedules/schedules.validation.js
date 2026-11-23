@@ -32,6 +32,10 @@ export const assignmentParams = z.object({
   credentialId: uuidParam("ID da credencial escalada"),
 });
 
+export const ownAssignmentParams = z.object({
+  assignmentId: uuidParam("ID da participação (o `id` de cada item de `GET /schedules/me`)"),
+});
+
 export const listQuery = z.object({
   departmentId: z.uuid("ID inválido").optional().meta({ description: "Filtra por um ministério (department)." }),
   from: dateTime("Início do intervalo. Padrão: agora.").optional(),
@@ -39,7 +43,7 @@ export const listQuery = z.object({
 });
 
 export const mineQuery = z.object({
-  from: dateTime("A partir de quando. Padrão: agora.").optional(),
+  from: dateTime("A partir de quando. Padrão: o início de hoje, para incluir as escalas com check-in ainda aberto.").optional(),
 });
 
 export const createBody = z
@@ -97,4 +101,15 @@ export const autoAssignBody = z.object({
   dryRun: z.boolean().default(false).meta({
     description: "`true` só calcula e devolve a proposta, sem salvar. Use para mostrar uma prévia ao usuário.",
   }),
+  seed: z
+    .number()
+    .int()
+    .min(0)
+    .max(2 ** 31 - 1)
+    .optional()
+    .meta({
+      description:
+        "Semente dos sorteios de desempate. Envie o `seed` devolvido pela prévia para salvar exatamente a mesma " +
+        "proposta (se nada mudou nas escalas e nas pessoas desde então).",
+    }),
 });

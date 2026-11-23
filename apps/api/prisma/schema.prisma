@@ -38,6 +38,25 @@ enum Role {
   VOLUNTEER
 }
 
+enum NotificationType {
+  SCHEDULE_ASSIGNED
+  SCHEDULE_UNASSIGNED
+  SCHEDULE_CHANGED
+  SCHEDULE_CANCELLED
+  SCHEDULE_REMINDER
+  SELF_SIGNUP_OPENED
+  CHANGE_REQUEST_RECEIVED
+  CHANGE_REQUEST_ACCEPTED
+  CHANGE_REQUEST_REJECTED
+  CHANGE_REQUEST_CANCELLED
+  TRANSFER_REQUESTED
+  TRANSFER_REJECTED
+  DEPARTMENT_CHANGED
+  ROLE_CHANGED
+  UNAVAILABILITY_CONFLICT
+  SCHEDULE_CYCLE_OPENED
+}
+
 // SCHEMAS:
 model Credential {
   id                   String           @id @default(uuid(7)) @db.Uuid
@@ -56,6 +75,8 @@ model Credential {
   requestedTransfers     CredentialDepartment[] @relation("TransferRequestedBy")
   unavailabilities       Unavailability[]
   createdRecurringEvents RecurringEvent[]       @relation("CreatedRecurringEvents")
+  notifications          Notification[]
+  pushSubscriptions      PushSubscription[]
 
   @@map("credential")
 }
@@ -68,7 +89,8 @@ model RefreshToken {
   startedAt    DateTime @default(now()) @map("started_at") @db.Timestamptz(6)
   userAgent    String?  @map("user_agent") @db.VarChar(255)
 
-  credential Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  credential        Credential         @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  pushSubscriptions PushSubscription[]
 
   @@index([credentialId])
   @@map("refresh_token")
@@ -116,7 +138,8 @@ model Schedule {
   selfSignup       Boolean  @default(false) @map("self_signup")
   volunteersNeeded Int?     @map("volunteers_needed") @db.SmallInt
 
-  credentials CredentialSchedule[]
+  credentials   CredentialSchedule[]
+  notifications Notification[]
 
   department     Department      @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   recurringEvent RecurringEvent? @relation(fields: [recurringEventId], references: [id], onDelete: SetNull)
@@ -162,6 +185,9 @@ model CredentialSchedule {
   scheduleId         String       @map("schedule_id") @db.Uuid
   changeStatus       ChangeStatus @default(NONE) @map("change_status")
   credentialChangeId String?      @map("credential_change_id") @db.Uuid
+  reminderSentAt     DateTime?    @map("reminder_sent_at") @db.Timestamptz(6)
+  confirmedAt        DateTime?    @map("confirmed_at") @db.Timestamptz(6)
+  checkedInAt        DateTime?    @map("checked_in_at") @db.Timestamptz(6)
 
   credential       Credential  @relation(fields: [credentialId], references: [id], onDelete: Restrict)
   credentialChange Credential? @relation("CredentialChange", fields: [credentialChangeId], references: [id], onDelete: SetNull)
@@ -199,4 +225,49 @@ model Unavailability {
 
   @@index([credentialId, startAt])
   @@map("unavailability")
+}
+
+model Notification {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  credentialId String           @map("credential_id") @db.Uuid
+  type         NotificationType
+  title        String           @db.VarChar(120)
+  body         String           @db.VarChar(255)
+  link         String?          @db.VarChar(255)
+  scheduleId   String?          @map("schedule_id") @db.Uuid
+  readAt       DateTime?        @map("read_at") @db.Timestamptz(6)
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  credential Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  schedule   Schedule?  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([credentialId, createdAt(sort: Desc)])
+  @@index([scheduleId])
+  @@index([createdAt])
+  @@map("notification")
+}
+
+model PushSubscription {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  credentialId String   @map("credential_id") @db.Uuid
+  sessionId    String   @map("session_id") @db.Uuid
+  endpoint     String   @unique @db.VarChar(1024)
+  p256dh       String   @db.VarChar(255)
+  auth         String   @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  credential Credential   @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  session    RefreshToken @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([credentialId])
+  @@index([sessionId])
+  @@map("push_subscription")
+}
+
+model JobMarker {
+  key       String   @id @db.VarChar(60)
+  value     String   @db.VarChar(60)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("job_marker")
 }

@@ -1,0 +1,123 @@
+.card {
+  composes: card from "../../profile/components/ProfileView.module.css";
+}
+
+.header {
+  composes: cardHeader from "../../profile/components/ProfileView.module.css";
+}
+
+.eyebrow {
+  composes: cardEyebrow from "../../profile/components/ProfileView.module.css";
+}
+
+.title {
+  composes: cardTitle from "../../profile/components/ProfileView.module.css";
+}
+
+.subtitle {
+  composes: cardSubtitle from "../../profile/components/ProfileView.module.css";
+}
+
+.cornerIcon {
+  composes: cardCornerIcon from "../../profile/components/ProfileView.module.css";
+}
+
+.statusRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 12px;
+  background-color: var(--surface-workspace);
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background-color: #e9ebe4;
+  color: var(--ink-secondary);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
+.statusPill svg {
+  width: 14px;
+  height: 14px;
+}
+
+.statusOn {
+  background-color: var(--accent-lime-soft);
+  color: var(--accent-lime-ink);
+}
+
+.help {
+  font-size: 0.82rem;
+  line-height: 1.48;
+  color: var(--ink-secondary);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 42px;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primaryButton svg,
+.secondaryButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.primaryButton {
+  border: 1px solid var(--ink-primary);
+  background-color: #141614;
+  color: #f7f8f3;
+}
+
+.secondaryButton {
+  border: 1px solid var(--border-subtle);
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.primaryButton:focus-visible,
+.secondaryButton:focus-visible {
+  outline: 2px solid var(--ink-primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .primaryButton:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+  }
+
+  .secondaryButton:hover:not(:disabled) {
+    background-color: var(--surface-workspace);
+    border-color: var(--ink-primary);
+  }
+}

@@ -122,7 +122,7 @@ function CredentialCodeModalContent({
       <div className={styles.modalHeader}>
         <div className={styles.headerText}>
           <p className={styles.eyebrow}>
-            {isHashedSelf ? "CÓDIGO DEFINITIVO" : "CÓDIGO TEMPORÁRIO"}
+            {isHashedSelf ? "NOVO CÓDIGO" : "CÓDIGO TEMPORÁRIO"}
           </p>
           <h2 id={titleId} className={styles.title}>
             {modalState?.title || "Código de credencial gerado"}
@@ -188,9 +188,9 @@ function CredentialCodeModalContent({
               <AlertTriangleIcon />
             </span>
             <p className={styles.calloutText}>
-              Este código já foi salvo de forma criptografada e não poderá ser
-              visualizado novamente — nem por administradores. Todos os outros
-              dispositivos conectados foram encerrados.
+              Somente você saberá este código: ele não poderá ser visualizado
+              novamente, nem por administradores. Todos os outros dispositivos
+              conectados foram encerrados.
             </p>
           </div>
         )}
@@ -297,7 +297,7 @@ export function CredentialCodeModal({ modalState, onClose }) {
     if (isHashedSelf) {
       event.preventDefault();
       setCancelGuardNotice(
-        "Copie seu novo código criptografado e marque a confirmação antes de fechar."
+        "Copie seu novo código e marque a confirmação antes de fechar."
       );
       confirmCheckboxRef.current?.focus();
     }

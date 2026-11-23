@@ -15,7 +15,8 @@ import {
   logoutSession,
   prepareActivationCode,
 } from "@/features/auth/services/authService";
-import { CREDENTIAL_STATUS } from "@/lib/roles";
+import { rememberDevicePushPrompt } from "@/features/notifications/lib/devicePush";
+import { CREDENTIAL_STATUS, ROLES } from "@/lib/roles";
 import {
   clearStoredSession,
   getStoredSession,
@@ -269,6 +270,13 @@ export function LoginForm() {
   };
 
   const handleOnboardingComplete = () => {
+    const onboardedCredential = onboardingState?.credential;
+    if (
+      onboardingState?.mode === "first-access" &&
+      onboardedCredential?.role !== ROLES.ADMINISTRATOR
+    ) {
+      rememberDevicePushPrompt(onboardedCredential?.id);
+    }
     setOnboardingState(null);
     toast.success("Acesso liberado! Bem-vindo ao sistema.");
     router.push("/schedule");

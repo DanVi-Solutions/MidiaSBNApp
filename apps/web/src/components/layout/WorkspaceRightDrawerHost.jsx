@@ -4,6 +4,7 @@ import { MinistryAssignLeaderDrawer } from "@/features/ministries/components/Min
 import { MinistryFormDrawer } from "@/features/ministries/components/MinistryFormDrawer";
 import { ParticipantFormDrawer } from "@/features/participants/components/ParticipantFormDrawer";
 import { RecurringEventFormDrawer } from "@/features/recurring-events/components/RecurringEventFormDrawer";
+import { AutoAssignDrawer } from "@/features/schedules/components/AutoAssignDrawer";
 import { ScheduleFormDrawer } from "@/features/schedules/components/ScheduleFormDrawer";
 import { SubstitutionDrawer } from "@/features/schedules/components/SubstitutionDrawer";
 
@@ -66,6 +67,14 @@ export function WorkspaceRightDrawerHost({ activeDrawer, onCloseDrawer }) {
           mode={payload.mode}
           event={payload.event}
           scheduleWindow={payload.scheduleWindow}
+          onClose={handleClose}
+        />
+      );
+    case "auto-assign":
+      return (
+        <AutoAssignDrawer
+          key={key}
+          schedules={payload.schedules}
           onClose={handleClose}
         />
       );
