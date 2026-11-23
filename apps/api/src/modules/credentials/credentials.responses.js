@@ -38,6 +38,15 @@ export const credentialWithNumber = credential.extend({
   }),
 });
 
+export const preparedCode = z.object({
+  credentialNumber: credentialNumber.meta({
+    description: "Novo código definitivo sugerido para o usuário copiar antes de concluir a ativação.",
+  }),
+  activationToken: z.string().meta({
+    description: "Token assinado para confirmar este código em `first-access` ou `complete-recovery`.",
+  }),
+});
+
 export const credentialWithOptionalNumber = credential.extend({
   credentialNumber: credentialNumber.nullable().meta({
     description: "Preenchido apenas enquanto o código ainda não foi criptografado (PENDING ou RECOVERING).",

@@ -55,9 +55,19 @@ export const createBody = z.object({
   departmentIds: departmentIds.default([]),
 });
 
+const activationToken = z
+  .string()
+  .min(1)
+  .meta({ description: "Token assinado retornado por `POST /credentials/me/prepare-code`." });
+
 export const firstAccessBody = z.object({
   name: name.optional().meta({ description: "Opcional: corrige o nome cadastrado pelo gestor." }),
   username,
+  activationToken: activationToken.optional(),
+});
+
+export const completeRecoveryBody = z.object({
+  activationToken: activationToken.optional(),
 });
 
 export const updateMeBody = z

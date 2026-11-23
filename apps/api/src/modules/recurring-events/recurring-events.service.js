@@ -3,33 +3,44 @@ import { isAdmin } from "../../shared/auth/roles.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { isInsideWindow, monthsOfWindow, scheduleWindow } from "../../shared/time/scheduleWindow.js";
 import { occurrencesInMonth } from "../../shared/time/zonedTime.js";
-import { departmentsRepository } from "../departments/departments.repository.js";
-import { assertCanManageEventOf, assertCanSeeEvent, assertCanSeeEvents } from "./recurring-events.policy.js";
+import {
+  assertCanCreateEvent,
+  assertCanManageEvent,
+  assertCanPromoteEvent,
+  assertCanSeeEvent,
+  assertCanSeeEvents,
+} from "./recurring-events.policy.js";
 import { recurringEventsRepository } from "./recurring-events.repository.js";
 
-export function createRecurringEventsService({
-  repository = recurringEventsRepository,
-  departments = departmentsRepository,
-} = {}) {
+export function createRecurringEventsService({ repository = recurringEventsRepository } = {}) {
   async function findEvent(id) {
     const event = await repository.findById(id);
     if (!event) throw AppError.notFound("Evento recorrente não encontrado");
     return event;
   }
 
-  async function ensureDepartmentExists(departmentId) {
-    if (departmentId && !(await departments.findById(departmentId))) {
-      throw AppError.notFound("Ministério não encontrado");
-    }
-  }
-
   async function resolveTargetDepartments(auth, event, requestedIds) {
-    const ids = event.departmentId
-      ? [event.departmentId]
-      : (requestedIds ??
-        (isAdmin(auth) ? await repository.listAllDepartmentIds() : managedScheduleDepartmentIds(auth)));
-    if (ids.length === 0) throw AppError.unprocessable("Nenhum ministério para gerar as escalas");
+    const eventDeptIds = (event.departments || []).map((department) => department.id);
+    const allowedIds = event.isGlobal
+      ? isAdmin(auth)
+        ? await repository.listAllDepartmentIds()
+        : managedScheduleDepartmentIds(auth)
+      : isAdmin(auth)
+        ? eventDeptIds
+        : eventDeptIds.filter((id) => managedScheduleDepartmentIds(auth).includes(id));
 
+    let ids;
+    if (requestedIds) {
+      requestedIds.forEach((departmentId) => assertCanManageSchedulesOf(auth, departmentId));
+      if (requestedIds.some((departmentId) => !allowedIds.includes(departmentId))) {
+        throw AppError.forbidden("Um ou mais ministérios não fazem parte do escopo deste evento recorrente");
+      }
+      ids = requestedIds;
+    } else {
+      ids = allowedIds;
+    }
+
+    if (ids.length === 0) throw AppError.unprocessable("Nenhum ministério para gerar as escalas");
     ids.forEach((departmentId) => assertCanManageSchedulesOf(auth, departmentId));
     return ids;
   }
@@ -46,21 +57,36 @@ export function createRecurringEventsService({
       return event;
     },
 
-    async create(auth, { departmentId = null, ...data }) {
-      await ensureDepartmentExists(departmentId);
-      assertCanManageEventOf(auth, departmentId);
-      return repository.create({ ...data, departmentId });
+    async create(auth, data) {
+      assertCanCreateEvent(auth);
+      if (isAdmin(auth)) {
+        return repository.create({ ...data, isGlobal: true, createdById: auth.id, departmentIds: [] });
+      }
+      const uniqueDeptIds = [...new Set((auth.departmentIds || []).filter(Boolean))];
+      if (uniqueDeptIds.length === 0) {
+        throw AppError.unprocessable("Você precisa gerenciar ao menos um ministério para criar um evento recorrente");
+      }
+      return repository.create({ ...data, isGlobal: false, createdById: auth.id, departmentIds: uniqueDeptIds });
     },
 
     async update(auth, id, changes) {
       const event = await findEvent(id);
-      assertCanManageEventOf(auth, event.departmentId);
+      assertCanManageEvent(auth, event);
       return repository.update(id, changes);
+    },
+
+    async promote(auth, id) {
+      assertCanPromoteEvent(auth);
+      const event = await findEvent(id);
+      if (event.isGlobal) {
+        throw AppError.conflict("Este evento recorrente já está disponível para todos os ministérios");
+      }
+      return repository.promote(id);
     },
 
     async delete(auth, id) {
       const event = await findEvent(id);
-      assertCanManageEventOf(auth, event.departmentId);
+      assertCanManageEvent(auth, event);
       await repository.delete(id);
     },
 

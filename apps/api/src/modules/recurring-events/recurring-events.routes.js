@@ -8,8 +8,8 @@ const controller = createRecurringEventsController();
 
 const manageRule = markdown(
   "**Quem pode:**",
-  "- evento geral: general manager ou o administrador;",
-  "- evento de um ministério: o administrador, ou scheduler manager ou acima que participe do ministério.",
+  "- administrador: qualquer evento (os que cria ficam globais para todos os ministérios);",
+  "- líder geral: apenas os eventos que ele próprio criou e que ainda não foram promovidos para todos.",
 );
 
 export const recurringEventsRouter = createDocumentedRouter({
@@ -19,9 +19,10 @@ export const recurringEventsRouter = createDocumentedRouter({
     "**Eventos recorrentes**: modelos de eventos que se repetem toda semana (ex.: culto de domingo às 08:00, " +
       "10:00 e 18:00; culto de jovens aos sábados).",
     "",
-    "Um evento pode ser **geral** (`departmentId` nulo, vale para todos os ministérios) ou de **um ministério**. " +
-      "O botão \"Utilizar Evento Recorrente\" corresponde a `POST /recurring-events/{id}/apply`, que gera as " +
-      "escalas do mês a partir do modelo.",
+    "Eventos criados por administradores ficam disponíveis para **todos os ministérios** (`isGlobal: true`). " +
+      "Eventos criados por líderes gerais valem automaticamente apenas para os ministérios que eles gerenciam, " +
+      "podendo ser promovidos a globais por um administrador. O botão \"Utilizar Evento Recorrente\" corresponde a " +
+      "`POST /recurring-events/{id}/apply`, que gera as escalas do mês a partir do modelo.",
   ),
 });
 const r = recurringEventsRouter;
@@ -31,10 +32,10 @@ r.get(
   {
     summary: "Listar eventos recorrentes",
     description: markdown(
-      "Lista os eventos gerais e os dos ministérios dos quais a pessoa participa (administrador: todos), " +
+      "Lista os eventos globais e os dos ministérios dos quais a pessoa participa (administrador: todos), " +
         "ordenados por dia da semana.",
       "",
-      "**Quem pode:** scheduler manager ou acima.",
+      "**Quem pode:** responsável das escalas ou acima (voluntários não têm acesso).",
     ),
     responses: { 200: res.recurringEventList },
   },
@@ -45,7 +46,7 @@ r.get(
   "/:id",
   {
     summary: "Detalhar evento recorrente",
-    description: "**Quem pode:** scheduler manager ou acima (eventos de ministério: só quem participa dele).",
+    description: "**Quem pode:** responsável das escalas ou acima (eventos restritos: só quem participa de um dos ministérios).",
     params: idParams,
     responses: { 200: res.recurringEvent },
   },
@@ -56,7 +57,12 @@ r.post(
   "/",
   {
     summary: "Criar evento recorrente",
-    description: markdown("Cadastra o modelo. Nenhuma escala é criada até ele ser utilizado (`/apply`).", "", manageRule),
+    description: markdown(
+      "Cadastra o modelo. Administradores criam eventos globais para todos os ministérios; líderes gerais criam " +
+        "eventos restritos automaticamente aos ministérios que gerenciam.",
+      "",
+      "**Quem pode:** líder geral ou administrador.",
+    ),
     body: createBody,
     responses: { 201: res.recurringEvent },
   },
@@ -72,7 +78,7 @@ r.post(
         "liberado** para escalas — de agora até o 1º domingo do segundo mês seguinte (veja `GET /schedules/window`). " +
         "Informe `month` para gerar só um mês. Ocorrências fora do período são ignoradas e contadas em `outsideWindow`.",
       "",
-      "- **Evento de um ministério:** gera as escalas desse ministério.",
+      "- **Evento restrito:** gera as escalas para os ministérios do evento que você gerencia.",
       "- **Evento geral:** gera uma escala para cada ministério em `departmentIds` (padrão: todos os que você " +
         "gerencia; administrador: todos os ministérios).",
       "",
@@ -83,7 +89,7 @@ r.post(
         "`selfSignup: true` e `volunteersNeeded` para que as escalas geradas fiquem abertas para os membros se " +
         "inscreverem. Sem isso, as escalas são comuns (preenchidas manualmente ou pela distribuição automática).",
       "",
-      "**Quem pode:** o administrador, ou scheduler manager ou acima, apenas para ministérios dos quais participa.",
+      "**Quem pode:** o administrador, ou responsável das escalas ou acima, apenas para ministérios dos quais participa.",
     ),
     params: idParams,
     body: applyBody,
@@ -97,7 +103,7 @@ r.patch(
   {
     summary: "Editar evento recorrente",
     description: markdown(
-      "Altera nome, descrição, dia da semana ou horários. O ministério do evento não pode ser trocado. Escalas já " +
+      "Altera nome, descrição, dia da semana ou horários. O escopo do evento não pode ser trocado nesta rota. Escalas já " +
         "geradas não mudam.",
       "",
       manageRule,
@@ -107,6 +113,22 @@ r.patch(
     responses: { 200: res.recurringEvent },
   },
   controller.update,
+);
+
+r.post(
+  "/:id/promote",
+  {
+    summary: "Promover evento recorrente para todos os ministérios",
+    description: markdown(
+      "Torna um evento recorrente criado por líder geral disponível globalmente para todos os ministérios. " +
+        "Após a promoção, apenas administradores podem editar ou excluir o evento.",
+      "",
+      "**Quem pode:** apenas administrador.",
+    ),
+    params: idParams,
+    responses: { 200: res.recurringEvent },
+  },
+  controller.promote,
 );
 
 r.delete(

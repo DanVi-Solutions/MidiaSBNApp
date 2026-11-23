@@ -1,17 +1,16 @@
 "use client";
 
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BellIcon,
   CalendarCheckIcon,
@@ -26,25 +25,47 @@ import {
   UserIcon,
   UsersIcon,
 } from "@/components/ui/icons";
+import { CredentialCodeModal } from "@/components/ui/CredentialCodeModal";
+import { RightDrawerEdgeHandle } from "@/components/ui/RightDrawerEdgeHandle";
+import { useToast } from "@/components/ui/ToastProvider";
+import { PrivateWorkspaceContext } from "./PrivateWorkspaceContext";
+import { WorkspaceRightDrawerHost } from "./WorkspaceRightDrawerHost";
+import {
+  fetchMyCredential,
+  logoutSession,
+} from "@/features/auth/services/authService";
+import {
+  listCredentials,
+  listDepartments,
+} from "@/features/participants/services/credentialsService";
 import {
   ACTIVE_MINISTRY,
   CURRENT_USER,
   INITIAL_SUBSTITUTION_REQUEST,
 } from "@/features/schedules/data/mockScheduleData";
-import { MINISTRIES } from "@/features/ministries/data/mockMinistriesData";
-import { PARTICIPANTS } from "@/features/participants/data/mockParticipantsData";
-import { INITIAL_RECURRING_EVENTS } from "@/features/recurring-events/data/mockRecurringEventsData";
+import {
+  formatRecurringEventForUi,
+  listRecurringEvents,
+} from "@/features/recurring-events/services/recurringEventsService";
+import { subscribeUnauthorized } from "@/lib/apiClient";
+import { dismissHiddenModalDialogs } from "@/lib/rightDrawer";
+import {
+  canListCredentials,
+  canSeeRecurringEvents,
+  computeInitials,
+  computeMinistryCode,
+  CREDENTIAL_STATUS,
+  formatCredentialForUi,
+  isAdmin,
+  isAtLeast,
+  ROLES,
+} from "@/lib/roles";
+import {
+  clearStoredSession,
+  getStoredSession,
+  subscribeSessionChange,
+} from "@/lib/sessionStorage";
 import styles from "./PrivateShell.module.css";
-
-function computeInitials(name) {
-  const parts = String(name ?? "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (parts.length === 0) return "US";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
 
 const NAV_ITEMS = [
   {
@@ -68,14 +89,14 @@ const NAV_ITEMS = [
     icon: SwapIcon,
   },
   {
-    href: "/reports",
-    label: "Relatórios",
-    icon: ChartBarsIcon,
-  },
-  {
     href: "/availability",
     label: "Disponibilidade",
     icon: CalendarCheckIcon,
+  },
+  {
+    href: "/reports",
+    label: "Relatórios",
+    icon: ChartBarsIcon,
   },
 ];
 
@@ -88,30 +109,94 @@ const INITIAL_NOTIFICATIONS = [
   },
 ];
 
-const PrivateWorkspaceContext = createContext({
-  unreadCount: 0,
-  markNotificationRead: () => {},
-  markAllNotificationsRead: () => {},
-  activeMinistry: ACTIVE_MINISTRY,
-  setActiveMinistry: () => {},
-  ministries: MINISTRIES,
-  addMinistry: () => {},
-  participants: PARTICIPANTS,
-  addParticipant: () => {},
-  updateParticipant: () => {},
-  deleteParticipant: () => {},
-  currentUser: CURRENT_USER,
-  updateCurrentUser: () => {},
-  recurringEvents: INITIAL_RECURRING_EVENTS,
-  addRecurringEvent: () => {},
-  deleteRecurringEvent: () => {},
-});
+const ACTIVE_MINISTRY_STORAGE_KEY = "midia_sbn_active_ministry_v1";
 
-export function usePrivateWorkspace() {
-  return useContext(PrivateWorkspaceContext);
+function readSavedActiveMinistryId(userId) {
+  if (typeof window === "undefined" || !userId) return "";
+  try {
+    const raw = window.localStorage.getItem(ACTIVE_MINISTRY_STORAGE_KEY);
+    if (!raw) return "";
+    const parsed = JSON.parse(raw);
+    if (parsed?.userId === userId && typeof parsed?.ministryId === "string") {
+      return parsed.ministryId;
+    }
+  } catch {
+    // Ignore storage access failures
+  }
+  return "";
 }
 
-function SidebarContent({ pathname, activeMinistry, onNavigate, closeButton }) {
+function saveActiveMinistryId(userId, ministryId) {
+  if (typeof window === "undefined" || !userId || !ministryId) return;
+  try {
+    window.localStorage.setItem(
+      ACTIVE_MINISTRY_STORAGE_KEY,
+      JSON.stringify({ userId, ministryId })
+    );
+  } catch {
+    // Ignore storage access failures
+  }
+}
+
+function clearSavedActiveMinistryId() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(ACTIVE_MINISTRY_STORAGE_KEY);
+  } catch {
+    // Ignore storage access failures
+  }
+}
+
+function mapDepartmentToMinistryUi(dept, index, allParticipants = []) {
+  const deptMembers = allParticipants.filter(
+    (person) =>
+      person.status !== CREDENTIAL_STATUS.INACTIVE &&
+      person.departmentIds?.includes(dept.id)
+  );
+  const generalManagers = deptMembers.filter(
+    (person) => person.roleCode === ROLES.GENERAL_MANAGER
+  );
+  const hasGeneralManager = generalManagers.length > 0;
+  const leaderHandle = hasGeneralManager
+    ? generalManagers.map((gm) => gm.handle || gm.name).join(", ")
+    : "Sem Líder Geral";
+
+  return {
+    id: dept.id,
+    number: String(index + 1).padStart(2, "0"),
+    code: computeMinistryCode(dept.name),
+    name: dept.name,
+    description: dept.description || "",
+    participantCount:
+      typeof dept.membersCount === "number"
+        ? dept.membersCount
+        : deptMembers.length,
+    hasGeneralManager,
+    generalManagers: generalManagers.map((gm) => ({
+      id: gm.id,
+      initials: gm.initials,
+      name: gm.name,
+      handle: gm.handle,
+      departmentIds: gm.departmentIds,
+    })),
+    leaderHandle,
+    members: deptMembers.slice(0, 6).map((member) => ({
+      id: member.id,
+      initials: member.initials,
+      name: member.name,
+    })),
+  };
+}
+
+export { usePrivateWorkspace } from "./PrivateWorkspaceContext";
+
+function SidebarContent({
+  navItems,
+  pathname,
+  activeMinistry,
+  onNavigate,
+  closeButton,
+}) {
   const handleLinkClick = (event) => {
     if (event.detail > 0) {
       event.currentTarget.blur();
@@ -146,7 +231,7 @@ function SidebarContent({ pathname, activeMinistry, onNavigate, closeButton }) {
         <p className={styles.navEyebrow}>NAVEGAÇÃO</p>
 
         <nav className={styles.navList} aria-label="Navegação principal">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
               pathname === item.href ||
@@ -175,7 +260,9 @@ function SidebarContent({ pathname, activeMinistry, onNavigate, closeButton }) {
           {activeMinistry.code}
         </span>
         <div className={styles.ministryMeta}>
-          <span className={styles.ministryEyebrow}>MINISTÉRIO ATIVO</span>
+          <span className={styles.ministryEyebrow}>
+            {activeMinistry.isGlobal ? "VISÃO GLOBAL" : "MINISTÉRIO ATIVO"}
+          </span>
           <span className={styles.ministryName}>{activeMinistry.name}</span>
         </div>
       </div>
@@ -185,6 +272,8 @@ function SidebarContent({ pathname, activeMinistry, onNavigate, closeButton }) {
 
 export function PrivateShell({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const toast = useToast();
   const drawerId = useId();
   const notificationsId = useId();
   const profileMenuId = useId();
@@ -194,39 +283,351 @@ export function PrivateShell({ children }) {
   const drawerSheetRef = useRef(null);
   const notificationsPopoverRef = useRef(null);
   const profilePopoverRef = useRef(null);
+  const drawerKeyRef = useRef(0);
 
+  const [authStatus, setAuthStatus] = useState("loading");
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
+  const [activeRightDrawer, setActiveRightDrawer] = useState(null);
+  const [schedulesVersion, setSchedulesVersion] = useState(0);
+  const [workspaceCodeModal, setWorkspaceCodeModal] = useState(null);
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
   const [activeMinistry, setActiveMinistry] = useState(ACTIVE_MINISTRY);
-  const [ministries, setMinistries] = useState(MINISTRIES);
-  const [participants, setParticipants] = useState(PARTICIPANTS);
+  const [departments, setDepartments] = useState([]);
+  const [participants, setParticipants] = useState([]);
+  const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+  const [participantsError, setParticipantsError] = useState("");
+  const [participantCreatePreset, setParticipantCreatePreset] = useState(null);
+  const [knownCredentialNumbers, setKnownCredentialNumbers] = useState({});
   const [currentUser, setCurrentUser] = useState(CURRENT_USER);
-  const [recurringEvents, setRecurringEvents] = useState(
-    INITIAL_RECURRING_EVENTS
-  );
+  const [recurringEvents, setRecurringEvents] = useState([]);
+  const [isLoadingRecurringEvents, setIsLoadingRecurringEvents] = useState(false);
+  const [recurringEventsError, setRecurringEventsError] = useState("");
 
   const unreadCount = notifications.filter((item) => !item.read).length;
 
+  const rememberCredentialNumber = useCallback((id, code) => {
+    if (!id || !code) return;
+    setKnownCredentialNumbers((prev) => ({ ...prev, [id]: code }));
+  }, []);
+
+  const refreshDepartments = useCallback(async () => {
+    const result = await listDepartments();
+    if (result.ok && Array.isArray(result.data)) {
+      setDepartments(result.data);
+      return result.data;
+    }
+    return [];
+  }, []);
+
+  const refreshParticipants = useCallback(async (userOverride) => {
+    const actor = userOverride || currentUser;
+    if (!canListCredentials(actor)) {
+      setParticipants([]);
+      setParticipantsError("");
+      setIsLoadingParticipants(false);
+      return [];
+    }
+
+    setIsLoadingParticipants(true);
+    setParticipantsError("");
+    const result = await listCredentials();
+    setIsLoadingParticipants(false);
+
+    if (result.ok && Array.isArray(result.data)) {
+      const mapped = result.data.map(formatCredentialForUi).filter(Boolean);
+      setParticipants(mapped);
+      return mapped;
+    }
+
+    setParticipantsError(
+      result.error || "Não foi possível carregar os participantes."
+    );
+    return [];
+  }, [currentUser]);
+
+  const refreshRecurringEvents = useCallback(async (userOverride) => {
+    const actor = userOverride || currentUser;
+    if (!canSeeRecurringEvents(actor)) {
+      setRecurringEvents([]);
+      setRecurringEventsError("");
+      setIsLoadingRecurringEvents(false);
+      return [];
+    }
+
+    setIsLoadingRecurringEvents(true);
+    setRecurringEventsError("");
+    const result = await listRecurringEvents();
+    setIsLoadingRecurringEvents(false);
+
+    if (result.ok && Array.isArray(result.data)) {
+      const mapped = result.data.map(formatRecurringEventForUi).filter(Boolean);
+      setRecurringEvents(mapped);
+      return mapped;
+    }
+
+    setRecurringEventsError(
+      result.error || "Não foi possível carregar os eventos recorrentes."
+    );
+    return [];
+  }, [currentUser]);
+
+  const refreshCurrentUser = useCallback(async () => {
+    const meResult = await fetchMyCredential();
+    if (!meResult.ok || !meResult.data) {
+      return null;
+    }
+    const formatted = formatCredentialForUi(meResult.data);
+    if (formatted) {
+      setCurrentUser(formatted);
+    }
+    return formatted;
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const session = getStoredSession();
+    if (!session?.accessToken) {
+      router.replace("/");
+      return undefined;
+    }
+
+    async function bootstrapWorkspace() {
+      const meResult = await fetchMyCredential();
+      if (!active) return;
+
+      if (!meResult.ok || !meResult.data) {
+        clearStoredSession();
+        setAuthStatus("redirecting");
+        router.replace("/");
+        return;
+      }
+
+      if (meResult.data.status !== CREDENTIAL_STATUS.ACTIVE) {
+        setAuthStatus("redirecting");
+        router.replace("/");
+        return;
+      }
+
+      const formattedUser = formatCredentialForUi(meResult.data);
+      setCurrentUser(formattedUser);
+
+      const canList = canListCredentials(formattedUser);
+      const canSeeRec = canSeeRecurringEvents(formattedUser);
+      setIsLoadingParticipants(canList);
+      setIsLoadingRecurringEvents(canSeeRec);
+
+      const [deptRes, credsRes, recRes] = await Promise.all([
+        listDepartments(),
+        canList ? listCredentials() : Promise.resolve({ ok: true, data: [] }),
+        canSeeRec
+          ? listRecurringEvents()
+          : Promise.resolve({ ok: true, data: [] }),
+      ]);
+      if (!active) return;
+
+      const loadedDepts =
+        deptRes.ok && Array.isArray(deptRes.data) ? deptRes.data : [];
+      setDepartments(loadedDepts);
+
+      if (canList) {
+        setIsLoadingParticipants(false);
+        if (credsRes.ok && Array.isArray(credsRes.data)) {
+          setParticipants(
+            credsRes.data.map(formatCredentialForUi).filter(Boolean)
+          );
+          setParticipantsError("");
+        } else {
+          setParticipantsError(
+            credsRes.error || "Não foi possível carregar os participantes."
+          );
+        }
+      }
+
+      if (canSeeRec) {
+        setIsLoadingRecurringEvents(false);
+        if (recRes.ok && Array.isArray(recRes.data)) {
+          setRecurringEvents(
+            recRes.data.map(formatRecurringEventForUi).filter(Boolean)
+          );
+          setRecurringEventsError("");
+        } else {
+          setRecurringEventsError(
+            recRes.error || "Não foi possível carregar os eventos recorrentes."
+          );
+        }
+      }
+
+      if (isAdmin(formattedUser)) {
+        setActiveMinistry({
+          id: "admin-global",
+          code: "AD",
+          name: "Todos os ministérios",
+          isGlobal: true,
+        });
+      } else {
+        const userDepts = formattedUser.departments || [];
+        if (userDepts.length > 0) {
+          const savedMinistryId = readSavedActiveMinistryId(formattedUser.id);
+          const initialDept =
+            userDepts.find((dept) => dept.id === savedMinistryId) ||
+            userDepts[0];
+          setActiveMinistry({
+            id: initialDept.id,
+            code: computeMinistryCode(initialDept.name),
+            name: initialDept.name,
+            isGlobal: false,
+          });
+          saveActiveMinistryId(formattedUser.id, initialDept.id);
+        } else if (loadedDepts.length > 0) {
+          setActiveMinistry({
+            id: loadedDepts[0].id,
+            code: computeMinistryCode(loadedDepts[0].name),
+            name: loadedDepts[0].name,
+            isGlobal: false,
+          });
+        } else {
+          setActiveMinistry(ACTIVE_MINISTRY);
+        }
+      }
+
+      setAuthStatus("authenticated");
+    }
+
+    bootstrapWorkspace();
+
+    const unsubUnauthorized = subscribeUnauthorized((reason) => {
+      if (!active) return;
+      clearSavedActiveMinistryId();
+      setAuthStatus("redirecting");
+      toast.error(reason || "Sessão encerrada. Faça login novamente.");
+      router.replace("/");
+    });
+
+    const unsubSession = subscribeSessionChange((nextSession) => {
+      if (!active) return;
+      if (!nextSession?.accessToken) {
+        clearSavedActiveMinistryId();
+        setAuthStatus("redirecting");
+        router.replace("/");
+        return;
+      }
+      if (nextSession.credential) {
+        setCurrentUser((prev) => {
+          const merged = {
+            ...(prev?.departments && !nextSession.credential.departments
+              ? { departments: prev.departments }
+              : {}),
+            ...nextSession.credential,
+          };
+          return formatCredentialForUi(merged) || prev;
+        });
+      }
+    });
+
+    return () => {
+      active = false;
+      unsubUnauthorized();
+      unsubSession();
+    };
+  }, [router, toast]);
+
+  const ministries = useMemo(
+    () =>
+      departments.map((dept, index) =>
+        mapDepartmentToMinistryUi(dept, index, participants)
+      ),
+    [departments, participants]
+  );
+
+  const visibleNavItems = useMemo(
+    () =>
+      NAV_ITEMS.filter((item) => {
+        if (item.href === "/participants") {
+          return canListCredentials(currentUser);
+        }
+        if (item.href === "/recurring-events") {
+          return canSeeRecurringEvents(currentUser);
+        }
+        if (item.href === "/availability") {
+          return !isAtLeast(currentUser, ROLES.GENERAL_MANAGER);
+        }
+        return true;
+      }),
+    [currentUser]
+  );
+
   const addMinistry = useCallback((item) => {
-    setMinistries((prev) => [...prev, item]);
+    if (!item?.id) return;
+    setDepartments((prev) => [...prev, item]);
   }, []);
 
   const addParticipant = useCallback((item) => {
-    setParticipants((prev) => [...prev, item]);
-  }, []);
+    const formatted = item?.roleCode ? item : formatCredentialForUi(item);
+    if (!formatted) return;
+    if (item?.credentialNumber) {
+      rememberCredentialNumber(formatted.id, item.credentialNumber);
+    }
+    setParticipants((prev) => {
+      const exists = prev.some((entry) => entry.id === formatted.id);
+      const next = exists
+        ? prev.map((entry) => (entry.id === formatted.id ? formatted : entry))
+        : [...prev, formatted];
+      return next.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+    });
+  }, [rememberCredentialNumber]);
 
-  const updateParticipant = useCallback((id, patch) => {
-    setParticipants((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
-    );
-  }, []);
+  const updateParticipant = useCallback(
+    (id, patch) => {
+      if (patch?.credentialNumber) {
+        rememberCredentialNumber(id, patch.credentialNumber);
+      }
+      setParticipants((prev) =>
+        prev.map((item) => {
+          if (item.id !== id) return item;
+          if (patch?.roleCode || patch?.status || Array.isArray(patch?.departments)) {
+            const mergedRaw = {
+              id: item.id,
+              name: patch.name ?? item.name,
+              username:
+                patch.username !== undefined ? patch.username : item.username,
+              role: patch.roleCode ?? item.roleCode,
+              status: patch.status ?? item.status,
+              departments: patch.departments ?? item.departments,
+              pendingTransfer:
+                patch.pendingTransfer !== undefined
+                  ? patch.pendingTransfer
+                  : item.pendingTransfer,
+              credentialNumber:
+                patch.credentialNumber !== undefined
+                  ? patch.credentialNumber
+                  : item.credentialNumber,
+            };
+            return formatCredentialForUi(mergedRaw) || item;
+          }
+          return { ...item, ...patch };
+        })
+      );
+    },
+    [rememberCredentialNumber]
+  );
 
   const deleteParticipant = useCallback((id) => {
     setParticipants((prev) => prev.filter((item) => item.id !== id));
+    setKnownCredentialNumbers((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   }, []);
 
   const addRecurringEvent = useCallback((item) => {
-    setRecurringEvents((prev) => [...prev, item]);
+    const formatted = item?.weekdayCode
+      ? item
+      : formatRecurringEventForUi(item);
+    if (!formatted) return;
+    setRecurringEvents((prev) => [...prev, formatted]);
   }, []);
 
   const deleteRecurringEvent = useCallback((id) => {
@@ -236,9 +637,17 @@ export function PrivateShell({ children }) {
   const updateCurrentUser = useCallback((patch) => {
     setCurrentUser((prev) => {
       const nextName = patch.name ?? prev.name;
+      const cleanUsername =
+        patch.username !== undefined
+          ? patch.username
+          : patch.handle !== undefined
+            ? String(patch.handle).replace(/^@+/, "")
+            : prev.username;
       return {
         ...prev,
         ...patch,
+        username: cleanUsername || null,
+        handle: cleanUsername ? `@${cleanUsername}` : "",
         initials: computeInitials(nextName),
       };
     });
@@ -253,6 +662,58 @@ export function PrivateShell({ children }) {
   const markAllNotificationsRead = useCallback(() => {
     setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
   }, []);
+
+  const openWorkspaceDrawer = useCallback((type, payload = {}) => {
+    if (!type) return;
+    drawerKeyRef.current += 1;
+    setActiveRightDrawer({
+      type,
+      key: drawerKeyRef.current,
+      payload,
+    });
+  }, []);
+
+  const closeWorkspaceDrawer = useCallback((instanceKey) => {
+    setActiveRightDrawer((prev) => {
+      if (!prev) return null;
+      if (instanceKey !== undefined && prev.key !== instanceKey) return prev;
+      return null;
+    });
+  }, []);
+
+  const notifySchedulesChanged = useCallback(() => {
+    setSchedulesVersion((prev) => prev + 1);
+  }, []);
+
+  const openWorkspaceCodeModal = useCallback((modalState) => {
+    setWorkspaceCodeModal(modalState || null);
+  }, []);
+
+  const closeWorkspaceCodeModal = useCallback(() => {
+    setWorkspaceCodeModal(null);
+  }, []);
+
+  const currentUserId = currentUser?.id || "";
+  const selectActiveMinistry = useCallback(
+    (nextMinistry) => {
+      if (!nextMinistry) return;
+      setActiveMinistry(nextMinistry);
+      if (!nextMinistry.isGlobal && nextMinistry.id && currentUserId) {
+        saveActiveMinistryId(currentUserId, nextMinistry.id);
+      }
+    },
+    [currentUserId]
+  );
+
+  const handleSignOut = async () => {
+    closeWorkspaceDrawer();
+    profilePopoverRef.current?.hidePopover?.();
+    clearSavedActiveMinistryId();
+    setAuthStatus("redirecting");
+    await logoutSession();
+    toast.success("Você saiu da sua conta.");
+    router.replace("/");
+  };
 
   const closeDrawer = useCallback(() => {
     const dialog = drawerDialogRef.current;
@@ -329,7 +790,17 @@ export function PrivateShell({ children }) {
       observer.disconnect();
       if (removeScrollFallback) removeScrollFallback();
     };
-  }, []);
+  }, [authStatus]);
+
+  useEffect(() => {
+    dismissHiddenModalDialogs();
+    const rafId = window.requestAnimationFrame(() => {
+      dismissHiddenModalDialogs();
+    });
+    return () => {
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [pathname]);
 
   const handleDrawerBackdropClick = (event) => {
     const sheet = drawerSheetRef.current;
@@ -347,6 +818,18 @@ export function PrivateShell({ children }) {
     }
   };
 
+  if (authStatus !== "authenticated") {
+    return (
+      <div className={styles.authGateShell} role="status" aria-live="polite">
+        <p className={styles.authGateText}>
+          {authStatus === "redirecting"
+            ? "Redirecionando para o acesso..."
+            : "Validando credencial..."}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <PrivateWorkspaceContext.Provider
       value={{
@@ -354,23 +837,45 @@ export function PrivateShell({ children }) {
         markNotificationRead,
         markAllNotificationsRead,
         activeMinistry,
-        setActiveMinistry,
+        setActiveMinistry: selectActiveMinistry,
         ministries,
+        departments,
+        refreshDepartments,
         addMinistry,
         participants,
+        isLoadingParticipants,
+        participantsError,
+        refreshParticipants,
         addParticipant,
         updateParticipant,
         deleteParticipant,
+        participantCreatePreset,
+        setParticipantCreatePreset,
+        knownCredentialNumbers,
+        rememberCredentialNumber,
         currentUser,
+        refreshCurrentUser,
         updateCurrentUser,
         recurringEvents,
+        isLoadingRecurringEvents,
+        recurringEventsError,
+        refreshRecurringEvents,
         addRecurringEvent,
         deleteRecurringEvent,
+        openWorkspaceDrawer,
+        closeWorkspaceDrawer,
+        schedulesVersion,
+        notifySchedulesChanged,
+        openWorkspaceCodeModal,
       }}
     >
       <div className={styles.workspace}>
         <aside className={styles.desktopSidebar}>
-          <SidebarContent pathname={pathname} activeMinistry={activeMinistry} />
+          <SidebarContent
+            navItems={visibleNavItems}
+            pathname={pathname}
+            activeMinistry={activeMinistry}
+          />
         </aside>
 
         <dialog
@@ -385,6 +890,7 @@ export function PrivateShell({ children }) {
           <div ref={drawerScrollerRef} className={styles.drawerScroller}>
             <div ref={drawerSheetRef} className={styles.drawerSheet}>
               <SidebarContent
+                navItems={visibleNavItems}
                 pathname={pathname}
                 activeMinistry={activeMinistry}
                 onNavigate={closeDrawer}
@@ -520,7 +1026,9 @@ export function PrivateShell({ children }) {
                       {currentUser.roleLabel}
                     </p>
                     <p className={styles.profileSummaryMeta}>
-                      {currentUser.ministries.join(", ")}
+                      {currentUser.ministries?.length > 0
+                        ? currentUser.ministries.join(", ")
+                        : "Administração Geral"}
                     </p>
                   </div>
                 </div>
@@ -539,14 +1047,14 @@ export function PrivateShell({ children }) {
                 <div className={styles.profileMenuDivider} aria-hidden="true" />
 
                 <div className={styles.profileMenuGroup}>
-                  <Link
-                    href="/"
+                  <button
+                    type="button"
                     className={styles.signOutItem}
-                    onClick={() => profilePopoverRef.current?.hidePopover?.()}
+                    onClick={handleSignOut}
                   >
                     <LogOutIcon />
                     <span>Sair</span>
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
@@ -555,6 +1063,15 @@ export function PrivateShell({ children }) {
           <main className={styles.content}>{children}</main>
         </div>
       </div>
+      <WorkspaceRightDrawerHost
+        activeDrawer={activeRightDrawer}
+        onCloseDrawer={closeWorkspaceDrawer}
+      />
+      <RightDrawerEdgeHandle />
+      <CredentialCodeModal
+        modalState={workspaceCodeModal}
+        onClose={closeWorkspaceCodeModal}
+      />
     </PrivateWorkspaceContext.Provider>
   );
 }

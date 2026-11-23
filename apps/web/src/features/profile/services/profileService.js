@@ -1,40 +1,42 @@
-import { API_HOST } from "@/lib/env";
+import { checkUsernameAvailability } from "@/features/auth/services/authService";
+import {
+  deleteCredential,
+  regenerateCredentialNumber,
+  updateMyCredential,
+} from "@/features/participants/services/credentialsService";
+import { clearStoredSession, getStoredSession } from "@/lib/sessionStorage";
 
-export async function deleteAccountRequest() {
-  if (!API_HOST) {
-    return { ok: true, simulated: true };
-  }
+export function updateProfileRequest({ name, username }) {
+  return updateMyCredential({ name, username });
+}
 
-  try {
-    const response = await fetch(`${API_HOST}/auth/account`, {
-      method: "DELETE",
-      credentials: "include",
+export function checkUsernameAvailabilityRequest(username) {
+  return checkUsernameAvailability(username);
+}
+
+export function regenerateOwnCredentialRequest(credentialId) {
+  const id = credentialId || getStoredSession()?.credential?.id;
+  if (!id) {
+    return Promise.resolve({
+      ok: false,
+      error: "Sessão inválida. Faça login novamente.",
     });
+  }
+  return regenerateCredentialNumber(id);
+}
 
-    if (response.ok) {
-      return { ok: true };
-    }
-
-    let payload = null;
-    try {
-      payload = await response.json();
-    } catch {
-      payload = null;
-    }
-
-    if (payload && typeof payload.message === "string" && payload.message.trim()) {
-      return { ok: false, error: payload.message.trim() };
-    }
-
+export async function deleteAccountRequest(credentialId) {
+  const id = credentialId || getStoredSession()?.credential?.id;
+  if (!id) {
     return {
       ok: false,
-      error: "Não foi possível excluir a conta no momento. Tente novamente.",
-    };
-  } catch {
-    return {
-      ok: false,
-      error:
-        "Não foi possível conectar ao servidor para excluir a conta. Tente novamente.",
+      error: "Sessão inválida. Faça login novamente.",
     };
   }
+
+  const result = await deleteCredential(id);
+  if (result.ok) {
+    clearStoredSession();
+  }
+  return result;
 }

@@ -1,0 +1,105 @@
+.edgeDock {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 60;
+  width: 0;
+  pointer-events: none;
+}
+
+.edgeHotZone {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 20px;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.edgeHandle {
+  position: fixed;
+  inset-block-start: 50%;
+  inset-inline-end: 0;
+  transform: translateY(-50%);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 34px;
+  min-height: 68px;
+  padding: 0.65rem 0.4rem 0.65rem 0.5rem;
+  border: 1px solid #2b2f2b;
+  border-inline-end: 0;
+  border-radius: 14px 0 0 14px;
+  background-color: #141614;
+  color: #f7f8f3;
+  box-shadow: -8px 4px 24px rgba(12, 14, 12, 0.24);
+  cursor: pointer;
+  pointer-events: auto;
+  animation: edgeTabEnter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    background-color 0.16s ease,
+    padding-inline 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .edgeHandle:hover {
+    background-color: #202420;
+    padding-inline-start: 0.72rem;
+    box-shadow: -10px 6px 28px rgba(12, 14, 12, 0.32);
+  }
+}
+
+.edgeHandle:focus-visible {
+  outline: 2px solid var(--accent-lime);
+  outline-offset: 2px;
+}
+
+.edgeHandleDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background-color: var(--accent-lime);
+  box-shadow: 0 0 0 3px rgba(214, 255, 91, 0.22);
+}
+
+.edgeHandleArrow {
+  flex-shrink: 0;
+  transition: transform 0.16s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .edgeHandle:hover .edgeHandleArrow {
+    transform: translateX(-2px);
+  }
+}
+
+@keyframes edgeTabEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edgeHandle {
+    animation: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .edgeHotZone {
+    display: none;
+  }
+
+  .edgeHandle {
+    min-width: 44px;
+    min-height: 74px;
+  }
+}

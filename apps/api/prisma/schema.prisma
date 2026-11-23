@@ -53,8 +53,9 @@ model Credential {
   refreshTokens      RefreshToken[]
   schedules          CredentialSchedule[]
   credentialChanges  CredentialSchedule[]   @relation("CredentialChange")
-  requestedTransfers CredentialDepartment[] @relation("TransferRequestedBy")
-  unavailabilities   Unavailability[]
+  requestedTransfers     CredentialDepartment[] @relation("TransferRequestedBy")
+  unavailabilities       Unavailability[]
+  createdRecurringEvents RecurringEvent[]       @relation("CreatedRecurringEvents")
 
   @@map("credential")
 }
@@ -78,10 +79,10 @@ model Department {
   name        String  @unique @db.VarChar(80)
   description String? @db.VarChar(255)
 
-  credentials     CredentialDepartment[] @relation("DepartmentCredentials")
-  transfersFrom   CredentialDepartment[] @relation("TransferFrom")
+  credentials     CredentialDepartment[]     @relation("DepartmentCredentials")
+  transfersFrom   CredentialDepartment[]     @relation("TransferFrom")
   schedules       Schedule[]
-  recurringEvents RecurringEvent[]
+  recurringEvents RecurringEventDepartment[]
 
   @@map("department")
 }
@@ -126,19 +127,33 @@ model Schedule {
 }
 
 model RecurringEvent {
-  id           String   @id @default(uuid(7)) @db.Uuid
-  name         String   @db.VarChar(80)
-  description  String?  @db.VarChar(255)
-  weekday      Weekday
-  departmentId String?  @map("department_id") @db.Uuid
-  times        String[] @db.VarChar(5)
+  id          String   @id @default(uuid(7)) @db.Uuid
+  name        String   @db.VarChar(80)
+  description String?  @db.VarChar(255)
+  weekday     Weekday
+  isGlobal    Boolean  @default(false) @map("is_global")
+  createdById String?  @map("created_by_id") @db.Uuid
+  times       String[] @db.VarChar(5)
 
-  schedules Schedule[]
+  createdBy   Credential?                @relation("CreatedRecurringEvents", fields: [createdById], references: [id], onDelete: SetNull)
+  departments RecurringEventDepartment[]
+  schedules   Schedule[]
 
-  department Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-
-  @@index([departmentId])
+  @@index([isGlobal])
+  @@index([createdById])
   @@map("recurring_event")
+}
+
+model RecurringEventDepartment {
+  recurringEventId String @map("recurring_event_id") @db.Uuid
+  departmentId     String @map("department_id") @db.Uuid
+
+  recurringEvent RecurringEvent @relation(fields: [recurringEventId], references: [id], onDelete: Cascade)
+  department     Department     @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@id([recurringEventId, departmentId])
+  @@index([departmentId])
+  @@map("recurring_event_department")
 }
 
 model CredentialSchedule {

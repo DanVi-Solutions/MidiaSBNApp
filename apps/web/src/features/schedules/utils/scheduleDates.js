@@ -1,3 +1,5 @@
+export const APP_TIME_ZONE = "America/Sao_Paulo";
+
 export const MONTH_SHORT_PT = [
   "JAN",
   "FEV",
@@ -58,6 +60,16 @@ export const WEEKDAY_NAME_TO_INDEX = {
   Sábado: 6,
 };
 
+export const WEEKDAY_CODE_TO_INDEX = {
+  SUNDAY: 0,
+  MONDAY: 1,
+  TUESDAY: 2,
+  WEDNESDAY: 3,
+  THURSDAY: 4,
+  FRIDAY: 5,
+  SATURDAY: 6,
+};
+
 export const WEEKDAY_SHORT_TITLE_PT = {
   Domingo: "Dom",
   "Segunda-feira": "Seg",
@@ -74,6 +86,13 @@ export function formatWeekdayShortTitle(weekdayName) {
 
 function getTemporalApi() {
   return typeof globalThis !== "undefined" ? globalThis.Temporal : undefined;
+}
+
+export function resolveWeekdayIndex(weekdayCodeOrLabel) {
+  if (WEEKDAY_CODE_TO_INDEX[weekdayCodeOrLabel] !== undefined) {
+    return WEEKDAY_CODE_TO_INDEX[weekdayCodeOrLabel];
+  }
+  return WEEKDAY_NAME_TO_INDEX[weekdayCodeOrLabel];
 }
 
 export function parseIsoDateParts(iso) {
@@ -98,6 +117,12 @@ export function parseIsoDateParts(iso) {
   }
 
   return { year, month, day };
+}
+
+export function formatIsoDatePtBr(iso) {
+  const parts = parseIsoDateParts(iso);
+  if (!parts) return String(iso ?? "");
+  return `${String(parts.day).padStart(2, "0")}/${String(parts.month).padStart(2, "0")}/${parts.year}`;
 }
 
 export function getWeekdayIndex(iso) {
@@ -173,6 +198,231 @@ export function normalizeWallTime(rawTime) {
   return match ? `${match[1]}:${match[2]}` : "";
 }
 
+export function extractDateAndTimeInZone(
+  isoDateTime,
+  timeZone = APP_TIME_ZONE
+) {
+  const dateObj =
+    isoDateTime instanceof Date ? isoDateTime : new Date(isoDateTime);
+  if (Number.isNaN(dateObj.getTime())) {
+    return { dateIso: "", time: "" };
+  }
+
+  try {
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    });
+    const partsMap = {};
+    for (const part of formatter.formatToParts(dateObj)) {
+      if (part.type !== "literal") {
+        partsMap[part.type] = part.value;
+      }
+    }
+    const hour = partsMap.hour === "24" ? "00" : partsMap.hour;
+    return {
+      dateIso: `${partsMap.year}-${partsMap.month}-${partsMap.day}`,
+      time: `${hour}:${partsMap.minute}`,
+    };
+  } catch {
+    const iso = dateObj.toISOString();
+    return {
+      dateIso: iso.slice(0, 10),
+      time: iso.slice(11, 16),
+    };
+  }
+}
+
+export function getZoneOffsetString(
+  dateObj = new Date(),
+  timeZone = APP_TIME_ZONE
+) {
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      timeZoneName: "longOffset",
+    });
+    const tzPart = formatter
+      .formatToParts(dateObj)
+      .find((part) => part.type === "timeZoneName")?.value;
+
+    if (!tzPart) return "-03:00";
+    if (tzPart === "GMT" || tzPart === "UTC") return "Z";
+    const match = /([+-]\d{2}:\d{2})$/.exec(tzPart);
+    return match ? match[1] : "-03:00";
+  } catch {
+    return "-03:00";
+  }
+}
+
+export function buildIsoDateTimeInZone(
+  dateIso,
+  timeHm,
+  timeZone = APP_TIME_ZONE
+) {
+  const cleanDate = String(dateIso ?? "").trim();
+  const cleanTime = normalizeWallTime(timeHm);
+  if (!parseIsoDateParts(cleanDate) || !cleanTime) {
+    return "";
+  }
+
+  const probeDate = new Date(`${cleanDate}T${cleanTime}:00Z`);
+  const offset = getZoneOffsetString(probeDate, timeZone);
+  return `${cleanDate}T${cleanTime}:00${offset}`;
+}
+
+export function getTodayIsoInZone(timeZone = APP_TIME_ZONE) {
+  return extractDateAndTimeInZone(new Date(), timeZone).dateIso;
+}
+
+export function getStartOfCurrentMonthIsoInZone(timeZone = APP_TIME_ZONE) {
+  const todayIso = getTodayIsoInZone(timeZone);
+  const yearMonth = todayIso.slice(0, 7);
+  return buildIsoDateTimeInZone(`${yearMonth}-01`, "00:00", timeZone);
+}
+
+export function isScheduleAtInsideWindow(scheduleAtIso, scheduleWindow) {
+  if (!scheduleAtIso || !scheduleWindow?.editableFrom || !scheduleWindow?.editableUntil) {
+    return false;
+  }
+  const ts = new Date(scheduleAtIso).getTime();
+  const fromTs = new Date(scheduleWindow.editableFrom).getTime();
+  const untilTs = new Date(scheduleWindow.editableUntil).getTime();
+  if (Number.isNaN(ts) || Number.isNaN(fromTs) || Number.isNaN(untilTs)) {
+    return false;
+  }
+  return ts >= fromTs && ts < untilTs;
+}
+
+export function getMonthsOfWindow(editableFromIso, lastEditableDay) {
+  const firstMonth = editableFromIso
+    ? extractDateAndTimeInZone(editableFromIso).dateIso.slice(0, 7)
+    : getTodayIsoInZone().slice(0, 7);
+  const lastMonth = lastEditableDay
+    ? String(lastEditableDay).slice(0, 7)
+    : firstMonth;
+
+  const [startYear, startMon] = firstMonth.split("-").map(Number);
+  const [endYear, endMon] = lastMonth.split("-").map(Number);
+  if (!startYear || !startMon || !endYear || !endMon) {
+    return firstMonth ? [firstMonth] : [];
+  }
+
+  const months = [];
+  let y = startYear;
+  let m = startMon;
+
+  while (y < endYear || (y === endYear && m <= endMon)) {
+    months.push(`${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}`);
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+    if (months.length > 12) break;
+  }
+
+  return months;
+}
+
+export function formatYearMonthFullPt(yearMonth) {
+  const match = /^(\d{4})-(\d{2})$/.exec(String(yearMonth ?? "").trim());
+  if (!match) return String(yearMonth ?? "");
+  const year = Number(match[1]);
+  const monthIdx = Number(match[2]) - 1;
+  const monthName = MONTH_FULL_PT[monthIdx];
+  return monthName ? `${monthName} de ${year}` : yearMonth;
+}
+
+export function getWindowRecurringOccurrences({
+  weekday,
+  times,
+  month,
+  scheduleWindow,
+  timeZone = APP_TIME_ZONE,
+}) {
+  const targetWeekday = resolveWeekdayIndex(weekday);
+  if (targetWeekday === undefined) {
+    return { slots: [], byDate: [], totalSlots: 0, outsideWindowCount: 0 };
+  }
+
+  const rawTimes = Array.isArray(times) ? times : times ? [times] : [];
+  const sortedTimes = [
+    ...new Set(rawTimes.map(normalizeWallTime).filter(Boolean)),
+  ].sort();
+
+  if (sortedTimes.length === 0) {
+    return { slots: [], byDate: [], totalSlots: 0, outsideWindowCount: 0 };
+  }
+
+  const months = month
+    ? [month]
+    : scheduleWindow
+      ? getMonthsOfWindow(
+          scheduleWindow.editableFrom,
+          scheduleWindow.lastEditableDay
+        )
+      : [getTodayIsoInZone(timeZone).slice(0, 7)];
+
+  const slots = [];
+  const byDateMap = new Map();
+  let outsideWindowCount = 0;
+
+  const fallbackNowMs = Date.now();
+  const fallbackTodayIso = getTodayIsoInZone(timeZone);
+
+  for (const ym of months) {
+    const match = /^(\d{4})-(\d{2})$/.exec(String(ym));
+    if (!match) continue;
+    const year = Number(match[1]);
+    const monthNum = Number(match[2]);
+    const daysInMonth = new Date(Date.UTC(year, monthNum, 0)).getUTCDate();
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const dateIso = `${String(year).padStart(4, "0")}-${String(monthNum).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      if (getWeekdayIndex(dateIso) !== targetWeekday) continue;
+
+      for (const time of sortedTimes) {
+        const scheduleAt = buildIsoDateTimeInZone(dateIso, time, timeZone);
+        if (!scheduleAt) continue;
+
+        const inside = scheduleWindow
+          ? isScheduleAtInsideWindow(scheduleAt, scheduleWindow)
+          : new Date(scheduleAt).getTime() >= fallbackNowMs &&
+            dateIso.slice(0, 7) === fallbackTodayIso.slice(0, 7);
+
+        if (!inside) {
+          outsideWindowCount += 1;
+          continue;
+        }
+
+        slots.push({ dateIso, time, scheduleAt });
+        if (!byDateMap.has(dateIso)) {
+          byDateMap.set(dateIso, []);
+        }
+        byDateMap.get(dateIso).push(time);
+      }
+    }
+  }
+
+  const byDate = [...byDateMap.entries()].map(([dateIso, dateTimes]) => ({
+    dateIso,
+    times: dateTimes,
+  }));
+
+  return {
+    slots,
+    byDate,
+    totalSlots: slots.length,
+    outsideWindowCount,
+  };
+}
+
 function toEpochDay(iso) {
   const parts = parseIsoDateParts(iso);
   if (!parts) return 0;
@@ -220,20 +470,11 @@ export function compareScheduleEvents(a, b) {
 }
 
 export function getTodayIsoDate() {
-  const TemporalApi = getTemporalApi();
-  if (TemporalApi?.Now?.plainDateISO) {
-    return TemporalApi.Now.plainDateISO().toString();
-  }
-
-  const now = new Date();
-  const year = String(now.getFullYear()).padStart(4, "0");
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return getTodayIsoInZone(APP_TIME_ZONE);
 }
 
 export function getNextDateForWeekday(weekdayName, baseIso) {
-  const targetWeekday = WEEKDAY_NAME_TO_INDEX[weekdayName] ?? 0;
+  const targetWeekday = resolveWeekdayIndex(weekdayName) ?? 0;
   const base = parseIsoDateParts(baseIso) ? baseIso : getTodayIsoDate();
   const baseWeekday = getWeekdayIndex(base);
   const delta = (targetWeekday - baseWeekday + 7) % 7;
@@ -259,7 +500,7 @@ export function getNextDateForWeekday(weekdayName, baseIso) {
 }
 
 export function getRemainingMonthOccurrencesForWeekday(weekdayName, baseIso) {
-  const targetWeekday = WEEKDAY_NAME_TO_INDEX[weekdayName];
+  const targetWeekday = resolveWeekdayIndex(weekdayName);
   if (targetWeekday === undefined) return [];
 
   const TemporalApi = getTemporalApi();

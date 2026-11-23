@@ -1,6 +1,7 @@
+import { ROLES, isAdmin, isAtLeast } from "../../shared/auth/roles.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { isPrismaError, isUniqueViolationOn } from "../../shared/errors/prismaErrors.js";
-import { assertCanListDepartment, assertCanView } from "../credentials/credentials.policy.js";
+import { assertCanListDepartmentMembers, assertCanViewMember } from "../credentials/credentials.policy.js";
 import { toPublicCredential } from "../credentials/credentials.presenter.js";
 import { credentialsRepository } from "../credentials/credentials.repository.js";
 import { assertCanUpdate, assertIsAdmin } from "./departments.policy.js";
@@ -41,15 +42,25 @@ export function createDepartmentsService({
     async listOf(auth, credentialId) {
       const target = await credentials.findById(credentialId);
       if (!target) throw AppError.notFound("Credencial não encontrada");
-      assertCanView(auth, target);
+      assertCanViewMember(auth, target);
       return repository.listByMember(credentialId);
     },
 
     async listMembers(auth, id) {
       await findDepartment(id);
-      assertCanListDepartment(auth, id);
-      const members = await credentials.list({ departmentIds: [id] });
-      return members.map(toPublicCredential);
+      assertCanListDepartmentMembers(auth, id);
+      const seesActualStatus = isAtLeast(auth.role, ROLES.DEPARTMENT_MANAGER);
+      const members = await credentials.list({
+        departmentIds: [id],
+        excludeRoles: isAdmin(auth) ? null : [ROLES.ADMINISTRATOR],
+        statuses: seesActualStatus ? null : ["ACTIVE", "RECOVERING"],
+      });
+      return members.map((item) => {
+        const pub = toPublicCredential(item);
+        return !seesActualStatus && pub?.status === "RECOVERING"
+          ? { ...pub, status: "ACTIVE" }
+          : pub;
+      });
     },
 
     create(auth, data) {

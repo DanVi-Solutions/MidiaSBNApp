@@ -23,6 +23,19 @@
   z-index: 9999;
 }
 
+@media (min-width: 768px) {
+  .toastViewportBottomLeft {
+    inset-inline-start: 1.35rem;
+    inset-inline-end: auto;
+    max-inline-size: min(26rem, max(16rem, calc(100vw - 560px - 2.7rem)));
+  }
+
+  .toastViewportBottomLeft:is(:popover-open, .\:popover-open),
+  .toastViewportBottomLeft.toastViewportFallbackOpen {
+    align-items: flex-start;
+  }
+}
+
 .toastItem {
   pointer-events: auto;
   display: flex;

@@ -3,56 +3,74 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePrivateWorkspace } from "@/components/layout/PrivateShell";
+import { CredentialCodeModal } from "@/components/ui/CredentialCodeModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
   AlertCircleIcon,
+  AlertTriangleIcon,
   CheckIcon,
   IdCardIcon,
   KeyIcon,
+  RefreshCwIcon,
   ShieldCheckIcon,
   TrashIcon,
   UserIcon,
 } from "@/components/ui/icons";
-import { deleteAccountRequest } from "@/features/profile/services/profileService";
+import {
+  checkUsernameAvailabilityRequest,
+  deleteAccountRequest,
+  regenerateOwnCredentialRequest,
+  updateProfileRequest,
+} from "@/features/profile/services/profileService";
+import {
+  computeInitials,
+  CREDENTIAL_STATUS,
+  normalizeUsername,
+  validateDisplayName,
+  validateUsername,
+} from "@/lib/roles";
 import styles from "./ProfileView.module.css";
 
-function getInitials(name) {
-  const parts = String(name ?? "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (parts.length === 0) return "US";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
-
-function normalizeUsername(raw) {
-  return String(raw ?? "").trim().replace(/^@+/, "");
-}
-
-function validateFullName(value) {
-  const trimmed = String(value ?? "").trim();
-  if (!trimmed) return "Informe seu nome completo.";
-  if (trimmed.length < 2) return "O nome deve ter pelo menos 2 caracteres.";
-  return "";
-}
-
-function validateUsername(value) {
-  const normalized = normalizeUsername(value);
-  if (!normalized) return "Informe seu nome de usuário.";
-  if (normalized.length < 3) {
-    return "O nome de usuário deve ter pelo menos 3 caracteres.";
+function setupClosedByFallback(dialog) {
+  if (!dialog || "closedBy" in HTMLDialogElement.prototype) {
+    return undefined;
   }
-  if (!/^[a-zA-Z0-9._-]+$/.test(normalized)) {
-    return "Use apenas letras, números, ponto, hífen ou sublinhado.";
-  }
-  return "";
+
+  const isOutside = (event) => {
+    const rect = dialog.getBoundingClientRect();
+    return (
+      event.clientX < rect.left ||
+      event.clientX > rect.right ||
+      event.clientY < rect.top ||
+      event.clientY > rect.bottom
+    );
+  };
+
+  let pressedOutside = false;
+  const handlePointerDown = (event) => {
+    pressedOutside = isOutside(event);
+  };
+  const handlePointerUp = (event) => {
+    if (pressedOutside && isOutside(event)) {
+      dialog.close("cancel");
+    }
+    pressedOutside = false;
+  };
+
+  dialog.addEventListener("pointerdown", handlePointerDown);
+  dialog.addEventListener("pointerup", handlePointerUp);
+
+  return () => {
+    dialog.removeEventListener("pointerdown", handlePointerDown);
+    dialog.removeEventListener("pointerup", handlePointerUp);
+  };
 }
 
 export function ProfileView() {
   const router = useRouter();
   const toast = useToast();
-  const { currentUser, updateCurrentUser } = usePrivateWorkspace();
+  const { currentUser, refreshCurrentUser, updateCurrentUser } =
+    usePrivateWorkspace();
 
   const profileFormId = useId();
   const identHeadingId = useId();
@@ -61,26 +79,42 @@ export function ProfileView() {
   const fullNameId = useId();
   const fullNameErrorId = useId();
   const usernameId = useId();
+  const usernameHintId = useId();
   const usernameErrorId = useId();
+  const rotateModalTitleId = useId();
   const deleteModalTitleId = useId();
   const confirmUsernameId = useId();
   const deleteErrorId = useId();
 
   const fullNameRef = useRef(null);
   const usernameRef = useRef(null);
+  const rotateDialogRef = useRef(null);
   const deleteDialogRef = useRef(null);
   const confirmUsernameRef = useRef(null);
   const fullNameTouchedRef = useRef(false);
   const usernameTouchedRef = useRef(false);
+  const availabilityReqRef = useRef(0);
   const announceTimerRef = useRef(null);
 
-  const [fullName, setFullName] = useState(currentUser.name);
-  const [username, setUsername] = useState(
-    currentUser.handle.replace(/^@+/, "")
-  );
+  const initialUsername = (
+    currentUser.username ||
+    currentUser.handle?.replace(/^@+/, "") ||
+    ""
+  ).toLowerCase();
+
+  const [nameDraft, setNameDraft] = useState(null);
+  const [usernameDraft, setUsernameDraft] = useState(null);
+  const fullName = nameDraft ?? (currentUser.name || "");
+  const username = usernameDraft ?? initialUsername;
+
   const [fullNameError, setFullNameError] = useState("");
   const [usernameError, setUsernameError] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState("idle");
+  const [isSaving, setIsSaving] = useState(false);
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
+
+  const [isRegeneratingCode, setIsRegeneratingCode] = useState(false);
+  const [codeModalState, setCodeModalState] = useState(null);
 
   const [confirmUsername, setConfirmUsername] = useState("");
   const [deleteError, setDeleteError] = useState("");
@@ -95,38 +129,12 @@ export function ProfileView() {
   }, []);
 
   useEffect(() => {
-    const dialog = deleteDialogRef.current;
-    if (!dialog || "closedBy" in HTMLDialogElement.prototype) {
-      return undefined;
-    }
-
-    const isOutside = (event) => {
-      const rect = dialog.getBoundingClientRect();
-      return (
-        event.clientX < rect.left ||
-        event.clientX > rect.right ||
-        event.clientY < rect.top ||
-        event.clientY > rect.bottom
-      );
-    };
-
-    let pressedOutside = false;
-    const handlePointerDown = (event) => {
-      pressedOutside = isOutside(event);
-    };
-    const handlePointerUp = (event) => {
-      if (pressedOutside && isOutside(event)) {
-        dialog.close("cancel");
-      }
-      pressedOutside = false;
-    };
-
-    dialog.addEventListener("pointerdown", handlePointerDown);
-    dialog.addEventListener("pointerup", handlePointerUp);
+    const cleanRotate = setupClosedByFallback(rotateDialogRef.current);
+    const cleanDelete = setupClosedByFallback(deleteDialogRef.current);
 
     return () => {
-      dialog.removeEventListener("pointerdown", handlePointerDown);
-      dialog.removeEventListener("pointerup", handlePointerUp);
+      if (cleanRotate) cleanRotate();
+      if (cleanDelete) cleanDelete();
     };
   }, []);
 
@@ -142,12 +150,47 @@ export function ProfileView() {
     }, 200);
   };
 
+  const checkAvailabilityOnBlur = async (rawValue) => {
+    const syntaxError = validateUsername(rawValue);
+    if (syntaxError) {
+      setUsernameStatus("idle");
+      setUsernameError(syntaxError);
+      return;
+    }
+
+    const clean = normalizeUsername(rawValue);
+    if (clean === initialUsername) {
+      setUsernameStatus("idle");
+      setUsernameError("");
+      return;
+    }
+
+    const reqId = ++availabilityReqRef.current;
+    setUsernameStatus("checking");
+    const result = await checkUsernameAvailabilityRequest(clean);
+    if (reqId !== availabilityReqRef.current) return;
+
+    if (!result.ok) {
+      setUsernameStatus("idle");
+      return;
+    }
+
+    if (result.data?.available === false) {
+      setUsernameStatus("taken");
+      setUsernameError("Este apelido já está em uso.");
+      return;
+    }
+
+    setUsernameStatus("available");
+    setUsernameError("");
+  };
+
   const handleFullNameChange = (event) => {
     const nextValue = event.currentTarget.value;
     fullNameTouchedRef.current = true;
-    setFullName(nextValue);
+    setNameDraft(nextValue);
 
-    if (fullNameError && !validateFullName(nextValue)) {
+    if (fullNameError && !validateDisplayName(nextValue)) {
       setFullNameError("");
     }
   };
@@ -155,20 +198,22 @@ export function ProfileView() {
   const handleUsernameChange = (event) => {
     const nextValue = event.currentTarget.value;
     usernameTouchedRef.current = true;
-    setUsername(nextValue);
+    setUsernameDraft(nextValue);
+    setUsernameStatus("idle");
 
     if (usernameError && !validateUsername(nextValue)) {
       setUsernameError("");
     }
   };
 
-  const handleSaveProfile = (event) => {
+  const handleSaveProfile = async (event) => {
     event.preventDefault();
+    if (isSaving) return;
 
     fullNameTouchedRef.current = true;
     usernameTouchedRef.current = true;
 
-    const nextFullNameError = validateFullName(fullName);
+    const nextFullNameError = validateDisplayName(fullName);
     const nextUsernameError = validateUsername(username);
 
     setFullNameError(nextFullNameError);
@@ -187,16 +232,108 @@ export function ProfileView() {
     }
 
     const trimmedName = fullName.trim();
-    const cleanUsername = normalizeUsername(username).toLowerCase();
+    const cleanUsername = normalizeUsername(username);
 
-    setFullName(trimmedName);
-    setUsername(cleanUsername);
+    setIsSaving(true);
+
+    if (cleanUsername !== initialUsername) {
+      const availRes = await checkUsernameAvailabilityRequest(cleanUsername);
+      if (availRes.ok && availRes.data?.available === false) {
+        setIsSaving(false);
+        setUsernameStatus("taken");
+        setUsernameError("Este apelido já está em uso.");
+        usernameRef.current?.focus();
+        return;
+      }
+    }
+
+    const payload = {};
+    if (trimmedName !== currentUser.name) {
+      payload.name = trimmedName;
+    }
+    if (cleanUsername !== initialUsername) {
+      payload.username = cleanUsername;
+    }
+
+    if (!payload.name && !payload.username) {
+      setIsSaving(false);
+      toast.success("Nenhuma alteração pendente.");
+      return;
+    }
+
+    const result = await updateProfileRequest(payload);
+    setIsSaving(false);
+
+    if (!result.ok) {
+      if (result.status === 409) {
+        setUsernameStatus("taken");
+        setUsernameError(
+          result.error || "Este apelido já está em uso."
+        );
+        usernameRef.current?.focus();
+      } else {
+        toast.error(
+          result.error || "Não foi possível salvar as alterações do perfil."
+        );
+      }
+      return;
+    }
+
+    setNameDraft(null);
+    setUsernameDraft(null);
+    setUsernameStatus("idle");
+    fullNameTouchedRef.current = false;
+    usernameTouchedRef.current = false;
     updateCurrentUser({
       name: trimmedName,
+      username: cleanUsername,
       handle: `@${cleanUsername}`,
     });
+    await refreshCurrentUser();
 
     toast.success("Alterações de perfil salvas com sucesso.");
+  };
+
+  const handleOpenRotateDialog = () => {
+    const dialog = rotateDialogRef.current;
+    if (!dialog || dialog.open) return;
+    setIsRegeneratingCode(false);
+    dialog.showModal();
+  };
+
+  const handleRotateDialogClose = () => {
+    const dialog = rotateDialogRef.current;
+    if (dialog) dialog.returnValue = "";
+    setIsRegeneratingCode(false);
+  };
+
+  const handleConfirmRotateCredential = async (event) => {
+    event.preventDefault();
+    if (isRegeneratingCode) return;
+
+    setIsRegeneratingCode(true);
+    const result = await regenerateOwnCredentialRequest(currentUser.id);
+    setIsRegeneratingCode(false);
+
+    if (!result.ok || !result.data?.credentialNumber) {
+      toast.error(
+        result.error || "Não foi possível gerar um novo código de credencial."
+      );
+      return;
+    }
+
+    rotateDialogRef.current?.close("done");
+    await refreshCurrentUser();
+    setCodeModalState({
+      variant: "hashed-self",
+      title: "Seu novo código de acesso",
+      subtitle:
+        "Sua credencial foi substituída por um novo código já criptografado.",
+      personName: currentUser.name,
+      status: CREDENTIAL_STATUS.ACTIVE,
+      credentialNumber: result.data.credentialNumber,
+    });
+    toast.success("Novo código de credencial gerado com sucesso.");
   };
 
   const handleOpenDeleteDialog = () => {
@@ -216,22 +353,23 @@ export function ProfileView() {
     setIsDeleting(false);
   };
 
-  const expectedUsername = currentUser.handle.replace(/^@+/, "");
+  const expectedUsername = initialUsername;
 
   const handleConfirmDelete = async (event) => {
     event.preventDefault();
+    if (isDeleting) return;
 
-    const typed = normalizeUsername(confirmUsername).toLowerCase();
+    const typed = normalizeUsername(confirmUsername);
     if (!typed) {
-      const msg = "Digite seu nome de usuário para confirmar a exclusão.";
+      const msg = "Digite seu apelido para confirmar a exclusão.";
       setDeleteError(msg);
       announce(msg);
       confirmUsernameRef.current?.focus();
       return;
     }
 
-    if (typed !== expectedUsername.toLowerCase()) {
-      const msg = `O nome informado não confere com "${expectedUsername}".`;
+    if (typed !== expectedUsername) {
+      const msg = `O apelido informado não confere com "${expectedUsername}".`;
       setDeleteError(msg);
       announce(msg);
       confirmUsernameRef.current?.focus();
@@ -241,12 +379,12 @@ export function ProfileView() {
     setIsDeleting(true);
     setDeleteError("");
 
-    const result = await deleteAccountRequest();
+    const result = await deleteAccountRequest(currentUser.id);
 
     if (result.ok) {
       deleteDialogRef.current?.close("deleted");
       toast.success("Conta excluída com sucesso.");
-      router.push("/");
+      router.replace("/");
       return;
     }
 
@@ -258,7 +396,7 @@ export function ProfileView() {
 
   const previewName = fullName.trim() || currentUser.name;
   const previewUsername = normalizeUsername(username) || expectedUsername;
-  const previewInitials = getInitials(previewName);
+  const previewInitials = computeInitials(previewName);
 
   return (
     <div className={styles.page}>
@@ -267,17 +405,19 @@ export function ProfileView() {
           <p className={styles.pageEyebrow}>CONTA PESSOAL</p>
           <h1 className={styles.pageTitle}>Meu perfil</h1>
           <p className={styles.pageSubtitle}>
-            Atualize o nome de usuário exibido para a equipe.
+            Atualize seus dados pessoais ou troque sua credencial de acesso.
           </p>
         </div>
 
         <button
           type="submit"
           form={profileFormId}
+          disabled={isSaving}
+          aria-busy={isSaving}
           className={styles.saveButton}
         >
           <CheckIcon />
-          <span>Salvar alterações</span>
+          <span>{isSaving ? "Salvando..." : "Salvar alterações"}</span>
         </button>
       </header>
 
@@ -291,7 +431,9 @@ export function ProfileView() {
             <span className={styles.avatarCircle}>{previewInitials}</span>
           </div>
           <h2 className={styles.identityName}>{previewName}</h2>
-          <p className={styles.identityHandle}>@{previewUsername}</p>
+          <p className={styles.identityHandle}>
+            {previewUsername ? `@${previewUsername}` : "Sem apelido"}
+          </p>
           <span className={styles.accessBadge}>
             <span className={styles.accessDot} aria-hidden="true" />
             {currentUser.accessBadgeLabel}
@@ -343,7 +485,7 @@ export function ProfileView() {
                   onChange={handleFullNameChange}
                   onBlur={() => {
                     if (fullNameTouchedRef.current) {
-                      setFullNameError(validateFullName(fullName));
+                      setFullNameError(validateDisplayName(fullName));
                     }
                   }}
                 />
@@ -357,7 +499,7 @@ export function ProfileView() {
 
               <div className={styles.fieldGroup}>
                 <label htmlFor={usernameId} className={styles.fieldLabel}>
-                  Nome de usuário
+                  Apelido
                 </label>
                 <input
                   ref={usernameRef}
@@ -371,25 +513,39 @@ export function ProfileView() {
                   spellCheck={false}
                   required
                   minLength={3}
-                  maxLength={30}
+                  maxLength={15}
                   aria-invalid={usernameError ? "true" : "false"}
-                  aria-describedby={usernameError ? usernameErrorId : undefined}
+                  aria-describedby={`${usernameHintId}${
+                    usernameError ? ` ${usernameErrorId}` : ""
+                  }`}
                   className={`${styles.input} ${
                     usernameError ? styles.inputError : ""
                   }`}
                   onChange={handleUsernameChange}
                   onBlur={() => {
                     if (usernameTouchedRef.current) {
-                      setUsernameError(validateUsername(username));
+                      checkAvailabilityOnBlur(username);
                     }
                   }}
                 />
-                {usernameError && (
+                <span id={usernameHintId} className={styles.fieldHint}>
+                  3 a 15 caracteres: letras, números, _ ou .
+                </span>
+                {usernameError ? (
                   <div id={usernameErrorId} className={styles.errorMsg}>
                     <AlertCircleIcon className={styles.errorIcon} />
                     <span>{usernameError}</span>
                   </div>
-                )}
+                ) : usernameStatus === "checking" ? (
+                  <span className={styles.availabilityChecking}>
+                    Verificando disponibilidade...
+                  </span>
+                ) : usernameStatus === "available" ? (
+                  <span className={styles.availabilityOk}>
+                    <CheckIcon />
+                    <span>Apelido disponível</span>
+                  </span>
+                ) : null}
               </div>
             </form>
           </section>
@@ -397,13 +553,14 @@ export function ProfileView() {
           <section className={styles.card} aria-labelledby={accessHeadingId}>
             <div className={styles.cardHeader}>
               <div>
-                <p className={styles.cardEyebrow}>SOMENTE VISUALIZAÇÃO</p>
+                <p className={styles.cardEyebrow}>ACESSO &amp; CREDENCIAL</p>
                 <h2 id={accessHeadingId} className={styles.cardTitle}>
                   Informações pessoais e de acesso
                 </h2>
                 <p className={styles.cardSubtitle}>
-                  Esses dados são administrados pela liderança e não podem ser
-                  alterados aqui.
+                  Seu código de acesso é criptografado e nunca fica visível após
+                  o primeiro acesso. Você pode gerar um novo código a qualquer
+                  momento.
                 </p>
               </div>
               <ShieldCheckIcon className={styles.cardCornerIcon} />
@@ -426,7 +583,11 @@ export function ProfileView() {
                 </span>
                 <div>
                   <dt>MINISTÉRIO</dt>
-                  <dd>{currentUser.ministries.join(", ")}</dd>
+                  <dd>
+                    {currentUser.ministries?.length > 0
+                      ? currentUser.ministries.join(", ")
+                      : "Administração Geral"}
+                  </dd>
                 </div>
               </div>
 
@@ -434,11 +595,21 @@ export function ProfileView() {
                 <span className={styles.tileIconWrap} aria-hidden="true">
                   <KeyIcon />
                 </span>
-                <div>
-                  <dt>CÓDIGO DE CREDENCIAL</dt>
-                  <dd className={styles.monoValue}>
-                    {currentUser.credentialCode}
-                  </dd>
+                <div className={styles.credentialTileBody}>
+                  <div>
+                    <dt>CÓDIGO DE CREDENCIAL</dt>
+                    <dd className={styles.monoValue}>
+                      Protegido (criptografado)
+                    </dd>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.rotateCredentialBtn}
+                    onClick={handleOpenRotateDialog}
+                  >
+                    <RefreshCwIcon />
+                    <span>Trocar código</span>
+                  </button>
                 </div>
               </div>
 
@@ -486,10 +657,65 @@ export function ProfileView() {
       </div>
 
       <dialog
+        ref={rotateDialogRef}
+        closedby="any"
+        aria-labelledby={rotateModalTitleId}
+        className={styles.deleteDialog}
+        onCancel={(event) => {
+          if (isRegeneratingCode) event.preventDefault();
+        }}
+        onClose={handleRotateDialogClose}
+      >
+        <form className={styles.modalForm} onSubmit={handleConfirmRotateCredential}>
+          <div className={styles.modalHeader}>
+            <span className={styles.modalWarningBadge} aria-hidden="true">
+              <AlertTriangleIcon />
+            </span>
+            <div>
+              <h2 id={rotateModalTitleId} className={styles.modalTitle}>
+                Trocar seu código de credencial?
+              </h2>
+              <p className={styles.modalSubtitle}>
+                Um novo código definitivo e já <strong>criptografado</strong>{" "}
+                será gerado imediatamente. Seu código atual deixará de funcionar
+                e todos os outros dispositivos conectados serão desconectados.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.modalActions}>
+            <button
+              type="button"
+              autoFocus
+              disabled={isRegeneratingCode}
+              className={styles.modalCancelButton}
+              onClick={() => rotateDialogRef.current?.close("cancel")}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isRegeneratingCode}
+              aria-busy={isRegeneratingCode}
+              className={styles.modalPrimaryButton}
+            >
+              <RefreshCwIcon />
+              <span>
+                {isRegeneratingCode ? "Gerando..." : "Gerar novo código"}
+              </span>
+            </button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog
         ref={deleteDialogRef}
         closedby="any"
         aria-labelledby={deleteModalTitleId}
         className={styles.deleteDialog}
+        onCancel={(event) => {
+          if (isDeleting) event.preventDefault();
+        }}
         onClose={handleDeleteDialogClose}
       >
         <form
@@ -548,6 +774,7 @@ export function ProfileView() {
             <button
               type="button"
               autoFocus
+              disabled={isDeleting}
               className={styles.modalCancelButton}
               onClick={() => deleteDialogRef.current?.close("cancel")}
             >
@@ -559,11 +786,18 @@ export function ProfileView() {
               aria-busy={isDeleting}
               className={styles.modalDeleteButton}
             >
-              {isDeleting ? "Excluindo conta..." : "Excluir conta permanentemente"}
+              {isDeleting
+                ? "Excluindo conta..."
+                : "Excluir conta permanentemente"}
             </button>
           </div>
         </form>
       </dialog>
+
+      <CredentialCodeModal
+        modalState={codeModalState}
+        onClose={() => setCodeModalState(null)}
+      />
     </div>
   );
 }

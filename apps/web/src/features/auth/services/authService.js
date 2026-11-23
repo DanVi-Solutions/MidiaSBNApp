@@ -1,65 +1,125 @@
-import { API_HOST } from "@/lib/env";
+import { apiRequest } from "@/lib/apiClient";
+import { normalizeUsername } from "@/lib/roles";
+import {
+  clearStoredSession,
+  getStoredSession,
+  sanitizeCredential,
+  setStoredSession,
+  updateStoredCredential,
+} from "@/lib/sessionStorage";
 
-export async function authenticateWithCredential(rawCredential) {
-  const credential = String(rawCredential ?? "").trim();
+export async function loginWithCredential(rawCredentialNumber) {
+  const credentialNumber = String(rawCredentialNumber ?? "")
+    .trim()
+    .toUpperCase();
 
-  if (!credential) {
+  if (!credentialNumber) {
     return {
       ok: false,
       error: "Informe seu código de credencial.",
     };
   }
 
-  if (!API_HOST) {
+  const result = await apiRequest("/auth/login", {
+    method: "POST",
+    auth: false,
+    retryOnAuth: false,
+    body: { credentialNumber },
+  });
+
+  if (!result.ok) {
+    return result;
+  }
+
+  const session = setStoredSession(result.data);
+  if (!session) {
     return {
       ok: false,
-      error:
-        "Serviço de autenticação indisponível no momento. Tente novamente em instantes.",
+      error: "Resposta de autenticação inválida. Tente novamente.",
     };
   }
 
-  try {
-    const response = await fetch(`${API_HOST}/auth/login`, {
+  return { ok: true, data: session };
+}
+
+export async function logoutSession() {
+  const session = getStoredSession();
+  const refreshToken = session?.refreshToken;
+
+  clearStoredSession();
+
+  if (refreshToken) {
+    await apiRequest("/auth/logout", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({ credential }),
+      auth: false,
+      retryOnAuth: false,
+      body: { refreshToken },
     });
-
-    let payload = null;
-    try {
-      payload = await response.json();
-    } catch {
-      payload = null;
-    }
-
-    if (response.ok) {
-      return { ok: true, data: payload };
-    }
-
-    if (payload && typeof payload.message === "string" && payload.message.trim()) {
-      return { ok: false, error: payload.message.trim() };
-    }
-
-    if (response.status === 401 || response.status === 403) {
-      return {
-        ok: false,
-        error:
-          "Credencial inválida ou não autorizada. Verifique o código com o responsável.",
-      };
-    }
-
-    return {
-      ok: false,
-      error: "Não foi possível validar sua credencial no momento. Tente novamente.",
-    };
-  } catch {
-    return {
-      ok: false,
-      error:
-        "Não foi possível conectar ao servidor de autenticação. Tente novamente em instantes.",
-    };
   }
+
+  return { ok: true };
+}
+
+export async function fetchMyCredential() {
+  const result = await apiRequest("/credentials/me");
+  if (result.ok && result.data) {
+    updateStoredCredential(result.data);
+    return { ok: true, data: sanitizeCredential(result.data) };
+  }
+  return result;
+}
+
+export async function checkUsernameAvailability(rawUsername) {
+  const username = normalizeUsername(rawUsername);
+  if (!username) {
+    return { ok: false, error: "Informe um apelido." };
+  }
+
+  const params = new URLSearchParams({ username });
+  return apiRequest(`/credentials/username-availability?${params.toString()}`);
+}
+
+export function prepareActivationCode() {
+  return apiRequest("/credentials/me/prepare-code", {
+    method: "POST",
+  });
+}
+
+export async function submitFirstAccess({
+  name,
+  username,
+  activationToken,
+}) {
+  const normalizedUsername = normalizeUsername(username);
+  const trimmedName = String(name ?? "").trim();
+
+  const body = {
+    username: normalizedUsername,
+    ...(trimmedName ? { name: trimmedName } : {}),
+    ...(activationToken ? { activationToken } : {}),
+  };
+
+  const result = await apiRequest("/credentials/me/first-access", {
+    method: "POST",
+    body,
+  });
+
+  if (result.ok && result.data) {
+    updateStoredCredential(result.data);
+  }
+
+  return result;
+}
+
+export async function completeAccountRecovery({ activationToken } = {}) {
+  const result = await apiRequest("/credentials/me/complete-recovery", {
+    method: "POST",
+    ...(activationToken ? { body: { activationToken } } : {}),
+  });
+
+  if (result.ok && result.data) {
+    updateStoredCredential(result.data);
+  }
+
+  return result;
 }

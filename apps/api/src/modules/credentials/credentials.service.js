@@ -1,6 +1,11 @@
 import { hashCredentialNumber } from "../../shared/auth/credentialNumberHash.js";
-import { isAdmin } from "../../shared/auth/roles.js";
-import { generateRefreshToken, signAccessToken } from "../../shared/auth/tokens.js";
+import { ROLES, isAdmin, isAtLeast } from "../../shared/auth/roles.js";
+import {
+  generateRefreshToken,
+  signAccessToken,
+  signActivationToken,
+  verifyActivationToken,
+} from "../../shared/auth/tokens.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { isPrismaError, isUniqueViolationOn } from "../../shared/errors/prismaErrors.js";
 import { generateCredentialNumber, retryOnCredentialNumberCollision } from "./credential-number.js";
@@ -9,6 +14,11 @@ import { toPublicCredential, withCredentialNumber } from "./credentials.presente
 import { credentialsRepository } from "./credentials.repository.js";
 
 const sameSet = (a, b) => a.length === b.length && a.every((id) => b.includes(id));
+
+const MEMBER_VISIBLE_STATUSES = ["ACTIVE", "RECOVERING"];
+const canSeeActualStatus = (auth) => isAtLeast(auth.role, ROLES.DEPARTMENT_MANAGER);
+const maskStatusForMemberView = (credential) =>
+  credential?.status === "RECOVERING" ? { ...credential, status: "ACTIVE" } : credential;
 
 export function createCredentialsService({
   repository = credentialsRepository,
@@ -56,6 +66,48 @@ export function createCredentialsService({
     return withCredentialNumber(result, credentialNumber);
   }
 
+  async function resolveActivationCode(auth, activationToken) {
+    let decoded;
+    try {
+      decoded = await verifyActivationToken(activationToken);
+    } catch {
+      throw AppError.unprocessable(
+        "O código exibido expirou ou não corresponde a esta sessão. Gere um novo código para continuar.",
+      );
+    }
+
+    if (
+      decoded.credentialId !== auth.id ||
+      decoded.sessionId !== auth.sessionId ||
+      decoded.expectedStatus !== auth.status
+    ) {
+      throw AppError.unprocessable(
+        "O código exibido expirou ou não corresponde a esta sessão. Gere um novo código para continuar.",
+      );
+    }
+
+    return decoded.credentialNumber;
+  }
+
+  async function activateWithFixedNumber(id, credentialNumber, data = {}) {
+    try {
+      const result = await repository.activateWithHashedNumber(
+        id,
+        hashCredentialNumber(credentialNumber),
+        data,
+      );
+      return withCredentialNumber(result, credentialNumber);
+    } catch (error) {
+      if (
+        isUniqueViolationOn(error, "credential_number") ||
+        isUniqueViolationOn(error, "credential_number_hash")
+      ) {
+        throw AppError.conflict("Não foi possível confirmar este código. Gere um novo código e tente novamente.");
+      }
+      throw error;
+    }
+  }
+
   async function issueNewReadableNumber(id, status) {
     const { credentialNumber, result } = await withNewNumber((number) =>
       repository.issueReadableNumber(id, number, status),
@@ -70,18 +122,30 @@ export function createCredentialsService({
 
     async getById(auth, id) {
       const target = await findTarget(id);
-      policy.assertCanView(auth, target);
-      return policy.canHandOutCredentialNumber(auth, target)
+      policy.assertCanViewMember(auth, target);
+      const seesActualStatus = auth.id === target.id || canSeeActualStatus(auth);
+      if (!seesActualStatus && !MEMBER_VISIBLE_STATUSES.includes(target.status)) {
+        throw AppError.notFound("Credencial não encontrada");
+      }
+      const presented = policy.canHandOutCredentialNumber(auth, target)
         ? withCredentialNumber(target)
         : toPublicCredential(target);
+      return seesActualStatus ? presented : maskStatusForMemberView(presented);
     },
 
     async list(auth) {
-      policy.assertCanList(auth);
+      policy.assertCanListMembers(auth);
+      const admin = isAdmin(auth);
+      const seesActualStatus = canSeeActualStatus(auth);
       const credentials = await repository.list({
-        departmentIds: isAdmin(auth) ? null : auth.departmentIds,
+        departmentIds: admin ? null : auth.departmentIds,
+        excludeRoles: admin ? null : [ROLES.ADMINISTRATOR],
+        statuses: seesActualStatus ? null : MEMBER_VISIBLE_STATUSES,
       });
-      return credentials.map(toPublicCredential);
+      return credentials.map((item) => {
+        const presented = toPublicCredential(item);
+        return seesActualStatus ? presented : maskStatusForMemberView(presented);
+      });
     },
 
     async create(auth, { name, role, departmentIds }) {
@@ -98,14 +162,51 @@ export function createCredentialsService({
       return { username, available: !(await repository.isUsernameTaken(username, auth.id)) };
     },
 
-    async firstAccess(auth, { name, username }) {
-      await ensureUsernameAvailable(username, auth.id);
-      return translateUsernameConflict(() =>
-        activateWithNewHashedNumber(auth.id, { username, ...(name && { name }) }),
-      );
+    async prepareActivationCode(auth) {
+      let chosen = "";
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const candidate = generateNumber();
+        const taken = repository.isCredentialNumberTaken
+          ? await repository.isCredentialNumberTaken(candidate, hashCredentialNumber(candidate))
+          : false;
+        if (!taken) {
+          chosen = candidate;
+          break;
+        }
+      }
+
+      if (!chosen) {
+        throw AppError.conflict("Não foi possível gerar um código disponível. Tente novamente.");
+      }
+
+      const activationToken = await signActivationToken({
+        credentialId: auth.id,
+        sessionId: auth.sessionId,
+        credentialNumber: chosen,
+        expectedStatus: auth.status,
+      });
+
+      return { credentialNumber: chosen, activationToken };
     },
 
-    async completeRecovery(auth) {
+    async firstAccess(auth, { name, username, activationToken }) {
+      await ensureUsernameAvailable(username, auth.id);
+      const data = { username, ...(name && { name }) };
+
+      if (activationToken) {
+        const fixedCode = await resolveActivationCode(auth, activationToken);
+        return translateUsernameConflict(() => activateWithFixedNumber(auth.id, fixedCode, data));
+      }
+
+      return translateUsernameConflict(() => activateWithNewHashedNumber(auth.id, data));
+    },
+
+    async completeRecovery(auth, { activationToken } = {}) {
+      if (activationToken) {
+        const fixedCode = await resolveActivationCode(auth, activationToken);
+        return activateWithFixedNumber(auth.id, fixedCode);
+      }
+
       return activateWithNewHashedNumber(auth.id);
     },
 

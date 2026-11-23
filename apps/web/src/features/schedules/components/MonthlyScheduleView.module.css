@@ -866,6 +866,18 @@
   color: #a93c3c;
 }
 
+.cardSignupButton {
+  border: 1px solid var(--ink-primary);
+  background-color: #141614;
+  color: #f7f8f3;
+}
+
+.cardWithdrawButton {
+  border: 1px solid #e3b5b5;
+  background-color: var(--surface-card);
+  color: #a93c3c;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .cardPublishButton:hover {
     background-color: #e4f7b8;
@@ -881,36 +893,71 @@
     background-color: #fdf2f2;
     border-color: #efd5d5;
   }
+
+  .cardSignupButton:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+  }
+
+  .cardWithdrawButton:hover:not(:disabled) {
+    background-color: #fdf2f2;
+  }
 }
 
-.emptyCard {
+.emptyState {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.85rem;
-  padding: 2.25rem 1.5rem;
-  border: 1px solid #e6e9e0;
-  border-radius: 16px;
-  background-color: var(--surface-card);
+  gap: 0.65rem;
+  min-height: 220px;
+  padding: 2.5rem 1rem;
   text-align: center;
 }
 
-.emptyTitle {
-  font-size: 0.92rem;
-  color: var(--ink-secondary);
+.emptyIconBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background-color: #e6e9df;
+  color: var(--ink-primary);
+  margin-block-end: 0.15rem;
 }
 
-.resetFilterButton {
+.emptyTitle {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--ink-primary);
+  letter-spacing: -0.01em;
+}
+
+.emptyDesc {
+  font-size: 0.86rem;
+  color: var(--ink-secondary);
+  max-width: 42ch;
+  line-height: 1.48;
+}
+
+.emptyResetBtn {
   min-height: 38px;
-  padding: 0.45rem 0.95rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 9px;
-  background-color: var(--surface-workspace);
+  margin-block-start: 0.25rem;
+  padding: 0.48rem 1rem;
+  border: 1px solid #d5d9ce;
+  border-radius: 10px;
+  background-color: var(--surface-card);
   color: var(--ink-primary);
   font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .emptyResetBtn:hover {
+    background-color: #f0f2ec;
+  }
 }
 
 /* Native Modal <dialog> for Unavailability */
@@ -1447,6 +1494,7 @@
 .recurringDateChip {
   display: inline-flex;
   align-items: center;
+  gap: 0.42rem;
   padding: 0.34rem 0.68rem;
   border-radius: 8px;
   background-color: #141614;
@@ -1454,6 +1502,21 @@
   font-size: 0.74rem;
   font-weight: 650;
   line-height: 1.2;
+}
+
+.recurringDateTimes {
+  padding-inline-start: 0.42rem;
+  border-inline-start: 1px solid rgba(255, 255, 255, 0.22);
+  color: #f4f6ee;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+
+.recurringWindowNote {
+  margin-block-start: 0.35rem;
+  font-size: 0.76rem;
+  line-height: 1.42;
+  color: var(--ink-secondary);
 }
 
 .drawerField {
@@ -1982,6 +2045,277 @@
   }
 }
 
+.windowInfoBar {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.82rem 1.05rem;
+  border: 1px solid #e1e6d8;
+  border-radius: 12px;
+  background-color: #f7f9f2;
+  color: var(--ink-secondary);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.windowInfoIcon {
+  flex-shrink: 0;
+  margin-block-start: 0.14rem;
+  color: var(--accent-lime-ink);
+}
+
+.windowInfoText strong {
+  color: var(--ink-primary);
+}
+
+.windowInfoDrawerNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.72rem 0.9rem;
+  border: 1px solid #e2e6da;
+  border-radius: 11px;
+  background-color: #fafbf7;
+  color: var(--ink-secondary);
+  font-size: 0.78rem;
+  line-height: 1.42;
+}
+
+.windowInfoDrawerNote strong {
+  color: var(--ink-primary);
+}
+
+.eventTopBadges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.selfSignupBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.24rem 0.62rem;
+  border: 1px solid #d4e3b1;
+  border-radius: 999px;
+  background-color: #f6f9ef;
+  color: var(--accent-lime-ink);
+  font-size: 0.71rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.lockedWindowBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.68rem;
+  border-radius: 8px;
+  background-color: #f2f3ee;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.fieldLabelRow,
+.fieldsetLegendRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.fieldsetLegendRow {
+  padding: 0;
+  margin-block-end: 0.2rem;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--ink-primary);
+}
+
+.requiredTag,
+.optionalTag {
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  padding: 0.16rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.requiredTag {
+  background-color: var(--accent-lime-soft);
+  color: var(--accent-lime-ink);
+}
+
+.optionalTag {
+  background-color: #f1f2ec;
+  color: var(--ink-muted);
+}
+
+.readonlyScopeBox {
+  padding: 0.72rem 0.9rem;
+  border: 1px solid #e4e8dc;
+  border-radius: 11px;
+  background-color: #f8f9f5;
+}
+
+.readonlyScopeValue {
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--ink-primary);
+}
+
+.switchCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid #dfe2d8;
+  border-radius: 13px;
+  background-color: #fafbf8;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.switchCardActive {
+  border-color: var(--ink-primary);
+  background-color: #f6f9ef;
+}
+
+.switchHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.switchLead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.switchTitle {
+  font-size: 0.86rem;
+  font-weight: 650;
+  color: var(--ink-primary);
+  cursor: pointer;
+}
+
+.switchHint {
+  font-size: 0.77rem;
+  line-height: 1.42;
+  color: var(--ink-secondary);
+}
+
+.switchInput {
+  appearance: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 46px;
+  height: 26px;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid #c3c8bb;
+  border-radius: 999px;
+  background-color: #e4e7de;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.switchInput::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(17, 19, 18, 0.25);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.switchInput:checked {
+  border-color: #141614;
+  background-color: #141614;
+}
+
+.switchInput:checked::before {
+  background-color: var(--accent-lime);
+  transform: translateX(20px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switchInput,
+  .switchInput::before {
+    transition: none;
+  }
+}
+
+.volunteersNeededBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-block-start: 0.75rem;
+  border-block-start: 1px solid #dce5c9;
+}
+
+.memberAvailabilityTag {
+  margin-block-start: 0.16rem;
+  font-size: 0.69rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.memberAvailabilityOk {
+  color: var(--accent-lime-ink);
+}
+
+.memberAvailabilityWarn {
+  color: #8b6318;
+}
+
+.memberAvailabilityDanger {
+  color: #a93c3c;
+}
+
+.formBannerError {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #efd5d5;
+  border-radius: 10px;
+  background-color: var(--status-error-bg);
+  color: var(--status-error);
+  font-size: 0.83rem;
+  font-weight: 550;
+}
+
+.absenceButton:disabled,
+.cardSignupButton:disabled,
+.cardWithdrawButton:disabled,
+.drawerCloseButton:disabled,
+.drawerCancelButton:disabled,
+.drawerSubmitButton:disabled,
+.declineButton:disabled,
+.acceptButton:disabled,
+.modalCancelButton:disabled,
+.modalConfirmButton:disabled,
+.confirmCloseBtn:disabled,
+.confirmCancelBtn:disabled,
+.confirmDangerBtn:disabled,
+.confirmPrimaryBtn:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
 .publishAllButton:focus-visible,
 .newScheduleButton:focus-visible,
 .cardActionButton:focus-visible,
@@ -1991,7 +2325,7 @@
 .acceptButton:focus-visible,
 .absenceButton:focus-visible,
 .scopeSelect:focus-visible,
-.resetFilterButton:focus-visible,
+.emptyResetBtn:focus-visible,
 .modalCancelButton:focus-visible,
 .modalConfirmButton:focus-visible,
 .modalSelect:focus-visible,
@@ -2000,6 +2334,7 @@
 .drawerInput:focus-visible,
 .drawerSelect:focus-visible,
 .drawerTextarea:focus-visible,
+.switchInput:focus-visible,
 .memberCard:has(input:focus-visible),
 .drawerCancelButton:focus-visible,
 .drawerSubmitButton:focus-visible,
@@ -2019,6 +2354,7 @@
   .drawerCloseButton,
   .searchInput,
   .scopeSelect,
+  .emptyResetBtn,
   .declineButton,
   .acceptButton,
   .modalSelect,

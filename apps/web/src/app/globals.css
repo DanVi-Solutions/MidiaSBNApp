@@ -81,3 +81,15 @@ input {
   border: 0 !important;
   white-space: nowrap !important;
 }
+
+/* Collapsed right-side drawers remain open non-modally while docked offscreen */
+dialog[data-side-drawer="right"][open][data-collapsed="true"] {
+  transform: translateX(100%) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+dialog[data-side-drawer="right"][open][data-collapsed="true"]::backdrop {
+  display: none;
+}

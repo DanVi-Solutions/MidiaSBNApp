@@ -63,8 +63,13 @@
   transition: background-color 0.15s ease;
 }
 
+.saveButton:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
 @media (hover: hover) and (pointer: fine) {
-  .saveButton:hover {
+  .saveButton:hover:not(:disabled) {
     background-color: var(--accent-hover);
   }
 }
@@ -259,6 +264,25 @@
   flex-shrink: 0;
 }
 
+.fieldHint {
+  font-size: 0.76rem;
+  color: var(--ink-muted);
+}
+
+.availabilityChecking {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.availabilityOk {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.79rem;
+  font-weight: 600;
+  color: var(--accent-lime-ink);
+}
+
 .readonlyGrid {
   display: grid;
   grid-template-columns: 1fr;
@@ -311,6 +335,41 @@
 .monoValue {
   font-family: var(--font-mono);
   letter-spacing: 0.03em;
+}
+
+.credentialTileBody {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.rotateCredentialBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  min-height: 36px;
+  padding: 0.38rem 0.78rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rotateCredentialBtn:hover {
+    background-color: var(--surface-workspace);
+    border-color: var(--ink-primary);
+  }
 }
 
 /* Danger Zone */
@@ -397,16 +456,25 @@
   gap: 0.85rem;
 }
 
-.modalDangerBadge {
+.modalDangerBadge,
+.modalWarningBadge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 38px;
   height: 38px;
   border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.modalDangerBadge {
   background-color: #fdf2f2;
   color: #b23d3d;
-  flex-shrink: 0;
+}
+
+.modalWarningBadge {
+  background-color: var(--status-amber-badge);
+  color: var(--status-amber-ink);
 }
 
 .modalTitle {
@@ -432,7 +500,12 @@
 }
 
 .modalCancelButton,
-.modalDeleteButton {
+.modalDeleteButton,
+.modalPrimaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
   min-height: 42px;
   padding: 0.52rem 1rem;
   border-radius: 10px;
@@ -453,15 +526,24 @@
   color: #ffffff;
 }
 
-.modalDeleteButton:disabled {
+.modalPrimaryButton {
+  border: 1px solid var(--ink-primary);
+  background-color: #141614;
+  color: #f7f8f3;
+}
+
+.modalDeleteButton:disabled,
+.modalPrimaryButton:disabled {
   opacity: 0.72;
   cursor: progress;
 }
 
 .saveButton:focus-visible,
+.rotateCredentialBtn:focus-visible,
 .deleteTriggerButton:focus-visible,
 .modalCancelButton:focus-visible,
-.modalDeleteButton:focus-visible {
+.modalDeleteButton:focus-visible,
+.modalPrimaryButton:focus-visible {
   outline: 2px solid var(--ink-primary);
   outline-offset: 2px;
 }
@@ -469,9 +551,11 @@
 @media (pointer: coarse) {
   .saveButton,
   .input,
+  .rotateCredentialBtn,
   .deleteTriggerButton,
   .modalCancelButton,
-  .modalDeleteButton {
+  .modalDeleteButton,
+  .modalPrimaryButton {
     min-height: 48px;
   }
 }

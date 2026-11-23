@@ -1,113 +1,33 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { usePrivateWorkspace } from "@/components/layout/PrivateShell";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
   AlertCircleIcon,
+  AlertTriangleIcon,
   CalendarIcon,
   ClockIcon,
-  CloseIcon,
+  PencilIcon,
   PlusIcon,
   SwapIcon,
   TrashIcon,
+  TrendingUpIcon,
 } from "@/components/ui/icons";
 import {
-  MINISTRY_OPTIONS,
-  WEEKDAY_OPTIONS,
-} from "@/features/recurring-events/data/mockRecurringEventsData";
+  deleteRecurringEvent,
+  promoteRecurringEvent,
+} from "@/features/recurring-events/services/recurringEventsService";
+import {
+  canCreateRecurringEvent,
+  canManageRecurringEvent,
+  canPromoteRecurringEvent,
+  canSeeRecurringEvents,
+} from "@/lib/roles";
 import styles from "./RecurringEventsView.module.css";
 
-let supportsDisplayTransition;
-
-function canTransitionDisplay() {
-  if (supportsDisplayTransition !== undefined) {
-    return supportsDisplayTransition;
-  }
-  if (
-    typeof window === "undefined" ||
-    !window.CSS?.supports?.("transition-behavior", "allow-discrete") ||
-    !document.body
-  ) {
-    return false;
-  }
-  const probe = document.createElement("div");
-  probe.style.cssText =
-    "transition: display 1s allow-discrete !important; display: block;";
-  document.body.appendChild(probe);
-  window.getComputedStyle(probe).display;
-  probe.style.display = "none";
-  supportsDisplayTransition =
-    window.getComputedStyle(probe).display === "block";
-  probe.remove();
-  return supportsDisplayTransition;
-}
-
-function supportsTopLayerExit() {
-  return (
-    typeof window !== "undefined" &&
-    Boolean(window.CSS?.supports?.("overlay", "auto")) &&
-    canTransitionDisplay()
-  );
-}
-
-function setupBackdropDismiss(dialog, onDismiss) {
-  if (!dialog) return undefined;
-
-  const isOutside = (event) => {
-    const rect = dialog.getBoundingClientRect();
-    return (
-      event.clientX < rect.left ||
-      event.clientX > rect.right ||
-      event.clientY < rect.top ||
-      event.clientY > rect.bottom
-    );
-  };
-
-  let pressedOutside = false;
-  const handlePointerDown = (event) => {
-    pressedOutside = event.target === dialog && isOutside(event);
-  };
-  const handlePointerUp = (event) => {
-    if (pressedOutside && isOutside(event)) {
-      onDismiss();
-    }
-    pressedOutside = false;
-  };
-
-  dialog.addEventListener("pointerdown", handlePointerDown);
-  dialog.addEventListener("pointerup", handlePointerUp);
-
-  return () => {
-    dialog.removeEventListener("pointerdown", handlePointerDown);
-    dialog.removeEventListener("pointerup", handlePointerUp);
-  };
-}
-
-function getRepeatPrefix(weekday) {
-  const match = WEEKDAY_OPTIONS.find((item) => item.value === weekday);
-  return match ? match.repeatPrefix : "Repete toda";
-}
-
-function normalizeTimeValue(rawTime) {
-  const trimmed = String(rawTime ?? "").trim();
-  const TemporalApi =
-    typeof globalThis !== "undefined" ? globalThis.Temporal : undefined;
-
-  if (TemporalApi?.PlainTime && trimmed) {
-    try {
-      return TemporalApi.PlainTime.from(trimmed).toString({
-        smallestUnit: "minute",
-      });
-    } catch {
-      return trimmed;
-    }
-  }
-
-  return trimmed;
-}
-
-function setupBackdropDismissFallback(dialog) {
+function setupClosedByFallback(dialog, onDismiss) {
   if (!dialog || "closedBy" in HTMLDialogElement.prototype) {
     return undefined;
   }
@@ -128,7 +48,7 @@ function setupBackdropDismissFallback(dialog) {
   };
   const handlePointerUp = (event) => {
     if (pressedOutside && isOutside(event)) {
-      dialog.close("cancel");
+      onDismiss();
     }
     pressedOutside = false;
   };
@@ -144,53 +64,39 @@ function setupBackdropDismissFallback(dialog) {
 
 export function RecurringEventsView() {
   const {
-    activeMinistry,
-    ministries,
+    currentUser,
+    departments,
     recurringEvents,
-    addRecurringEvent,
-    deleteRecurringEvent,
+    isLoadingRecurringEvents,
+    recurringEventsError,
+    refreshRecurringEvents,
+    openWorkspaceDrawer,
   } = usePrivateWorkspace();
   const toast = useToast();
 
-  const availableMinistryOptions = useMemo(() => {
-    const options = [...MINISTRY_OPTIONS];
-    const seen = new Set(options);
-    for (const item of ministries || []) {
-      if (item?.name && !seen.has(item.name)) {
-        options.push(item.name);
-        seen.add(item.name);
-      }
-    }
-    return options;
-  }, [ministries]);
+  const canViewPage = canSeeRecurringEvents(currentUser);
+  const canCreate = useMemo(
+    () => canCreateRecurringEvent(currentUser, departments),
+    [currentUser, departments]
+  );
 
-  const createModalTitleId = useId();
   const deleteModalTitleId = useId();
-  const titleInputId = useId();
-  const titleErrorId = useId();
-  const ministrySelectId = useId();
-  const weekdaySelectId = useId();
-  const timeInputId = useId();
-  const timeErrorId = useId();
+  const deleteModalDescId = useId();
+  const promoteModalTitleId = useId();
+  const promoteModalDescId = useId();
 
-  const createDialogRef = useRef(null);
   const deleteDialogRef = useRef(null);
-  const titleInputRef = useRef(null);
-  const timeInputRef = useRef(null);
-  const idCounterRef = useRef(1);
+  const promoteDialogRef = useRef(null);
   const announceTimerRef = useRef(null);
 
   const [pendingDeleteEvent, setPendingDeleteEvent] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const [eventTitle, setEventTitle] = useState("");
-  const [ministryName, setMinistryName] = useState(
-    activeMinistry?.name || MINISTRY_OPTIONS[0]
-  );
-  const [weekday, setWeekday] = useState("Domingo");
-  const [eventTime, setEventTime] = useState("18:00");
+  const [pendingPromoteEvent, setPendingPromoteEvent] = useState(null);
+  const [promoteError, setPromoteError] = useState("");
+  const [isPromoting, setIsPromoting] = useState(false);
 
-  const [titleError, setTitleError] = useState("");
-  const [timeError, setTimeError] = useState("");
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
 
   useEffect(() => {
@@ -201,40 +107,7 @@ export function RecurringEventsView() {
     };
   }, []);
 
-  const closeAnimatedDialog = useCallback(async (dialog) => {
-    if (!dialog || !dialog.open) return;
-
-    if (!supportsTopLayerExit()) {
-      dialog.setAttribute("data-closing", "");
-      const animations = dialog.getAnimations({ subtree: true });
-      if (animations.length > 0) {
-        await Promise.race([
-          Promise.allSettled(animations.map((a) => a.finished)),
-          new Promise((resolve) => window.setTimeout(resolve, 1000)),
-        ]);
-      }
-      if (!dialog.hasAttribute("data-closing")) return;
-      dialog.removeAttribute("data-closing");
-    }
-
-    if (dialog.open) {
-      dialog.close();
-    }
-  }, []);
-
-  useEffect(() => {
-    const cleanCreate = setupBackdropDismiss(createDialogRef.current, () => {
-      closeAnimatedDialog(createDialogRef.current);
-    });
-    const cleanDelete = setupBackdropDismissFallback(deleteDialogRef.current);
-
-    return () => {
-      if (cleanCreate) cleanCreate();
-      if (cleanDelete) cleanDelete();
-    };
-  }, [closeAnimatedDialog]);
-
-  const announce = (message) => {
+  const announce = useCallback((message) => {
     if (announceTimerRef.current !== null) {
       window.clearTimeout(announceTimerRef.current);
     }
@@ -244,107 +117,168 @@ export function RecurringEventsView() {
     announceTimerRef.current = window.setTimeout(() => {
       setLiveAnnouncement(message);
     }, 200);
-  };
+  }, []);
 
-  const resetCreateForm = () => {
-    setEventTitle("");
-    setMinistryName(activeMinistry?.name || MINISTRY_OPTIONS[0]);
-    setWeekday("Domingo");
-    setEventTime("18:00");
-    setTitleError("");
-    setTimeError("");
-  };
+  useEffect(() => {
+    return setupClosedByFallback(deleteDialogRef.current, () => {
+      if (!isDeleting) {
+        deleteDialogRef.current?.close("cancel");
+      }
+    });
+  }, [isDeleting]);
+
+  useEffect(() => {
+    return setupClosedByFallback(promoteDialogRef.current, () => {
+      if (!isPromoting) {
+        promoteDialogRef.current?.close("cancel");
+      }
+    });
+  }, [isPromoting]);
 
   const handleOpenCreateDialog = () => {
-    const dialog = createDialogRef.current;
-    if (!dialog || dialog.open) return;
-    resetCreateForm();
-    dialog.removeAttribute("data-closing");
-    dialog.showModal();
-    window.requestAnimationFrame(() => {
-      titleInputRef.current?.focus();
-    });
+    if (!canCreate) return;
+    openWorkspaceDrawer("recurring-event-form", { mode: "create" });
   };
 
-  const handleCreateDialogClose = () => {
-    const dialog = createDialogRef.current;
-    if (!dialog) return;
-    dialog.returnValue = "";
-    setTitleError("");
-    setTimeError("");
-  };
-
-  const handleCreateSubmit = async (event) => {
-    event.preventDefault();
-
-    const trimmedTitle = eventTitle.trim();
-    const formattedTime = normalizeTimeValue(eventTime);
-
-    let nextTitleError = "";
-    if (!trimmedTitle) {
-      nextTitleError = "Informe o nome do evento recorrente.";
-    } else if (trimmedTitle.length < 2) {
-      nextTitleError = "O nome do evento deve ter pelo menos 2 caracteres.";
-    }
-
-    let nextTimeError = "";
-    if (!formattedTime) {
-      nextTimeError = "Informe o horário do evento.";
-    }
-
-    setTitleError(nextTitleError);
-    setTimeError(nextTimeError);
-
-    if (nextTitleError) {
-      announce(nextTitleError);
-      titleInputRef.current?.focus();
-      return;
-    }
-
-    if (nextTimeError) {
-      announce(nextTimeError);
-      timeInputRef.current?.focus();
-      return;
-    }
-
-    idCounterRef.current += 1;
-    const newItem = {
-      id: `rec-custom-${idCounterRef.current}`,
-      ministryName,
-      title: trimmedTitle,
-      weekday,
-      time: formattedTime,
-    };
-
-    addRecurringEvent(newItem);
-    await closeAnimatedDialog(createDialogRef.current);
-
-    toast.success(`Evento recorrente "${newItem.title}" cadastrado.`);
+  const handleOpenEditDialog = (item) => {
+    if (!item || !canManageRecurringEvent(currentUser, item)) return;
+    openWorkspaceDrawer("recurring-event-form", { mode: "edit", event: item });
   };
 
   const handleOpenDeleteDialog = (item) => {
     const dialog = deleteDialogRef.current;
-    if (!dialog || dialog.open) return;
+    if (
+      !dialog ||
+      dialog.open ||
+      !item ||
+      !canManageRecurringEvent(currentUser, item)
+    ) {
+      return;
+    }
+
     setPendingDeleteEvent(item);
+    setDeleteError("");
+    setIsDeleting(false);
+    dialog.returnValue = "";
     dialog.showModal();
   };
 
   const handleDeleteDialogClose = () => {
     const dialog = deleteDialogRef.current;
-    if (!dialog) return;
+    if (dialog) {
+      dialog.returnValue = "";
+    }
+    setPendingDeleteEvent(null);
+    setDeleteError("");
+    setIsDeleting(false);
+  };
 
-    const action = dialog.returnValue;
-    dialog.returnValue = "";
+  const handleDeleteConfirm = async (event) => {
+    event.preventDefault();
+    if (isDeleting || !pendingDeleteEvent) return;
 
-    if (action === "confirm" && pendingDeleteEvent) {
-      deleteRecurringEvent(pendingDeleteEvent.id);
-      toast.success(
-        `Evento recorrente "${pendingDeleteEvent.title}" excluído.`
-      );
+    const targetId = pendingDeleteEvent.id;
+    const targetName = pendingDeleteEvent.name;
+
+    setDeleteError("");
+    setIsDeleting(true);
+    const result = await deleteRecurringEvent(targetId);
+    setIsDeleting(false);
+
+    if (!result.ok) {
+      const msg =
+        result.error ||
+        "Não foi possível excluir o evento recorrente. Tente novamente.";
+      setDeleteError(msg);
+      announce(msg);
+      return;
     }
 
-    setPendingDeleteEvent(null);
+    deleteDialogRef.current?.close("confirm");
+    await refreshRecurringEvents();
+    toast.success(`Evento recorrente "${targetName}" excluído.`);
   };
+
+  const handleOpenPromoteDialog = (item) => {
+    const dialog = promoteDialogRef.current;
+    if (
+      !dialog ||
+      dialog.open ||
+      !item ||
+      !canPromoteRecurringEvent(currentUser, item)
+    ) {
+      return;
+    }
+
+    setPendingPromoteEvent(item);
+    setPromoteError("");
+    setIsPromoting(false);
+    dialog.returnValue = "";
+    dialog.showModal();
+  };
+
+  const handlePromoteDialogClose = () => {
+    const dialog = promoteDialogRef.current;
+    if (dialog) {
+      dialog.returnValue = "";
+    }
+    setPendingPromoteEvent(null);
+    setPromoteError("");
+    setIsPromoting(false);
+  };
+
+  const handlePromoteConfirm = async (event) => {
+    event.preventDefault();
+    if (isPromoting || !pendingPromoteEvent) return;
+
+    const targetId = pendingPromoteEvent.id;
+    const targetName = pendingPromoteEvent.name;
+
+    setPromoteError("");
+    setIsPromoting(true);
+    const result = await promoteRecurringEvent(targetId);
+    setIsPromoting(false);
+
+    if (!result.ok) {
+      const msg =
+        result.error ||
+        "Não foi possível promover o evento recorrente. Tente novamente.";
+      setPromoteError(msg);
+      announce(msg);
+      return;
+    }
+
+    promoteDialogRef.current?.close("confirm");
+    await refreshRecurringEvents();
+    toast.success(
+      `Evento recorrente "${targetName}" promovido para todos os ministérios.`
+    );
+  };
+
+  if (!canViewPage) {
+    return (
+      <div className={styles.page}>
+        <header className={styles.pageHeader}>
+          <div className={styles.headerLead}>
+            <p className={styles.pageEyebrow}>PROGRAMAÇÃO FIXA</p>
+            <h1 className={styles.pageTitle}>Eventos recorrentes</h1>
+          </div>
+        </header>
+
+        <div className={styles.restrictedCard}>
+          <p className={styles.restrictedTitle}>
+            Os eventos recorrentes estão disponíveis apenas para responsáveis
+            das escalas ou líderes.
+          </p>
+          <div className={styles.restrictedActions}>
+            <Link href="/schedule" className={styles.restrictedPrimaryLink}>
+              Voltar à escala
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -353,40 +287,13 @@ export function RecurringEventsView() {
           <p className={styles.pageEyebrow}>PROGRAMAÇÃO FIXA</p>
           <h1 className={styles.pageTitle}>Eventos recorrentes</h1>
           <p className={styles.pageSubtitle}>
-            Cadastre eventos que acontecem toda semana e reutilize-os ao criar
-            as escalas do mês.
+            {canCreate
+              ? "Cadastre modelos semanais com um ou mais horários no mesmo dia e reutilize-os ao gerar escalas."
+              : "Visualize os eventos recorrentes disponíveis para o seu ministério utilizá-los ao criar escalas."}
           </p>
         </div>
 
-        <button
-          type="button"
-          className={styles.createButton}
-          onClick={handleOpenCreateDialog}
-        >
-          <PlusIcon />
-          <span>Novo evento recorrente</span>
-        </button>
-      </header>
-
-      <div className="visually-hidden" aria-live="polite" role="status">
-        {liveAnnouncement}
-      </div>
-
-      {recurringEvents.length === 0 ? (
-        <section
-          className={styles.emptyCard}
-          aria-label="Nenhum evento recorrente"
-        >
-          <span className={styles.emptyBadge} aria-hidden="true">
-            <SwapIcon />
-          </span>
-          <h2 className={styles.emptyTitle}>
-            Nenhum evento recorrente cadastrado
-          </h2>
-          <p className={styles.emptyDesc}>
-            Adicione cultos e reuniões semanais para agilizar a montagem das
-            escalas.
-          </p>
+        {canCreate && (
           <button
             type="button"
             className={styles.createButton}
@@ -395,253 +302,301 @@ export function RecurringEventsView() {
             <PlusIcon />
             <span>Novo evento recorrente</span>
           </button>
+        )}
+      </header>
+
+      <div className="visually-hidden" aria-live="polite" role="status">
+        {liveAnnouncement}
+      </div>
+
+      {isLoadingRecurringEvents && recurringEvents.length === 0 ? (
+        <div className={styles.emptyState} role="status">
+          <p className={styles.emptyTitle}>Carregando eventos recorrentes...</p>
+        </div>
+      ) : recurringEventsError && recurringEvents.length === 0 ? (
+        <div className={styles.restrictedCard} role="alert">
+          <p className={styles.restrictedTitle}>{recurringEventsError}</p>
+          <button
+            type="button"
+            className={styles.retryButton}
+            onClick={() => refreshRecurringEvents()}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      ) : recurringEvents.length === 0 ? (
+        <section
+          className={styles.emptyState}
+          aria-label="Nenhum evento recorrente"
+        >
+          <span className={styles.emptyIconBadge} aria-hidden="true">
+            <SwapIcon />
+          </span>
+          <h2 className={styles.emptyTitle}>
+            {canCreate
+              ? "Nenhum evento recorrente cadastrado ainda"
+              : "Nenhum evento recorrente disponível no momento"}
+          </h2>
+          {canCreate ? (
+            <p className={styles.emptyDesc}>
+              Use o botão <strong>Novo evento recorrente</strong> acima para
+              cadastrar cultos e reuniões semanais.
+            </p>
+          ) : (
+            <p className={styles.emptyDesc}>
+              Quando houver modelos globais ou do seu ministério cadastrados,
+              eles aparecerão aqui para uso nas escalas.
+            </p>
+          )}
         </section>
       ) : (
         <section
           className={styles.grid}
           aria-label="Lista de eventos recorrentes"
         >
-          {recurringEvents.map((item) => (
-            <article key={item.id} className={styles.card}>
-              <header className={styles.cardHeader}>
-                <div className={styles.cardTopRow}>
-                  <span className={styles.repeatBadge} aria-hidden="true">
-                    <SwapIcon />
-                  </span>
+          {recurringEvents.map((item) => {
+            const canEditOrDelete = canManageRecurringEvent(currentUser, item);
+            const canPromote = canPromoteRecurringEvent(currentUser, item);
+            const timesList =
+              Array.isArray(item.times) && item.times.length > 0
+                ? item.times
+                : item.time
+                  ? [item.time]
+                  : [];
 
-                  <button
-                    type="button"
-                    aria-label={`Excluir evento recorrente ${item.title}`}
-                    className={styles.deleteButton}
-                    onClick={() => handleOpenDeleteDialog(item)}
-                  >
-                    <TrashIcon />
-                  </button>
-                </div>
+            return (
+              <article key={item.id} className={styles.card}>
+                <header className={styles.cardHeader}>
+                  <div className={styles.cardTopRow}>
+                    <div className={styles.cardTopLead}>
+                      <span className={styles.repeatBadge} aria-hidden="true">
+                        <SwapIcon />
+                      </span>
+                      <span
+                        title={
+                          item.isGeneral
+                            ? "Disponível para todos os ministérios"
+                            : item.ministryName
+                        }
+                        className={
+                          item.isGeneral
+                            ? styles.generalScopeBadge
+                            : styles.ministryScopeBadge
+                        }
+                      >
+                        {item.isGeneral ? "Evento geral" : item.ministryName}
+                      </span>
+                    </div>
 
-                <p className={styles.ministryKicker}>{item.ministryName}</p>
-                <h2 className={styles.cardTitle}>{item.title}</h2>
-              </header>
-
-              <footer className={styles.cardFooter}>
-                <div className={styles.metaBlock}>
-                  <CalendarIcon className={styles.metaIcon} />
-                  <div className={styles.metaText}>
-                    <span className={styles.metaLabel}>
-                      {getRepeatPrefix(item.weekday)}
-                    </span>
-                    <strong className={styles.metaValue}>{item.weekday}</strong>
+                    {canEditOrDelete && (
+                      <div className={styles.cardActions}>
+                        <button
+                          type="button"
+                          aria-label={`Editar evento recorrente ${item.name}`}
+                          title="Editar evento recorrente"
+                          className={styles.cardIconAction}
+                          onClick={() => handleOpenEditDialog(item)}
+                        >
+                          <PencilIcon />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Excluir evento recorrente ${item.name}`}
+                          title="Excluir evento recorrente"
+                          className={`${styles.cardIconAction} ${styles.cardIconActionDanger}`}
+                          onClick={() => handleOpenDeleteDialog(item)}
+                        >
+                          <TrashIcon />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
 
-                <div className={styles.metaBlock}>
-                  <ClockIcon className={styles.metaIcon} />
-                  <div className={styles.metaText}>
-                    <span className={styles.metaLabel}>Horário</span>
-                    <strong className={styles.metaValue}>{item.time}</strong>
+                  <h2 className={styles.cardTitle}>{item.name}</h2>
+                  {item.description && (
+                    <p className={styles.cardDescription}>{item.description}</p>
+                  )}
+                </header>
+
+                <footer className={styles.cardFooter}>
+                  <div className={styles.cardFooterMetaRow}>
+                    <div className={styles.metaBlock}>
+                      <CalendarIcon className={styles.metaIcon} />
+                      <div className={styles.metaText}>
+                        <span className={styles.metaLabel}>
+                          {item.repeatPrefix}
+                        </span>
+                        <strong className={styles.metaValue}>
+                          {item.weekday}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div className={styles.metaBlock}>
+                      <ClockIcon className={styles.metaIcon} />
+                      <div className={styles.metaText}>
+                        <span className={styles.metaLabel}>
+                          {timesList.length > 1 ? "Horários" : "Horário"}
+                        </span>
+                        <ul
+                          className={styles.timesChipList}
+                          aria-label={`Horários de ${item.name}`}
+                        >
+                          {timesList.map((timeVal) => (
+                            <li key={timeVal} className={styles.timeChip}>
+                              {timeVal}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </footer>
-            </article>
-          ))}
+
+                  {canPromote && (
+                    <div className={styles.promoteActionRow}>
+                      <button
+                        type="button"
+                        className={styles.promoteButton}
+                        onClick={() => handleOpenPromoteDialog(item)}
+                      >
+                        <TrendingUpIcon />
+                        <span>Promover para todos</span>
+                      </button>
+                    </div>
+                  )}
+                </footer>
+              </article>
+            );
+          })}
         </section>
       )}
 
-      {/* Right-Side Animated Drawer: Novo evento recorrente */}
-      <dialog
-        ref={createDialogRef}
-        aria-labelledby={createModalTitleId}
-        className={styles.createDrawer}
-        onCancel={(event) => {
-          if (event.cancelable) {
-            event.preventDefault();
-            closeAnimatedDialog(createDialogRef.current);
-          }
-        }}
-        onClose={handleCreateDialogClose}
-      >
-        <div className={styles.drawerHeader}>
-          <div>
-            <p className={styles.drawerEyebrow}>PROGRAMAÇÃO FIXA</p>
-            <h2 id={createModalTitleId} className={styles.drawerTitle}>
-              Novo evento recorrente
-            </h2>
-          </div>
-
-          <button
-            type="button"
-            aria-label="Fechar formulário"
-            className={styles.drawerCloseButton}
-            onClick={() => closeAnimatedDialog(createDialogRef.current)}
-          >
-            <CloseIcon />
-          </button>
-        </div>
-
-        <form
-          className={styles.drawerForm}
-          noValidate
-          onSubmit={handleCreateSubmit}
-        >
-          <div className={styles.drawerBody}>
-            <div className={styles.fieldGroup}>
-              <label htmlFor={titleInputId} className={styles.fieldLabel}>
-                Nome do evento
-              </label>
-              <input
-                ref={titleInputRef}
-                id={titleInputId}
-                name="eventTitle"
-                type="text"
-                value={eventTitle}
-                placeholder="Ex.: Culto de Celebração"
-                required
-                minLength={2}
-                maxLength={80}
-                aria-invalid={titleError ? "true" : "false"}
-                aria-describedby={titleError ? titleErrorId : undefined}
-                className={`${styles.input} ${
-                  titleError ? styles.inputError : ""
-                }`}
-                onChange={(event) => {
-                  setEventTitle(event.currentTarget.value);
-                  if (titleError) setTitleError("");
-                }}
-              />
-              {titleError && (
-                <div id={titleErrorId} className={styles.errorMsg}>
-                  <AlertCircleIcon className={styles.errorIcon} />
-                  <span>{titleError}</span>
-                </div>
-              )}
-            </div>
-
-            <div className={styles.twoColFields}>
-              <div className={styles.fieldGroup}>
-                <label htmlFor={weekdaySelectId} className={styles.fieldLabel}>
-                  Dia da semana
-                </label>
-                <select
-                  id={weekdaySelectId}
-                  name="weekday"
-                  value={weekday}
-                  className={styles.select}
-                  onChange={(event) => setWeekday(event.currentTarget.value)}
-                >
-                  {WEEKDAY_OPTIONS.map((day) => (
-                    <option key={day.value} value={day.value}>
-                      {day.value}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.fieldGroup}>
-                <label htmlFor={timeInputId} className={styles.fieldLabel}>
-                  Horário
-                </label>
-                <input
-                  ref={timeInputRef}
-                  id={timeInputId}
-                  name="eventTime"
-                  type="time"
-                  value={eventTime}
-                  required
-                  aria-invalid={timeError ? "true" : "false"}
-                  aria-describedby={timeError ? timeErrorId : undefined}
-                  className={`${styles.input} ${
-                    timeError ? styles.inputError : ""
-                  }`}
-                  onChange={(event) => {
-                    setEventTime(event.currentTarget.value);
-                    if (timeError) setTimeError("");
-                  }}
-                />
-                {timeError && (
-                  <div id={timeErrorId} className={styles.errorMsg}>
-                    <AlertCircleIcon className={styles.errorIcon} />
-                    <span>{timeError}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label htmlFor={ministrySelectId} className={styles.fieldLabel}>
-                Ministério
-              </label>
-              <select
-                id={ministrySelectId}
-                name="ministryName"
-                value={ministryName}
-                className={styles.select}
-                onChange={(event) => setMinistryName(event.currentTarget.value)}
-              >
-                {availableMinistryOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className={styles.drawerFooter}>
-            <button
-              type="button"
-              className={styles.drawerCancelButton}
-              onClick={() => closeAnimatedDialog(createDialogRef.current)}
-            >
-              Cancelar
-            </button>
-            <button type="submit" className={styles.drawerSubmitButton}>
-              Criar evento
-            </button>
-          </div>
-        </form>
-      </dialog>
-
+      {/* Native Confirmation Modal (<dialog>): Excluir evento recorrente */}
       <dialog
         ref={deleteDialogRef}
         closedby="any"
         aria-labelledby={deleteModalTitleId}
+        aria-describedby={deleteModalDescId}
         className={styles.modalDialog}
+        onCancel={(event) => {
+          if (isDeleting) {
+            event.preventDefault();
+          }
+        }}
         onClose={handleDeleteDialogClose}
       >
-        <form method="dialog" className={styles.modalForm}>
+        <form className={styles.modalForm} onSubmit={handleDeleteConfirm}>
           <div className={styles.deleteModalLead}>
             <span className={styles.deleteModalBadge} aria-hidden="true">
-              <TrashIcon />
+              <AlertTriangleIcon />
             </span>
             <div>
               <h2 id={deleteModalTitleId} className={styles.modalTitle}>
                 Excluir evento recorrente?
               </h2>
-              <p className={styles.modalSubtitle}>
+              <p id={deleteModalDescId} className={styles.modalSubtitle}>
                 O modelo{" "}
                 <strong>
-                  {pendingDeleteEvent ? pendingDeleteEvent.title : ""}
+                  {pendingDeleteEvent ? pendingDeleteEvent.name : ""}
                 </strong>{" "}
-                será removido da programação fixa semanal.
+                será removido da programação fixa semanal. As escalas já geradas
+                por ele continuarão existindo.
               </p>
             </div>
           </div>
 
+          {deleteError && (
+            <div className={styles.formBannerError} role="alert">
+              <AlertCircleIcon className={styles.errorIcon} />
+              <span>{deleteError}</span>
+            </div>
+          )}
+
           <div className={styles.modalActions}>
             <button
-              type="submit"
-              value="cancel"
+              type="button"
               autoFocus
+              disabled={isDeleting}
               className={styles.modalCancelButton}
+              onClick={() => deleteDialogRef.current?.close("cancel")}
             >
               Cancelar
             </button>
             <button
               type="submit"
-              value="confirm"
+              disabled={isDeleting}
+              aria-busy={isDeleting}
               className={styles.modalDangerButton}
             >
-              Excluir evento
+              {isDeleting ? "Excluindo..." : "Excluir evento"}
+            </button>
+          </div>
+        </form>
+      </dialog>
+
+      {/* Native Confirmation Modal (<dialog>): Promover evento recorrente */}
+      <dialog
+        ref={promoteDialogRef}
+        closedby="any"
+        aria-labelledby={promoteModalTitleId}
+        aria-describedby={promoteModalDescId}
+        className={styles.modalDialog}
+        onCancel={(event) => {
+          if (isPromoting) {
+            event.preventDefault();
+          }
+        }}
+        onClose={handlePromoteDialogClose}
+      >
+        <form className={styles.modalForm} onSubmit={handlePromoteConfirm}>
+          <div className={styles.deleteModalLead}>
+            <span className={styles.promoteModalBadge} aria-hidden="true">
+              <TrendingUpIcon />
+            </span>
+            <div>
+              <h2 id={promoteModalTitleId} className={styles.modalTitle}>
+                Promover evento para todos?
+              </h2>
+              <p id={promoteModalDescId} className={styles.modalSubtitle}>
+                O modelo{" "}
+                <strong>
+                  {pendingPromoteEvent ? pendingPromoteEvent.name : ""}
+                </strong>{" "}
+                {pendingPromoteEvent?.ministryName
+                  ? `(${pendingPromoteEvent.ministryName}) `
+                  : ""}
+                passará a ficar disponível para{" "}
+                <strong>todos os ministérios</strong> ao criar escalas. Após a
+                promoção, o Líder Geral que o criou não poderá mais editá-lo nem
+                excluí-lo.
+              </p>
+            </div>
+          </div>
+
+          {promoteError && (
+            <div className={styles.formBannerError} role="alert">
+              <AlertCircleIcon className={styles.errorIcon} />
+              <span>{promoteError}</span>
+            </div>
+          )}
+
+          <div className={styles.modalActions}>
+            <button
+              type="button"
+              autoFocus
+              disabled={isPromoting}
+              className={styles.modalCancelButton}
+              onClick={() => promoteDialogRef.current?.close("cancel")}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isPromoting}
+              aria-busy={isPromoting}
+              className={styles.modalPrimaryButton}
+            >
+              {isPromoting ? "Promovendo..." : "Promover para todos"}
             </button>
           </div>
         </form>

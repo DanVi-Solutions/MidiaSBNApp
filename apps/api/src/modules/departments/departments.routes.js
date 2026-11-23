@@ -60,7 +60,7 @@ r.get(
       "**Quem pode:**",
       "- a própria pessoa;",
       "- o administrador;",
-      "- scheduler manager ou acima que participe de ao menos um ministério em comum com a pessoa.",
+      "- qualquer pessoa ativa que participe de ao menos um ministério em comum com o alvo (desde que o alvo não seja administrador).",
     ),
     params: credentialIdParams,
     responses: { 200: res.departmentList },
@@ -88,12 +88,12 @@ r.get(
   {
     summary: "Listar os membros de um ministério",
     description: markdown(
-      "Retorna as pessoas que participam do ministério, em ordem alfabética. O código da credencial nunca é " +
-        "incluído nesta listagem.",
+      "Retorna as pessoas que participam do ministério, em ordem alfabética (administradores ficam ocultos para " +
+        "quem não é administrador). O código da credencial nunca é incluído nesta listagem.",
       "",
       "**Quem pode:**",
       "- o administrador, em qualquer ministério;",
-      "- scheduler manager ou acima, apenas nos ministérios dos quais participa.",
+      "- qualquer pessoa ativa (inclusive voluntário), apenas nos ministérios dos quais participa.",
     ),
     params: idParams,
     responses: { 200: credentialList },
@@ -127,9 +127,7 @@ r.patch(
     description: markdown(
       "Altera o nome e/ou a descrição. Envie apenas os campos que quer mudar; `description: null` apaga a descrição.",
       "",
-      "**Quem pode:**",
-      "- o administrador, em qualquer ministério;",
-      "- department manager ou acima, apenas nos ministérios dos quais participa.",
+      "**Quem pode:** apenas o administrador.",
     ),
     params: idParams,
     body: updateBody,

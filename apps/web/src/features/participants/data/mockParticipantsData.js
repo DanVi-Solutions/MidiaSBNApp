@@ -1,7 +1,7 @@
 export const PARTICIPANT_ROLES = {
-  GENERAL_MANAGER: "Gerente Geral",
+  GENERAL_MANAGER: "Líder Geral",
   MINISTRY_MANAGER: "Gerente do Ministério",
-  SCHEDULE_MANAGER: "Gerente de Escala",
+  SCHEDULE_MANAGER: "Responsável das Escalas",
   VOLUNTEER: "Membro Voluntário",
 };
 

@@ -5,6 +5,7 @@ import * as res from "./credentials.responses.js";
 import {
   changeRoleBody,
   changeStatusBody,
+  completeRecoveryBody,
   createBody,
   firstAccessBody,
   idParams,
@@ -47,7 +48,7 @@ r.get(
       "",
       "**Quem pode e o que vê:**",
       "- administrador: todas as pessoas;",
-      "- scheduler manager ou acima: as pessoas dos ministérios dos quais participa.",
+      "- demais papéis (inclusive voluntário): as pessoas dos ministérios dos quais participa (exceto administradores).",
       "",
       "Para listar os membros de um único ministério, use `GET /departments/{id}/credentials`.",
     ),
@@ -121,7 +122,7 @@ r.get(
       "**Quem pode:**",
       "- a própria pessoa;",
       "- o administrador;",
-      "- scheduler manager ou acima que participe de um ministério em comum com a pessoa.",
+      "- qualquer pessoa ativa que participe de um ministério em comum com o alvo (desde que o alvo não seja administrador).",
     ),
     params: idParams,
     responses: { 200: res.credentialWithOptionalNumber },
@@ -152,6 +153,22 @@ r.post(
 );
 
 r.post(
+  "/me/prepare-code",
+  {
+    summary: "Pré-gerar novo código definitivo",
+    description: markdown(
+      "Gera um novo `credentialNumber` e um `activationToken` assinado para exibição ao usuário antes de substituir " +
+        "o código temporário no banco. A conta permanece `PENDING` ou `RECOVERING` até a conclusão.",
+      "",
+      "**Quem pode:** a própria pessoa, com a conta `PENDING` ou `RECOVERING`.",
+    ),
+    statuses: ["PENDING", "RECOVERING"],
+    responses: { 200: res.preparedCode },
+  },
+  controller.prepareCode,
+);
+
+r.post(
   "/me/first-access",
   {
     summary: "Fazer o primeiro acesso",
@@ -159,9 +176,9 @@ r.post(
       "Primeira coisa que a pessoa faz depois de entrar com o código recebido do gestor:",
       "1. escolhe o `username` (e pode corrigir o nome);",
       "2. a conta passa de `PENDING` para `ACTIVE`;",
-      "3. o sistema gera um **código de acesso novo**, que é devolvido nesta resposta e guardado criptografado.",
+      "3. o sistema grava criptografado o código pré-gerado (via `activationToken`) ou gera um **código de acesso novo**, devolvido nesta resposta.",
       "",
-      "⚠️ Mostre o novo `credentialNumber` para a pessoa copiar: ele **não pode ser consultado depois**. O código " +
+      "⚠️ Mostre o novo `credentialNumber` para a pessoa copiar: depois de ativada, a credencial **não pode ser consultada novamente**. O código " +
         "antigo deixa de funcionar. A sessão atual continua válida.",
       "",
       "**Quem pode:** a própria pessoa, com a conta `PENDING`.",
@@ -180,14 +197,15 @@ r.post(
     description: markdown(
       "Para quem perdeu o código e entrou com o código temporário gerado por um gestor (conta `RECOVERING`):",
       "1. a conta volta para `ACTIVE`;",
-      "2. o sistema gera um **código de acesso novo**, devolvido nesta resposta e guardado criptografado.",
+      "2. o sistema grava criptografado o código pré-gerado (via `activationToken`) ou gera um **código de acesso novo**, devolvido nesta resposta.",
       "",
-      "⚠️ Mostre o novo `credentialNumber` para a pessoa copiar: ele **não pode ser consultado depois**. O código " +
+      "⚠️ Mostre o novo `credentialNumber` para a pessoa copiar: depois de concluída, a credencial **não pode ser consultada novamente**. O código " +
         "temporário deixa de funcionar. A sessão atual continua válida.",
       "",
       "**Quem pode:** a própria pessoa, com a conta `RECOVERING`.",
     ),
     statuses: ["RECOVERING"],
+    body: completeRecoveryBody,
     responses: { 200: res.credentialWithNumber },
   },
   controller.completeRecovery,

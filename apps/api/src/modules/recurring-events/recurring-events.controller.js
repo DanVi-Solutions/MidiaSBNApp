@@ -22,6 +22,10 @@ export function createRecurringEventsController(service = recurringEventsService
       res.json(await service.update(req.auth, req.validated.params.id, req.validated.body));
     },
 
+    async promote(req, res) {
+      res.json(await service.promote(req.auth, req.validated.params.id));
+    },
+
     async delete(req, res) {
       await service.delete(req.auth, req.validated.params.id);
       res.status(204).end();

@@ -1,16 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { usePrivateWorkspace } from "@/components/layout/PrivateShell";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
-  AlertCircleIcon,
   AlertTriangleIcon,
   CheckIcon,
   CloseIcon,
   CopyIcon,
   PencilIcon,
-  PlusIcon,
   RefreshCwIcon,
   SearchIcon,
   ShieldCheckIcon,
@@ -18,77 +17,32 @@ import {
   TrashIcon,
   UserPlusIcon,
 } from "@/components/ui/icons";
-import { PARTICIPANT_ROLES } from "@/features/participants/data/mockParticipantsData";
-import { MINISTRY_OPTIONS } from "@/features/recurring-events/data/mockRecurringEventsData";
+import {
+  changeCredentialStatus,
+  deleteCredential,
+  getCredentialById,
+  regenerateCredentialNumber,
+} from "@/features/participants/services/credentialsService";
+import {
+  canCopyCredentialNumber,
+  canCreateCredential,
+  canDeleteParticipant,
+  canEditParticipant,
+  canListCredentials,
+  canRegenerateCredentialNumber,
+  canToggleStatus,
+  canViewParticipant,
+  CREDENTIAL_STATUS,
+  getDisplayMemberStatus,
+  isAdmin,
+  isAtLeast,
+  resolveRoleCode,
+  ROLES,
+  STATUS_META,
+} from "@/lib/roles";
 import styles from "./ParticipantsView.module.css";
 
-let supportsDisplayTransition;
-
-function canTransitionDisplay() {
-  if (supportsDisplayTransition !== undefined) {
-    return supportsDisplayTransition;
-  }
-  if (
-    typeof window === "undefined" ||
-    !window.CSS?.supports?.("transition-behavior", "allow-discrete") ||
-    !document.body
-  ) {
-    return false;
-  }
-  const probe = document.createElement("div");
-  probe.style.cssText =
-    "transition: display 1s allow-discrete !important; display: block;";
-  document.body.appendChild(probe);
-  window.getComputedStyle(probe).display;
-  probe.style.display = "none";
-  supportsDisplayTransition =
-    window.getComputedStyle(probe).display === "block";
-  probe.remove();
-  return supportsDisplayTransition;
-}
-
-function supportsTopLayerExit() {
-  return (
-    typeof window !== "undefined" &&
-    Boolean(window.CSS?.supports?.("overlay", "auto")) &&
-    canTransitionDisplay()
-  );
-}
-
-function setupBackdropDismiss(dialog, onDismiss) {
-  if (!dialog) return undefined;
-
-  const isOutside = (event) => {
-    const rect = dialog.getBoundingClientRect();
-    return (
-      event.clientX < rect.left ||
-      event.clientX > rect.right ||
-      event.clientY < rect.top ||
-      event.clientY > rect.bottom
-    );
-  };
-
-  let pressedOutside = false;
-  const handlePointerDown = (event) => {
-    pressedOutside = event.target === dialog && isOutside(event);
-  };
-  const handlePointerUp = (event) => {
-    if (pressedOutside && isOutside(event)) {
-      onDismiss();
-    }
-    pressedOutside = false;
-  };
-
-  dialog.addEventListener("pointerdown", handlePointerDown);
-  dialog.addEventListener("pointerup", handlePointerUp);
-
-  return () => {
-    dialog.removeEventListener("pointerdown", handlePointerDown);
-    dialog.removeEventListener("pointerup", handlePointerUp);
-  };
-}
-
-function setupClosedByFallback(dialog) {
+function setupClosedByFallback(dialog, onDismiss) {
   if (!dialog || "closedBy" in HTMLDialogElement.prototype) {
     return undefined;
   }
@@ -109,7 +63,7 @@ function setupClosedByFallback(dialog) {
   };
   const handlePointerUp = (event) => {
     if (pressedOutside && isOutside(event)) {
-      dialog.close("cancel");
+      onDismiss();
     }
     pressedOutside = false;
   };
@@ -121,37 +75,6 @@ function setupClosedByFallback(dialog) {
     dialog.removeEventListener("pointerdown", handlePointerDown);
     dialog.removeEventListener("pointerup", handlePointerUp);
   };
-}
-
-function normalizeText(value) {
-  return String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-function computeInitials(name) {
-  const parts = String(name ?? "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (parts.length === 0) return "US";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
-
-function generateCredentialCode(existingCodes, excludeCode = "") {
-  const taken = new Set(existingCodes.filter(Boolean));
-  if (excludeCode) taken.add(excludeCode);
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    const digits = 1000 + Math.floor(Math.random() * 9000);
-    const candidate = `MEM-${digits}`;
-    if (!taken.has(candidate)) {
-      return candidate;
-    }
-  }
-  return `MEM-${Date.now().toString().slice(-4)}`;
 }
 
 async function copyTextToClipboard(text) {
@@ -181,14 +104,26 @@ async function copyTextToClipboard(text) {
   return copied;
 }
 
-function doesParticipantMatchQuery(person, normalizedQuery) {
+function normalizeText(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function doesParticipantMatchQuery(
+  person,
+  normalizedQuery,
+  displayStatusLabel = person.statusLabel
+) {
   if (!normalizedQuery) return true;
   const haystack = [
     person.name,
     person.handle,
     person.role,
-    person.availability,
-    ...person.ministries,
+    displayStatusLabel,
+    ...(person.ministries || []),
   ]
     .map(normalizeText)
     .join(" ");
@@ -196,254 +131,169 @@ function doesParticipantMatchQuery(person, normalizedQuery) {
   return haystack.includes(normalizedQuery);
 }
 
-const ROLE_OPTIONS = [
-  PARTICIPANT_ROLES.VOLUNTEER,
-  PARTICIPANT_ROLES.SCHEDULE_MANAGER,
-  PARTICIPANT_ROLES.MINISTRY_MANAGER,
-  PARTICIPANT_ROLES.GENERAL_MANAGER,
-];
-
 export function ParticipantsView() {
   const {
+    currentUser,
+    activeMinistry,
     participants,
-    addParticipant,
+    isLoadingParticipants,
+    participantsError,
+    refreshParticipants,
     updateParticipant,
     deleteParticipant,
-    ministries,
-    activeMinistry,
+    refreshDepartments,
+    participantCreatePreset,
+    setParticipantCreatePreset,
+    knownCredentialNumbers,
+    rememberCredentialNumber,
+    openWorkspaceDrawer,
+    openWorkspaceCodeModal,
   } = usePrivateWorkspace();
   const toast = useToast();
 
   const searchInputId = useId();
   const tableCaptionId = useId();
-  const drawerTitleId = useId();
-  const fullNameInputId = useId();
-  const fullNameErrorId = useId();
-  const roleSelectId = useId();
-  const ministrySelectId = useId();
   const confirmModalTitleId = useId();
 
-  const createDialogRef = useRef(null);
   const confirmDialogRef = useRef(null);
   const confirmCancelBtnRef = useRef(null);
-  const fullNameInputRef = useRef(null);
-  const roleSelectRef = useRef(null);
-  const idCounterRef = useRef(1);
-  const announceTimerRef = useRef(null);
   const copyTimerRef = useRef(null);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [editingParticipant, setEditingParticipant] = useState(null);
-  const [fullName, setFullName] = useState("");
-  const [selectedRole, setSelectedRole] = useState(PARTICIPANT_ROLES.VOLUNTEER);
-  const [selectedMinistry, setSelectedMinistry] = useState(
-    activeMinistry?.name || MINISTRY_OPTIONS[0]
-  );
-  const [fullNameError, setFullNameError] = useState("");
   const [confirmModal, setConfirmModal] = useState(null);
+  const [isConfirmingAction, setIsConfirmingAction] = useState(false);
   const [copiedParticipantId, setCopiedParticipantId] = useState("");
-  const [liveAnnouncement, setLiveAnnouncement] = useState("");
+  const [copyingParticipantId, setCopyingParticipantId] = useState("");
 
-  const availableMinistryOptions = useMemo(() => {
-    const options = [...MINISTRY_OPTIONS];
-    const seen = new Set(options);
-    for (const item of ministries || []) {
-      if (item?.name && !seen.has(item.name)) {
-        options.push(item.name);
-        seen.add(item.name);
-      }
-    }
-    return options;
-  }, [ministries]);
+  const canViewList = canListCredentials(currentUser);
+  const canCreate = canCreateCredential(currentUser);
+  const roleCode = resolveRoleCode(currentUser);
+  const isVolunteer = roleCode === ROLES.VOLUNTEER;
+  const isGeneralManager = roleCode === ROLES.GENERAL_MANAGER;
+  const activeMinistryId =
+    activeMinistry?.id && !activeMinistry.isGlobal ? activeMinistry.id : "";
+
+  const visibleParticipants = useMemo(
+    () =>
+      participants.filter((person) => {
+        if (!canViewParticipant(currentUser, person)) return false;
+        if (isGeneralManager && activeMinistryId) {
+          return Boolean(person.departmentIds?.includes(activeMinistryId));
+        }
+        return true;
+      }),
+    [activeMinistryId, currentUser, isGeneralManager, participants]
+  );
 
   const filteredParticipants = useMemo(() => {
     const query = normalizeText(searchQuery);
-    if (!query) return participants;
+    if (!query) return visibleParticipants;
 
-    return participants.filter((person) =>
-      doesParticipantMatchQuery(person, query)
-    );
-  }, [participants, searchQuery]);
+    return visibleParticipants.filter((person) => {
+      const displayStatus = getDisplayMemberStatus(currentUser, person);
+      const displayStatusLabel = (
+        STATUS_META[displayStatus] || STATUS_META[CREDENTIAL_STATUS.ACTIVE]
+      ).label;
+      return doesParticipantMatchQuery(person, query, displayStatusLabel);
+    });
+  }, [currentUser, visibleParticipants, searchQuery]);
 
-  const isEditing = Boolean(editingParticipant);
-  const isVolunteerRole = selectedRole === PARTICIPANT_ROLES.VOLUNTEER;
+  const hasAnyRowActions = useMemo(
+    () =>
+      filteredParticipants.some((person) => {
+        const isSelf = person.id === currentUser.id;
+        return (
+          canCopyCredentialNumber(currentUser, person) ||
+          (!isSelf && canRegenerateCredentialNumber(currentUser, person)) ||
+          canToggleStatus(currentUser, person) ||
+          canEditParticipant(currentUser, person) ||
+          canDeleteParticipant(currentUser, person)
+        );
+      }),
+    [currentUser, filteredParticipants]
+  );
 
   useEffect(() => {
     return () => {
-      if (announceTimerRef.current !== null) {
-        window.clearTimeout(announceTimerRef.current);
-      }
       if (copyTimerRef.current !== null) {
         window.clearTimeout(copyTimerRef.current);
       }
     };
   }, []);
 
-  const announce = useCallback((message) => {
-    if (announceTimerRef.current !== null) {
-      window.clearTimeout(announceTimerRef.current);
-    }
-    setLiveAnnouncement("");
-    if (!message) return;
-
-    announceTimerRef.current = window.setTimeout(() => {
-      setLiveAnnouncement(message);
-    }, 200);
-  }, []);
-
-  const closeAnimatedDialog = useCallback(async (dialog) => {
-    if (!dialog || !dialog.open) return;
-
-    if (!supportsTopLayerExit()) {
-      dialog.setAttribute("data-closing", "");
-      const animations = dialog.getAnimations({ subtree: true });
-      if (animations.length > 0) {
-        await Promise.race([
-          Promise.allSettled(animations.map((a) => a.finished)),
-          new Promise((resolve) => window.setTimeout(resolve, 1000)),
-        ]);
+  useEffect(() => {
+    return setupClosedByFallback(confirmDialogRef.current, () => {
+      if (!isConfirmingAction) {
+        confirmDialogRef.current?.close("cancel");
       }
-      if (!dialog.hasAttribute("data-closing")) return;
-      dialog.removeAttribute("data-closing");
-    }
-
-    if (dialog.open) {
-      dialog.close();
-    }
-  }, []);
+    });
+  }, [isConfirmingAction]);
 
   useEffect(() => {
-    const cleanCreate = setupBackdropDismiss(createDialogRef.current, () => {
-      closeAnimatedDialog(createDialogRef.current);
+    if (!participantCreatePreset || !canCreate) return;
+    openWorkspaceDrawer("participant-form", {
+      mode: "create",
+      preset: participantCreatePreset,
+      onCreated: () => setSearchQuery(""),
     });
-    const cleanConfirm = setupClosedByFallback(confirmDialogRef.current);
-
-    return () => {
-      if (cleanCreate) cleanCreate();
-      if (cleanConfirm) cleanConfirm();
-    };
-  }, [closeAnimatedDialog]);
-
-  const resolveDefaultMinistry = () =>
-    availableMinistryOptions.includes(activeMinistry?.name)
-      ? activeMinistry.name
-      : availableMinistryOptions[0] || "";
+    setParticipantCreatePreset(null);
+  }, [
+    canCreate,
+    openWorkspaceDrawer,
+    participantCreatePreset,
+    setParticipantCreatePreset,
+  ]);
 
   const handleOpenCreateDrawer = () => {
-    const dialog = createDialogRef.current;
-    if (!dialog || dialog.open) return;
-
-    setEditingParticipant(null);
-    setFullName("");
-    setSelectedRole(PARTICIPANT_ROLES.VOLUNTEER);
-    setSelectedMinistry(resolveDefaultMinistry());
-    setFullNameError("");
-
-    dialog.removeAttribute("data-closing");
-    dialog.showModal();
-    window.requestAnimationFrame(() => {
-      fullNameInputRef.current?.focus();
+    if (!canCreate) return;
+    openWorkspaceDrawer("participant-form", {
+      mode: "create",
+      onCreated: () => setSearchQuery(""),
     });
   };
 
   const handleOpenEditDrawer = (person) => {
-    const dialog = createDialogRef.current;
-    if (!dialog || dialog.open) return;
-
-    const currentMinistry = person.ministries?.[0];
-    setEditingParticipant(person);
-    setSelectedRole(person.role || PARTICIPANT_ROLES.VOLUNTEER);
-    setSelectedMinistry(
-      currentMinistry && availableMinistryOptions.includes(currentMinistry)
-        ? currentMinistry
-        : currentMinistry || resolveDefaultMinistry()
-    );
-    setFullNameError("");
-
-    dialog.removeAttribute("data-closing");
-    dialog.showModal();
-    window.requestAnimationFrame(() => {
-      roleSelectRef.current?.focus();
+    if (!person) return;
+    openWorkspaceDrawer("participant-form", {
+      mode: "edit",
+      participant: person,
     });
   };
 
-  const handleCreateDialogClose = () => {
-    const dialog = createDialogRef.current;
-    if (!dialog) return;
-    dialog.returnValue = "";
-    setEditingParticipant(null);
-    setFullNameError("");
-  };
-
-  const handleDrawerSubmit = async (event) => {
-    event.preventDefault();
-
-    if (editingParticipant) {
-      const nextMinistries =
-        isVolunteerRole && selectedMinistry ? [selectedMinistry] : [];
-
-      updateParticipant(editingParticipant.id, {
-        role: selectedRole,
-        ministries: nextMinistries,
-      });
-
-      const updatedName = editingParticipant.name;
-      await closeAnimatedDialog(createDialogRef.current);
-      toast.success(`Papel e ministério de "${updatedName}" atualizados.`);
-      return;
-    }
-
-    const trimmedName = fullName.trim();
-    let nextFullNameError = "";
-    if (!trimmedName) {
-      nextFullNameError = "Informe o nome completo do participante.";
-    } else if (trimmedName.length < 2) {
-      nextFullNameError = "O nome deve ter pelo menos 2 caracteres.";
-    }
-
-    setFullNameError(nextFullNameError);
-    if (nextFullNameError) {
-      announce(nextFullNameError);
-      fullNameInputRef.current?.focus();
-      return;
-    }
-
-    const assignedMinistries =
-      isVolunteerRole && selectedMinistry ? [selectedMinistry] : [];
-    const existingCodes = participants.map((item) => item.credentialCode);
-
-    idCounterRef.current += 1;
-    const newParticipant = {
-      id: `p-custom-${idCounterRef.current}`,
-      initials: computeInitials(trimmedName),
-      name: trimmedName,
-      handle: "",
-      credentialCode: generateCredentialCode(existingCodes),
-      ministries: assignedMinistries,
-      role: selectedRole,
-      availability: "Não informada",
-      statusLabel: "Ativo",
-      statusTone: "active",
-    };
-
-    addParticipant(newParticipant);
-
-    const normalizedQuery = normalizeText(searchQuery);
-    if (
-      normalizedQuery &&
-      !doesParticipantMatchQuery(newParticipant, normalizedQuery)
-    ) {
-      setSearchQuery("");
-    }
-
-    await closeAnimatedDialog(createDialogRef.current);
-    toast.success(`Participante "${newParticipant.name}" adicionado à equipe.`);
-  };
-
   const handleCopyCredential = async (person) => {
-    const code = person.credentialCode || "MEM-0000";
-    const copied = await copyTextToClipboard(code);
+    if (!canCopyCredentialNumber(currentUser, person)) {
+      return;
+    }
 
+    let code = knownCredentialNumbers[person.id] || person.credentialNumber || "";
+
+    if (!code) {
+      setCopyingParticipantId(person.id);
+      const detailRes = await getCredentialById(person.id);
+      setCopyingParticipantId("");
+
+      if (!detailRes.ok) {
+        toast.error(
+          detailRes.error ||
+            "Não foi possível obter o código desta credencial."
+        );
+        return;
+      }
+
+      code = detailRes.data?.credentialNumber || "";
+      if (code) {
+        rememberCredentialNumber(person.id, code);
+      }
+    }
+
+    if (!code) {
+      toast.error(
+        "Este código já foi criptografado e não pode mais ser consultado."
+      );
+      return;
+    }
+
+    const copied = await copyTextToClipboard(code);
     if (copyTimerRef.current !== null) {
       window.clearTimeout(copyTimerRef.current);
     }
@@ -453,7 +303,7 @@ export function ParticipantsView() {
       copyTimerRef.current = window.setTimeout(() => {
         setCopiedParticipantId("");
       }, 2000);
-      toast.success(`Código de credencial de ${person.name} (${code}) copiado.`);
+      toast.success(`Código de ${person.name} (${code}) copiado.`);
     } else {
       toast.error(
         `Não foi possível copiar automaticamente. Código de ${person.name}: ${code}.`
@@ -465,6 +315,7 @@ export function ParticipantsView() {
     const dialog = confirmDialogRef.current;
     if (!dialog || dialog.open) return;
 
+    setIsConfirmingAction(false);
     setConfirmModal(payload);
     dialog.showModal();
     window.requestAnimationFrame(() => {
@@ -474,53 +325,159 @@ export function ParticipantsView() {
 
   const handleConfirmDialogClose = () => {
     const dialog = confirmDialogRef.current;
-    if (!dialog) return;
+    if (dialog) {
+      dialog.returnValue = "";
+    }
+    setConfirmModal(null);
+    setIsConfirmingAction(false);
+  };
 
-    const action = dialog.returnValue;
-    dialog.returnValue = "";
+  const handleConfirmAction = async (event) => {
+    event.preventDefault();
+    if (isConfirmingAction || !confirmModal?.participant) return;
 
-    if (action === "confirm" && confirmModal?.participant) {
-      const target = confirmModal.participant;
+    const target = confirmModal.participant;
+    const actionType = confirmModal.type;
 
-      if (confirmModal.type === "regenerate") {
-        const nextCode = generateCredentialCode(
-          participants.map((item) => item.credentialCode),
-          target.credentialCode
+    setIsConfirmingAction(true);
+
+    if (actionType === "regenerate") {
+      const result = await regenerateCredentialNumber(target.id);
+      setIsConfirmingAction(false);
+
+      if (!result.ok || !result.data) {
+        toast.error(
+          result.error || "Não foi possível gerar o novo código de credencial."
         );
-        updateParticipant(target.id, { credentialCode: nextCode });
-        toast.success(
-          `Novo código de credencial gerado para ${target.name}: ${nextCode}.`
-        );
-      } else if (confirmModal.type === "revoke") {
-        updateParticipant(target.id, {
-          statusLabel: "Revogado",
-          statusTone: "revoked",
-        });
-        toast.success(`Acesso de ${target.name} à área privada revogado.`);
-      } else if (confirmModal.type === "restore") {
-        updateParticipant(target.id, {
-          statusLabel: "Ativo",
-          statusTone: "active",
-        });
-        toast.success(`Acesso de ${target.name} restaurado.`);
-      } else if (confirmModal.type === "delete") {
-        deleteParticipant(target.id);
-        toast.success(`Participante "${target.name}" excluído definitivamente.`);
+        return;
       }
+
+      confirmDialogRef.current?.close("done");
+      const generatedCode = result.data.credentialNumber;
+
+      if (generatedCode) {
+        rememberCredentialNumber(target.id, generatedCode);
+      }
+      updateParticipant(target.id, {
+        ...result.data,
+        roleCode: result.data.role,
+      });
+
+      openWorkspaceCodeModal({
+        variant: "temporary",
+        title: "Novo código temporário gerado",
+        subtitle:
+          "Envie este código ao participante. Ao entrar, ele receberá um código.",
+        personName: target.name,
+        status: result.data.status,
+        credentialNumber: generatedCode,
+      });
+      toast.success(`Novo código gerado para ${target.name}.`);
+      return;
     }
 
-    setConfirmModal(null);
+    if (actionType === "revoke" || actionType === "restore") {
+      const nextStatus =
+        actionType === "restore"
+          ? CREDENTIAL_STATUS.ACTIVE
+          : CREDENTIAL_STATUS.INACTIVE;
+      const result = await changeCredentialStatus(target.id, nextStatus);
+      setIsConfirmingAction(false);
+
+      if (!result.ok || !result.data) {
+        toast.error(
+          result.error || "Não foi possível alterar o status da credencial."
+        );
+        return;
+      }
+
+      confirmDialogRef.current?.close("done");
+      updateParticipant(target.id, {
+        ...result.data,
+        roleCode: result.data.role,
+      });
+
+      if (actionType === "restore") {
+        const recoveryCode = result.data.credentialNumber;
+        if (recoveryCode) {
+          rememberCredentialNumber(target.id, recoveryCode);
+          openWorkspaceCodeModal({
+            variant: "temporary",
+            title: "Conta reativada — código de recuperação",
+            subtitle:
+              "Envie este código temporário para o participante concluir a recuperação ao entrar.",
+            personName: target.name,
+            status: result.data.status,
+            credentialNumber: recoveryCode,
+          });
+        }
+        toast.success(`Acesso de ${target.name} restaurado.`);
+      } else {
+        toast.success(`Acesso de ${target.name} desativado.`);
+      }
+      return;
+    }
+
+    if (actionType === "delete") {
+      const result = await deleteCredential(target.id);
+      setIsConfirmingAction(false);
+
+      if (!result.ok) {
+        toast.error(
+          result.error || "Não foi possível excluir este participante."
+        );
+        return;
+      }
+
+      confirmDialogRef.current?.close("done");
+      deleteParticipant(target.id);
+      refreshDepartments();
+      toast.success(`Participante "${target.name}" excluído definitivamente.`);
+    }
   };
+
+  if (!canViewList) {
+    return (
+      <div className={styles.page}>
+        <header className={styles.pageHeader}>
+          <div className={styles.headerLead}>
+            <p className={styles.pageEyebrow}>PESSOAS &amp; ACESSO</p>
+            <h1 className={styles.pageTitle}>Participantes</h1>
+          </div>
+        </header>
+
+        <div className={styles.emptyCard}>
+          <p className={styles.emptyTitle}>
+            Você não tem permissão para visualizar a listagem de participantes.
+            Para gerenciar sua própria credencial, acesse seu perfil.
+          </p>
+          <div className={styles.restrictedActions}>
+            <Link href="/profile" className={styles.addButton}>
+              Ir para Meu perfil
+            </Link>
+            <Link href="/schedule" className={styles.clearButton}>
+              Voltar à escala
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const pageSubtitleText = isAdmin(currentUser)
+    ? "Gerencie todas as credenciais e ministérios da equipe."
+    : isGeneralManager && activeMinistry?.name && !activeMinistry.isGlobal
+      ? `Membros do ministério ativo: ${activeMinistry.name}.`
+      : isVolunteer
+        ? currentUser.departments?.length === 1
+          ? `Membros e liderança do ministério ${currentUser.departments[0].name}.`
+          : "Membros e liderança do seu ministério."
+        : "Pessoas dos ministérios sob sua gestão.";
 
   const countLabel =
     filteredParticipants.length === 1
       ? "1 participante"
       : `${filteredParticipants.length} participantes`;
-
-  const drawerMinistryOptions =
-    selectedMinistry && !availableMinistryOptions.includes(selectedMinistry)
-      ? [selectedMinistry, ...availableMinistryOptions]
-      : availableMinistryOptions;
 
   return (
     <div className={styles.page}>
@@ -528,24 +485,20 @@ export function ParticipantsView() {
         <div className={styles.headerLead}>
           <p className={styles.pageEyebrow}>PESSOAS &amp; ACESSO</p>
           <h1 className={styles.pageTitle}>Participantes</h1>
-          <p className={styles.pageSubtitle}>
-            Pessoas que servem com você no ministério.
-          </p>
+          <p className={styles.pageSubtitle}>{pageSubtitleText}</p>
         </div>
 
-        <button
-          type="button"
-          className={styles.addButton}
-          onClick={handleOpenCreateDrawer}
-        >
-          <UserPlusIcon />
-          <span>Adicionar membro</span>
-        </button>
+        {canCreate && (
+          <button
+            type="button"
+            className={styles.addButton}
+            onClick={handleOpenCreateDrawer}
+          >
+            <UserPlusIcon />
+            <span>Adicionar membro</span>
+          </button>
+        )}
       </header>
-
-      <div className="visually-hidden" aria-live="polite" role="status">
-        {liveAnnouncement}
-      </div>
 
       <search aria-label="Buscar participantes" className={styles.searchCard}>
         <div className={styles.searchFieldWrap}>
@@ -557,7 +510,7 @@ export function ParticipantsView() {
             id={searchInputId}
             type="search"
             value={searchQuery}
-            placeholder="Buscar participante.."
+            placeholder="Buscar participante..."
             autoCorrect="off"
             spellCheck={false}
             className={styles.searchInput}
@@ -568,18 +521,37 @@ export function ParticipantsView() {
         <span className={styles.countLabel}>{countLabel}</span>
       </search>
 
-      {filteredParticipants.length === 0 ? (
+      {isLoadingParticipants && visibleParticipants.length === 0 ? (
+        <div className={styles.emptyCard} role="status">
+          <p className={styles.emptyTitle}>Carregando participantes...</p>
+        </div>
+      ) : participantsError && visibleParticipants.length === 0 ? (
         <div className={styles.emptyCard}>
-          <p className={styles.emptyTitle}>
-            Nenhum participante encontrado para esta busca.
-          </p>
+          <p className={styles.emptyTitle}>{participantsError}</p>
           <button
             type="button"
             className={styles.clearButton}
-            onClick={() => setSearchQuery("")}
+            onClick={() => refreshParticipants()}
           >
-            Limpar busca
+            Tentar novamente
           </button>
+        </div>
+      ) : filteredParticipants.length === 0 ? (
+        <div className={styles.emptyCard}>
+          <p className={styles.emptyTitle}>
+            {searchQuery
+              ? "Nenhum participante encontrado para esta busca."
+              : "Nenhum participante visível no momento."}
+          </p>
+          {searchQuery && (
+            <button
+              type="button"
+              className={styles.clearButton}
+              onClick={() => setSearchQuery("")}
+            >
+              Limpar busca
+            </button>
+          )}
         </div>
       ) : (
         <div
@@ -590,7 +562,7 @@ export function ParticipantsView() {
         >
           <table className={styles.table}>
             <caption id={tableCaptionId} className="visually-hidden">
-              Lista de participantes do ministério
+              Lista de participantes
             </caption>
 
             <thead>
@@ -598,18 +570,47 @@ export function ParticipantsView() {
                 <th scope="col">PARTICIPANTE</th>
                 <th scope="col">MINISTÉRIO</th>
                 <th scope="col">PAPEL</th>
-                <th scope="col">DISPONIBILIDADE</th>
                 <th scope="col">STATUS</th>
-                <th scope="col" className={styles.actionsHeader}>
-                  <span className="visually-hidden">Ações</span>
-                </th>
+                {hasAnyRowActions && (
+                  <th scope="col" className={styles.actionsHeader}>
+                    <span className="visually-hidden">Ações</span>
+                  </th>
+                )}
               </tr>
             </thead>
 
             <tbody>
               {filteredParticipants.map((person) => {
-                const isRevoked = person.statusTone === "revoked";
+                const isSelf = person.id === currentUser.id;
+                const displayStatus = getDisplayMemberStatus(currentUser, person);
+                const displayStatusLabel = (
+                  STATUS_META[displayStatus] ||
+                  STATUS_META[CREDENTIAL_STATUS.ACTIVE]
+                ).label;
+                const isRevoked = displayStatus === CREDENTIAL_STATUS.INACTIVE;
+                const isPending = displayStatus === CREDENTIAL_STATUS.PENDING;
+                const isRecovering =
+                  displayStatus === CREDENTIAL_STATUS.RECOVERING;
                 const isCopied = copiedParticipantId === person.id;
+                const isCopying = copyingParticipantId === person.id;
+
+                const showCopyButton = canCopyCredentialNumber(
+                  currentUser,
+                  person
+                );
+                const showRegenerateButton =
+                  !isSelf && canRegenerateCredentialNumber(currentUser, person);
+                const showToggleStatus = canToggleStatus(currentUser, person);
+                const showEdit = canEditParticipant(currentUser, person);
+                const showDelete = canDeleteParticipant(currentUser, person);
+
+                const statusPillClass = isRevoked
+                  ? styles.statusPillRevoked
+                  : isPending
+                    ? styles.statusPillPending
+                    : isRecovering
+                      ? styles.statusPillRecovering
+                      : "";
 
                 return (
                   <tr key={person.id}>
@@ -619,131 +620,159 @@ export function ParticipantsView() {
                           {person.initials}
                         </span>
                         <div className={styles.identityText}>
-                          <span className={styles.memberName}>
-                            {person.name}
-                          </span>
-                          {person.handle && (
-                            <span className={styles.memberHandle}>
-                              {person.handle}
+                          <span className={styles.memberNameRow}>
+                            <span className={styles.memberName}>
+                              {person.name}
                             </span>
-                          )}
+                            {isSelf && (
+                              <span className={styles.selfBadge}>Você</span>
+                            )}
+                          </span>
+                          <span className={styles.memberHandle}>
+                            {person.handle ||
+                              (isPending
+                                ? "Aguardando 1º acesso"
+                                : "Sem apelido")}
+                          </span>
                         </div>
                       </div>
                     </th>
 
                     <td>
-                      {person.ministries.length > 0 ? (
-                        <div className={styles.ministriesGroup}>
-                          {person.ministries.map((ministry) => (
-                            <span key={ministry} className={styles.ministryPill}>
-                              {ministry}
+                      <div className={styles.ministriesCellWrap}>
+                        {person.ministries.length > 0 ? (
+                          <div className={styles.ministriesGroup}>
+                            {person.ministries.map((ministry) => (
+                              <span
+                                key={ministry}
+                                className={styles.ministryPill}
+                              >
+                                {ministry}
+                              </span>
+                            ))}
+                          </div>
+                        ) : person.roleCode === ROLES.ADMINISTRATOR ? (
+                          <span className={styles.globalMinistryPill}>
+                            Global
+                          </span>
+                        ) : (
+                          <span className={styles.noMinistryLabel}>—</span>
+                        )}
+
+                        {(isSelf ||
+                          isAtLeast(currentUser, ROLES.SCHEDULER_MANAGER)) &&
+                          person.pendingTransfer?.to?.name && (
+                            <span className={styles.transferPendingNote}>
+                              Transferência → {person.pendingTransfer.to.name}
                             </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className={styles.noMinistryLabel}>—</span>
-                      )}
+                          )}
+                      </div>
                     </td>
 
                     <td className={styles.roleCell}>{person.role}</td>
 
-                    <td className={styles.availabilityCell}>
-                      {person.availability}
-                    </td>
-
                     <td>
-                      <span
-                        className={`${styles.statusPill} ${
-                          isRevoked ? styles.statusPillRevoked : ""
-                        }`}
-                      >
+                      <span className={`${styles.statusPill} ${statusPillClass}`}>
                         <span className={styles.statusDot} aria-hidden="true" />
-                        {person.statusLabel}
+                        {displayStatusLabel}
                       </span>
                     </td>
 
-                    <td className={styles.actionsCell}>
-                      <div className={styles.rowActions}>
-                        <button
-                          type="button"
-                          title="Copiar código de credencial"
-                          aria-label={`Copiar código de credencial de ${person.name}`}
-                          className={`${styles.iconActionButton} ${
-                            isCopied ? styles.iconActionCopied : ""
-                          }`}
-                          onClick={() => handleCopyCredential(person)}
-                        >
-                          {isCopied ? <CheckIcon /> : <CopyIcon />}
-                        </button>
+                    {hasAnyRowActions && (
+                      <td className={styles.actionsCell}>
+                        <div className={styles.rowActions}>
+                          {showCopyButton && (
+                            <button
+                              type="button"
+                              disabled={isCopying}
+                              title="Copiar código temporário"
+                              aria-label={`Copiar código de credencial de ${person.name}`}
+                              className={`${styles.iconActionButton} ${
+                                isCopied ? styles.iconActionCopied : ""
+                              }`}
+                              onClick={() => handleCopyCredential(person)}
+                            >
+                              {isCopied ? <CheckIcon /> : <CopyIcon />}
+                            </button>
+                          )}
 
-                        <button
-                          type="button"
-                          title="Gerar novo código de credencial"
-                          aria-label={`Gerar novo código de credencial para ${person.name}`}
-                          className={styles.iconActionButton}
-                          onClick={() =>
-                            openConfirmModal({
-                              type: "regenerate",
-                              participant: person,
-                            })
-                          }
-                        >
-                          <RefreshCwIcon />
-                        </button>
+                          {showRegenerateButton && (
+                            <button
+                              type="button"
+                              title="Gerar novo código de recuperação"
+                              aria-label={`Gerar novo código de credencial para ${person.name}`}
+                              className={styles.iconActionButton}
+                              onClick={() =>
+                                openConfirmModal({
+                                  type: "regenerate",
+                                  participant: person,
+                                })
+                              }
+                            >
+                              <RefreshCwIcon />
+                            </button>
+                          )}
 
-                        <button
-                          type="button"
-                          title={
-                            isRevoked
-                              ? "Restaurar acesso à área privada"
-                              : "Revogar acesso à área privada"
-                          }
-                          aria-label={
-                            isRevoked
-                              ? `Restaurar acesso privado de ${person.name}`
-                              : `Revogar acesso privado de ${person.name}`
-                          }
-                          className={`${styles.iconActionButton} ${
-                            isRevoked
-                              ? styles.iconActionRestore
-                              : styles.iconActionDanger
-                          }`}
-                          onClick={() =>
-                            openConfirmModal({
-                              type: isRevoked ? "restore" : "revoke",
-                              participant: person,
-                            })
-                          }
-                        >
-                          {isRevoked ? <ShieldCheckIcon /> : <ShieldOffIcon />}
-                        </button>
+                          {showToggleStatus && (
+                            <button
+                              type="button"
+                              title={
+                                isRevoked
+                                  ? "Reativar credencial"
+                                  : "Desativar credencial"
+                              }
+                              aria-label={
+                                isRevoked
+                                  ? `Reativar acesso de ${person.name}`
+                                  : `Desativar acesso de ${person.name}`
+                              }
+                              className={`${styles.iconActionButton} ${
+                                isRevoked
+                                  ? styles.iconActionRestore
+                                  : styles.iconActionDanger
+                              }`}
+                              onClick={() =>
+                                openConfirmModal({
+                                  type: isRevoked ? "restore" : "revoke",
+                                  participant: person,
+                                })
+                              }
+                            >
+                              {isRevoked ? <ShieldCheckIcon /> : <ShieldOffIcon />}
+                            </button>
+                          )}
 
-                        <button
-                          type="button"
-                          title="Editar papel e ministério"
-                          aria-label={`Editar papel e ministério de ${person.name}`}
-                          className={styles.iconActionButton}
-                          onClick={() => handleOpenEditDrawer(person)}
-                        >
-                          <PencilIcon />
-                        </button>
+                          {showEdit && (
+                            <button
+                              type="button"
+                              title="Editar papel e ministério"
+                              aria-label={`Editar papel e ministério de ${person.name}`}
+                              className={styles.iconActionButton}
+                              onClick={() => handleOpenEditDrawer(person)}
+                            >
+                              <PencilIcon />
+                            </button>
+                          )}
 
-                        <button
-                          type="button"
-                          title="Excluir participante"
-                          aria-label={`Excluir participante ${person.name}`}
-                          className={`${styles.iconActionButton} ${styles.iconActionDanger}`}
-                          onClick={() =>
-                            openConfirmModal({
-                              type: "delete",
-                              participant: person,
-                            })
-                          }
-                        >
-                          <TrashIcon />
-                        </button>
-                      </div>
-                    </td>
+                          {showDelete && (
+                            <button
+                              type="button"
+                              title="Excluir participante"
+                              aria-label={`Excluir participante ${person.name}`}
+                              className={`${styles.iconActionButton} ${styles.iconActionDanger}`}
+                              onClick={() =>
+                                openConfirmModal({
+                                  type: "delete",
+                                  participant: person,
+                                })
+                              }
+                            >
+                              <TrashIcon />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
@@ -752,194 +781,40 @@ export function ParticipantsView() {
         </div>
       )}
 
-      {/* Right-Side Animated Drawer: Adicionar à equipe / Editar papel e ministério */}
-      <dialog
-        ref={createDialogRef}
-        aria-labelledby={drawerTitleId}
-        className={styles.createDrawer}
-        onCancel={(event) => {
-          if (event.cancelable) {
-            event.preventDefault();
-            closeAnimatedDialog(createDialogRef.current);
-          }
-        }}
-        onClose={handleCreateDialogClose}
-      >
-        <div className={styles.drawerHeader}>
-          <div>
-            <p className={styles.drawerEyebrow}>
-              {isEditing ? "EDITAR PARTICIPANTE" : "NOVO PARTICIPANTE"}
-            </p>
-            <h2 id={drawerTitleId} className={styles.drawerTitle}>
-              {isEditing ? "Editar papel e ministério" : "Adicionar à equipe"}
-            </h2>
-          </div>
-
-          <button
-            type="button"
-            aria-label="Fechar formulário"
-            className={styles.drawerCloseButton}
-            onClick={() => closeAnimatedDialog(createDialogRef.current)}
-          >
-            <CloseIcon />
-          </button>
-        </div>
-
-        <form
-          className={styles.drawerForm}
-          noValidate
-          onSubmit={handleDrawerSubmit}
-        >
-          <div className={styles.drawerBody}>
-            {isEditing ? (
-              <div className={styles.editMemberSummary}>
-                <span className={styles.avatar} aria-hidden="true">
-                  {editingParticipant.initials}
-                </span>
-                <div className={styles.identityText}>
-                  <span className={styles.memberName}>
-                    {editingParticipant.name}
-                  </span>
-                  {editingParticipant.handle && (
-                    <span className={styles.memberHandle}>
-                      {editingParticipant.handle}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className={styles.fieldGroup}>
-                <label htmlFor={fullNameInputId} className={styles.fieldLabel}>
-                  Nome completo
-                </label>
-                <input
-                  ref={fullNameInputRef}
-                  id={fullNameInputId}
-                  name="fullName"
-                  type="text"
-                  value={fullName}
-                  placeholder="Ex.: André Martins"
-                  required
-                  minLength={2}
-                  maxLength={80}
-                  aria-invalid={fullNameError ? "true" : "false"}
-                  aria-describedby={fullNameError ? fullNameErrorId : undefined}
-                  className={`${styles.input} ${
-                    fullNameError ? styles.inputError : ""
-                  }`}
-                  onChange={(event) => {
-                    setFullName(event.currentTarget.value);
-                    if (fullNameError) setFullNameError("");
-                  }}
-                />
-                {fullNameError && (
-                  <div id={fullNameErrorId} className={styles.errorMsg}>
-                    <AlertCircleIcon className={styles.errorIcon} />
-                    <span>{fullNameError}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div
-              className={
-                isVolunteerRole ? styles.twoColFields : styles.singleColField
-              }
-            >
-              <div className={styles.fieldGroup}>
-                <label htmlFor={roleSelectId} className={styles.fieldLabel}>
-                  Papel
-                </label>
-                <select
-                  ref={roleSelectRef}
-                  id={roleSelectId}
-                  name="role"
-                  value={selectedRole}
-                  className={styles.select}
-                  onChange={(event) =>
-                    setSelectedRole(event.currentTarget.value)
-                  }
-                >
-                  {ROLE_OPTIONS.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {isVolunteerRole && (
-                <div className={styles.fieldGroup}>
-                  <label
-                    htmlFor={ministrySelectId}
-                    className={styles.fieldLabel}
-                  >
-                    Ministério
-                  </label>
-                  <select
-                    id={ministrySelectId}
-                    name="ministry"
-                    value={selectedMinistry}
-                    className={styles.select}
-                    onChange={(event) =>
-                      setSelectedMinistry(event.currentTarget.value)
-                    }
-                  >
-                    {drawerMinistryOptions.map((ministry) => (
-                      <option key={ministry} value={ministry}>
-                        {ministry}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.drawerFooter}>
-            <button
-              type="button"
-              className={styles.drawerCancelButton}
-              onClick={() => closeAnimatedDialog(createDialogRef.current)}
-            >
-              Cancelar
-            </button>
-            <button type="submit" className={styles.drawerSubmitButton}>
-              {isEditing ? <CheckIcon /> : <PlusIcon />}
-              <span>{isEditing ? "Salvar alterações" : "Criar membro"}</span>
-            </button>
-          </div>
-        </form>
-      </dialog>
-
       {/* Confirmation Modal (<dialog>) for Regenerate / Revoke / Restore / Delete */}
       <dialog
         ref={confirmDialogRef}
         closedby="any"
         aria-labelledby={confirmModalTitleId}
         className={styles.confirmDialog}
+        onCancel={(event) => {
+          if (isConfirmingAction) {
+            event.preventDefault();
+          }
+        }}
         onClose={handleConfirmDialogClose}
       >
-        <form method="dialog" className={styles.confirmForm}>
+        <form className={styles.confirmForm} onSubmit={handleConfirmAction}>
           <div className={styles.confirmHeader}>
             <div>
               <p className={styles.confirmEyebrow}>CONFIRMAÇÃO NECESSÁRIA</p>
               <h2 id={confirmModalTitleId} className={styles.confirmTitle}>
                 {confirmModal?.type === "regenerate"
-                  ? "Gerar novo código?"
+                  ? "Gerar novo código de recuperação?"
                   : confirmModal?.type === "revoke"
-                    ? "Revogar acesso privado?"
+                    ? "Desativar credencial?"
                     : confirmModal?.type === "restore"
-                      ? "Restaurar acesso privado?"
+                      ? "Reativar credencial?"
                       : "Excluir participante?"}
               </h2>
             </div>
 
             <button
-              type="submit"
-              value="cancel"
+              type="button"
               aria-label="Fechar confirmação"
               className={styles.confirmCloseBtn}
+              disabled={isConfirmingAction}
+              onClick={() => confirmDialogRef.current?.close("cancel")}
             >
               <CloseIcon />
             </button>
@@ -980,31 +855,27 @@ export function ParticipantsView() {
                   {confirmModal?.type === "regenerate" &&
                     confirmModal.participant && (
                       <>
-                        Um novo código de credenciamento será gerado para{" "}
-                        <strong>{confirmModal.participant.name}</strong> e o
-                        código anterior (
-                        <strong>
-                          {confirmModal.participant.credentialCode}
-                        </strong>
-                        ) deixará de funcionar imediatamente.
+                        Um novo código temporário será gerado para{" "}
+                        <strong>{confirmModal.participant.name}</strong> e todos
+                        os dispositivos conectados serão desconectados.
                       </>
                     )}
                   {confirmModal?.type === "revoke" &&
                     confirmModal.participant && (
                       <>
                         O acesso de{" "}
-                        <strong>{confirmModal.participant.name}</strong> à área
-                        privada do site será revogado imediatamente. Esta ação
-                        restringe o uso da credencial atual.
+                        <strong>{confirmModal.participant.name}</strong> será
+                        desativado e todas as sessões abertas serão encerradas
+                        imediatamente.
                       </>
                     )}
                   {confirmModal?.type === "restore" &&
                     confirmModal.participant && (
                       <>
-                        O acesso de{" "}
-                        <strong>{confirmModal.participant.name}</strong> à área
-                        privada do site será restaurado imediatamente,
-                        reativando a credencial atual.
+                        A conta de{" "}
+                        <strong>{confirmModal.participant.name}</strong> será
+                        reativada em modo de recuperação, gerando um novo código
+                        temporário para você enviar.
                       </>
                     )}
                   {confirmModal?.type === "delete" &&
@@ -1012,8 +883,8 @@ export function ParticipantsView() {
                       <>
                         O participante{" "}
                         <strong>{confirmModal.participant.name}</strong> será
-                        removido definitivamente da lista de membros e perderá o
-                        acesso. Esta ação não poderá ser desfeita.
+                        removido definitivamente da equipe. Esta ação não poderá
+                        ser desfeita.
                       </>
                     )}
                 </p>
@@ -1024,17 +895,19 @@ export function ParticipantsView() {
           <div className={styles.confirmFooter}>
             <button
               ref={confirmCancelBtnRef}
-              type="submit"
-              value="cancel"
+              type="button"
               autoFocus
               className={styles.confirmCancelBtn}
+              disabled={isConfirmingAction}
+              onClick={() => confirmDialogRef.current?.close("cancel")}
             >
               Cancelar
             </button>
 
             <button
               type="submit"
-              value="confirm"
+              disabled={isConfirmingAction}
+              aria-busy={isConfirmingAction}
               className={
                 confirmModal?.type === "regenerate" ||
                 confirmModal?.type === "restore"
@@ -1042,13 +915,15 @@ export function ParticipantsView() {
                   : styles.confirmDangerBtn
               }
             >
-              {confirmModal?.type === "regenerate"
-                ? "Gerar novo código"
-                : confirmModal?.type === "revoke"
-                  ? "Revogar acesso"
-                  : confirmModal?.type === "restore"
-                    ? "Restaurar acesso"
-                    : "Excluir membro"}
+              {isConfirmingAction
+                ? "Processando..."
+                : confirmModal?.type === "regenerate"
+                  ? "Gerar novo código"
+                  : confirmModal?.type === "revoke"
+                    ? "Desativar acesso"
+                    : confirmModal?.type === "restore"
+                      ? "Reativar acesso"
+                      : "Excluir membro"}
             </button>
           </div>
         </form>

@@ -64,9 +64,14 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .saveButton:hover {
+  .saveButton:not(:disabled):hover {
     background-color: var(--accent-hover);
   }
+}
+
+.saveButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .card {
@@ -79,10 +84,29 @@
   background-color: var(--surface-card);
 }
 
+.sectionHeaderRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .sectionHeader {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+}
+
+.unsavedBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.72rem;
+  border-radius: 999px;
+  background-color: var(--status-amber-badge);
+  color: var(--status-amber-ink);
+  font-size: 0.75rem;
+  font-weight: 650;
 }
 
 .sectionTitle {
@@ -439,10 +463,194 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .addExceptionButton:hover {
+  .addExceptionButton:not(:disabled):hover {
     background-color: var(--surface-workspace);
     border-color: #cfd4c6;
   }
+}
+
+.addExceptionButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fieldLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.requiredTag,
+.optionalTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.67rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.requiredTag {
+  background-color: #141614;
+  color: #f7f8f3;
+}
+
+.optionalTag {
+  background-color: #eef0ea;
+  color: var(--ink-muted);
+}
+
+.reasonField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 520px;
+}
+
+.reasonInput {
+  min-height: 44px;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+  font: inherit;
+  font-size: max(1rem, 1em);
+  transition: border-color 0.16s ease;
+}
+
+.reasonInput::placeholder {
+  color: #9ba096;
+  font-size: 0.88rem;
+}
+
+.reasonInput:focus-visible {
+  outline: 2px solid var(--ink-primary);
+  outline-offset: 1px;
+}
+
+.fieldHint {
+  font-size: 0.77rem;
+  color: var(--ink-muted);
+}
+
+.editingBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid #d5e0b8;
+  border-radius: 10px;
+  background-color: var(--accent-lime-soft);
+  color: var(--accent-lime-ink);
+  font-size: 0.83rem;
+}
+
+.editingText {
+  line-height: 1.4;
+}
+
+.cancelEditButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid rgba(17, 19, 18, 0.18);
+  border-radius: 8px;
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.conflictBanner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.95rem 1.05rem;
+  border: 1px solid var(--status-amber-border, #ebd29d);
+  border-radius: 12px;
+  background-color: var(--status-amber-bg, #fdf7e6);
+  color: var(--status-amber-ink);
+}
+
+.conflictHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.conflictLead {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.conflictIcon {
+  flex-shrink: 0;
+  margin-block-start: 0.1rem;
+}
+
+.conflictTitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-block-end: 0.18rem;
+}
+
+.conflictDesc {
+  font-size: 0.81rem;
+  line-height: 1.45;
+}
+
+.conflictDismissButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.conflictList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-inline-start: 1.35rem;
+  font-size: 0.82rem;
+}
+
+.conflictItem {
+  line-height: 1.4;
+}
+
+.conflictFooter {
+  display: flex;
+  align-items: center;
+}
+
+.conflictLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.75);
+  color: var(--ink-primary);
+  font-size: 0.81rem;
+  font-weight: 650;
 }
 
 .formError {
@@ -491,11 +699,29 @@
   background-color: #fafbf8;
 }
 
+.exceptionItemEditing {
+  border-color: #c7d69e;
+  background-color: #f6f9ee;
+}
+
+.exceptionMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
 .exceptionDetails {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem;
+}
+
+.exceptionReason {
+  font-size: 0.8rem;
+  color: var(--ink-secondary);
+  line-height: 1.4;
 }
 
 .exceptionDateText {
@@ -522,6 +748,12 @@
   gap: 0.65rem;
 }
 
+.exceptionActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
 .exceptionDurationBadge {
   display: inline-flex;
   align-items: center;
@@ -533,6 +765,7 @@
   font-weight: 650;
 }
 
+.editExceptionButton,
 .removeExceptionButton {
   display: inline-flex;
   align-items: center;
@@ -550,17 +783,157 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .removeExceptionButton:hover {
+  .editExceptionButton:not(:disabled):hover {
     background-color: #eef0ea;
     color: var(--ink-primary);
   }
+
+  .removeExceptionButton:not(:disabled):hover {
+    background-color: #fdf2f2;
+    color: #a93c3c;
+  }
+}
+
+.editExceptionButton:disabled,
+.removeExceptionButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .saveButton:focus-visible,
 .addExceptionButton:focus-visible,
-.removeExceptionButton:focus-visible {
+.editExceptionButton:focus-visible,
+.removeExceptionButton:focus-visible,
+.cancelEditButton:focus-visible,
+.conflictDismissButton:focus-visible,
+.conflictLink:focus-visible,
+.retryButton:focus-visible,
+.restrictedPrimaryLink:focus-visible,
+.restrictedSecondaryLink:focus-visible {
   outline: 2px solid var(--ink-primary);
   outline-offset: 2px;
+}
+
+.loadingCard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+.loadingTitle {
+  font-size: 0.92rem;
+  color: var(--ink-secondary);
+}
+
+.errorCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 2rem 1.5rem;
+  border: 1px solid #efd5d5;
+  border-radius: 16px;
+  background-color: #fdf6f6;
+  color: var(--status-error);
+  text-align: center;
+}
+
+.errorCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.errorTitle {
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.errorDesc {
+  font-size: 0.84rem;
+  color: var(--ink-secondary);
+}
+
+.retryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.5rem 1.05rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.restrictedCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2.25rem 1.5rem;
+  border: 1px solid #e6e9e0;
+  border-radius: 16px;
+  background-color: var(--surface-card);
+  text-align: center;
+}
+
+.restrictedTitle {
+  max-width: 56ch;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-secondary);
+}
+
+.restrictedActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.restrictedPrimaryLink,
+.restrictedSecondaryLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.55rem 1.15rem;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  transition: background-color 0.15s ease;
+}
+
+.restrictedPrimaryLink {
+  border: 1px solid var(--ink-primary);
+  background-color: #141614;
+  color: #f7f8f3;
+}
+
+.restrictedSecondaryLink {
+  border: 1px solid var(--border-subtle);
+  background-color: var(--surface-workspace);
+  color: var(--ink-primary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .restrictedPrimaryLink:hover {
+    background-color: var(--accent-hover);
+  }
+
+  .restrictedSecondaryLink:hover {
+    background-color: #eaede5;
+  }
 }
 
 @media (pointer: coarse) {
@@ -568,8 +941,21 @@
   .slotControl,
   .modeOption,
   .dateInput,
+  .reasonInput,
   .addExceptionButton,
-  .removeExceptionButton {
+  .cancelEditButton,
+  .conflictDismissButton,
+  .conflictLink,
+  .retryButton,
+  .editExceptionButton,
+  .removeExceptionButton,
+  .restrictedPrimaryLink,
+  .restrictedSecondaryLink {
     min-height: 48px;
+  }
+
+  .editExceptionButton,
+  .removeExceptionButton {
+    min-width: 44px;
   }
 }

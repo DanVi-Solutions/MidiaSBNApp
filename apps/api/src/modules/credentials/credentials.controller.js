@@ -7,12 +7,16 @@ export function createCredentialsController(service = credentialsService) {
       res.json(await service.getMe(req.auth));
     },
 
+    async prepareCode(req, res) {
+      res.json(await service.prepareActivationCode(req.auth));
+    },
+
     async firstAccess(req, res) {
       res.json(await service.firstAccess(req.auth, req.validated.body));
     },
 
     async completeRecovery(req, res) {
-      res.json(await service.completeRecovery(req.auth));
+      res.json(await service.completeRecovery(req.auth, req.validated.body));
     },
 
     async updateMe(req, res) {

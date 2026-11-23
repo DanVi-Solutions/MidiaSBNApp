@@ -9,7 +9,10 @@ export const recurringEvent = z.object({
   description: z.string().nullable(),
   weekday: z.enum(WEEKDAYS),
   times: z.array(z.string()).meta({ example: ["08:00", "10:00", "18:00"] }),
-  departmentId: z.uuid().nullable().meta({ description: "`null` = evento geral." }),
+  isGlobal: z.boolean().meta({ description: "`true` = evento geral disponível para todos os ministérios." }),
+  createdById: z.uuid().nullable(),
+  departments: z.array(department),
+  departmentId: z.uuid().nullable().meta({ description: "Compatibilidade para eventos vinculados a um único ministério." }),
   department: department.nullable(),
 });
 

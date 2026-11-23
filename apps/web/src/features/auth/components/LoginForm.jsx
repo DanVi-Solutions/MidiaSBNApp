@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRightIcon,
@@ -8,7 +8,19 @@ import {
   ShieldCheckIcon,
 } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/ToastProvider";
-import { authenticateWithCredential } from "@/features/auth/services/authService";
+import { CredentialOnboardingModal } from "@/features/auth/components/CredentialOnboardingModal";
+import {
+  fetchMyCredential,
+  loginWithCredential,
+  logoutSession,
+  prepareActivationCode,
+} from "@/features/auth/services/authService";
+import { CREDENTIAL_STATUS } from "@/lib/roles";
+import {
+  clearStoredSession,
+  getStoredSession,
+  subscribeSessionChange,
+} from "@/lib/sessionStorage";
 import styles from "./LoginForm.module.css";
 
 function resolveValidationMessage(input) {
@@ -41,6 +53,7 @@ export function LoginForm() {
   const [hasFallbackError, setHasFallbackError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [announcement, setAnnouncement] = useState("");
+  const [onboardingState, setOnboardingState] = useState(null);
 
   useEffect(() => {
     return () => {
@@ -49,6 +62,104 @@ export function LoginForm() {
       }
     };
   }, []);
+
+  const openRecoveryFlow = useCallback(async (baseCredential) => {
+    const prepResult = await prepareActivationCode();
+    if (
+      prepResult.ok &&
+      prepResult.data?.credentialNumber &&
+      prepResult.data?.activationToken
+    ) {
+      setOnboardingState({
+        mode: "recovery",
+        credential: baseCredential,
+        generatedCode: prepResult.data.credentialNumber,
+        activationToken: prepResult.data.activationToken,
+      });
+      return;
+    }
+
+    setOnboardingState({
+      mode: "recovery",
+      credential: baseCredential,
+      recoveryError:
+        prepResult.error ||
+        "Não foi possível gerar seu novo código de acesso. Tente novamente.",
+    });
+  }, []);
+
+  const routeByStatus = useCallback(
+    async (cred, { fromExistingSession = false } = {}) => {
+      if (!cred) return;
+
+      if (cred.status === CREDENTIAL_STATUS.ACTIVE) {
+        if (!fromExistingSession) {
+          toast.success("Login realizado com sucesso.");
+        }
+        router.replace("/schedule");
+        return;
+      }
+
+      if (cred.status === CREDENTIAL_STATUS.PENDING) {
+        const meResult = fromExistingSession
+          ? { ok: true, data: cred }
+          : await fetchMyCredential();
+        const fullCred = meResult.ok && meResult.data ? meResult.data : cred;
+        setIsSubmitting(false);
+        setOnboardingState({
+          mode: "first-access",
+          credential: fullCred,
+        });
+        return;
+      }
+
+      if (cred.status === CREDENTIAL_STATUS.RECOVERING) {
+        await openRecoveryFlow(cred);
+        setIsSubmitting(false);
+      }
+    },
+    [openRecoveryFlow, router, toast]
+  );
+
+  useEffect(() => {
+    const unsubscribe = subscribeSessionChange((nextSession) => {
+      if (!nextSession?.accessToken) {
+        setIsSubmitting(false);
+        setCredential("");
+        setErrorMessage("");
+        setHasFallbackError(false);
+        setOnboardingState(null);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      setIsSubmitting(false);
+      setCredential("");
+      setOnboardingState(null);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const existing = getStoredSession();
+    if (!existing?.accessToken) {
+      return undefined;
+    }
+
+    fetchMyCredential().then(async (meResult) => {
+      if (!active) return;
+      if (!meResult.ok || !meResult.data) {
+        clearStoredSession();
+        return;
+      }
+      await routeByStatus(meResult.data, { fromExistingSession: true });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [routeByStatus]);
 
   const scheduleAnnouncement = (message) => {
     if (announceTimerRef.current !== null) {
@@ -141,11 +252,10 @@ export function LoginForm() {
     setHasFallbackError(false);
     scheduleAnnouncement("");
 
-    const result = await authenticateWithCredential(input.value);
+    const result = await loginWithCredential(input.value);
 
-    if (result.ok) {
-      toast.success("Login realizado com sucesso.");
-      router.push("/schedule");
+    if (result.ok && result.data?.credential) {
+      await routeByStatus(result.data.credential);
       return;
     }
 
@@ -156,6 +266,28 @@ export function LoginForm() {
       result.error || "Não foi possível entrar. Verifique sua credencial."
     );
     input.focus();
+  };
+
+  const handleOnboardingComplete = () => {
+    setOnboardingState(null);
+    toast.success("Acesso liberado! Bem-vindo ao sistema.");
+    router.push("/schedule");
+  };
+
+  const handleOnboardingLogout = async () => {
+    await logoutSession();
+    setOnboardingState(null);
+    setCredential("");
+    setErrorMessage("");
+    toast.success("Sessão encerrada.");
+    window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+  };
+
+  const handleRetryRecovery = async () => {
+    if (!onboardingState?.credential) return;
+    await openRecoveryFlow(onboardingState.credential);
   };
 
   const hasError = Boolean(errorMessage);
@@ -199,10 +331,10 @@ export function LoginForm() {
                   name="credential"
                   type="text"
                   value={credential}
-                  placeholder="EX: MEM-2026"
+                  placeholder="EX: SBN-7KQ4M2XPRA"
                   required
                   minLength={4}
-                  maxLength={32}
+                  maxLength={30}
                   autoComplete="username"
                   autoCorrect="off"
                   autoCapitalize="none"
@@ -254,6 +386,13 @@ export function LoginForm() {
       <div className="visually-hidden" aria-live="polite" role="status">
         {announcement}
       </div>
+
+      <CredentialOnboardingModal
+        onboardingState={onboardingState}
+        onComplete={handleOnboardingComplete}
+        onAbortLogout={handleOnboardingLogout}
+        onRetryRecovery={handleRetryRecovery}
+      />
     </aside>
   );
 }

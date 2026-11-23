@@ -1,6 +1,6 @@
 import { prisma } from "../../config/database.js";
 
-const personSelect = { select: { id: true, name: true, username: true } };
+const personSelect = { select: { id: true, name: true, username: true, role: true } };
 
 const assignmentSelect = {
   id: true,
@@ -53,6 +53,7 @@ const availabilityAtSelect = (at, weekday) => ({
   id: true,
   name: true,
   username: true,
+  role: true,
   availabilities: { where: { weekday }, select: { morning: true, afternoon: true, night: true } },
   unavailabilities: { where: { startAt: { lte: at }, endAt: { gt: at } }, select: { id: true } },
 });
@@ -143,7 +144,7 @@ export const schedulesRepository = {
   findMember(departmentId, credentialId) {
     return prisma.credential.findFirst({
       where: { id: credentialId, ...activeMembershipIn(departmentId) },
-      select: { id: true, status: true },
+      select: { id: true, status: true, role: true },
     });
   },
 
@@ -156,9 +157,13 @@ export const schedulesRepository = {
     return count === 1;
   },
 
-  schedulableMembersAt(departmentId, { at, weekday }) {
+  schedulableMembersAt(departmentId, { at, weekday, excludeRoles = [] }) {
     return prisma.credential.findMany({
-      where: { status: { in: SCHEDULABLE_STATUSES }, ...activeMembershipIn(departmentId) },
+      where: {
+        status: { in: SCHEDULABLE_STATUSES },
+        ...(excludeRoles.length > 0 && { role: { notIn: excludeRoles } }),
+        ...activeMembershipIn(departmentId),
+      },
       select: availabilityAtSelect(at, weekday),
     });
   },
@@ -184,9 +189,13 @@ export const schedulesRepository = {
     return count;
   },
 
-  membersWithAvailabilityAt(departmentId, { at, weekday }) {
+  membersWithAvailabilityAt(departmentId, { at, weekday, excludeRoles = [] }) {
     return prisma.credential.findMany({
-      where: { status: { not: "INACTIVE" }, ...activeMembershipIn(departmentId) },
+      where: {
+        status: { not: "INACTIVE" },
+        ...(excludeRoles.length > 0 && { role: { notIn: excludeRoles } }),
+        ...activeMembershipIn(departmentId),
+      },
       select: availabilityAtSelect(at, weekday),
       orderBy: { name: "asc" },
     });

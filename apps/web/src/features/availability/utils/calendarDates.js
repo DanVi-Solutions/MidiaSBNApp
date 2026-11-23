@@ -1,3 +1,8 @@
+import {
+  APP_TIME_ZONE,
+  buildIsoDateTimeInZone,
+} from "../../schedules/utils/scheduleDates.js";
+
 function parseIsoParts(iso) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? "").trim());
   if (!match) return null;
@@ -97,4 +102,72 @@ export function formatDurationDaysPtBr(days) {
   }
 
   return `${safeDays} ${safeDays === 1 ? "dia" : "dias"}`;
+}
+
+export function addDaysIso(iso, deltaDays) {
+  const safeDelta = Number(deltaDays) || 0;
+  const TemporalApi = getTemporalApi();
+  if (TemporalApi?.PlainDate) {
+    try {
+      return TemporalApi.PlainDate.from(iso)
+        .add({ days: safeDelta })
+        .toString();
+    } catch {
+      // Fallback below
+    }
+  }
+
+  const parts = parseIsoParts(iso);
+  if (!parts) return String(iso ?? "");
+  const dateObj = new Date(
+    Date.UTC(parts.year, parts.month - 1, parts.day + safeDelta)
+  );
+  const year = String(dateObj.getUTCFullYear()).padStart(4, "0");
+  const month = String(dateObj.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(dateObj.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function buildZonedStartOfDayIso(isoDate, timeZone = APP_TIME_ZONE) {
+  const cleanDate = String(isoDate ?? "").trim();
+  if (!parseIsoParts(cleanDate)) return "";
+
+  const TemporalApi = getTemporalApi();
+  if (TemporalApi?.ZonedDateTime && TemporalApi?.PlainDate) {
+    try {
+      const zoned = TemporalApi.ZonedDateTime.from(
+        `${cleanDate}T00:00:00[${timeZone}]`,
+        { disambiguation: "compatible" }
+      );
+      return zoned.toString({ timeZoneName: "never" });
+    } catch {
+      // Fallback below
+    }
+  }
+
+  return buildIsoDateTimeInZone(cleanDate, "00:00", timeZone);
+}
+
+export function formatDateTimePtBrInZone(
+  isoDateTime,
+  timeZone = APP_TIME_ZONE
+) {
+  const dateObj =
+    isoDateTime instanceof Date ? isoDateTime : new Date(isoDateTime);
+  if (Number.isNaN(dateObj.getTime())) {
+    return String(isoDateTime ?? "");
+  }
+
+  try {
+    return new Intl.DateTimeFormat("pt-BR", {
+      timeZone,
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(dateObj);
+  } catch {
+    return dateObj.toISOString();
+  }
 }

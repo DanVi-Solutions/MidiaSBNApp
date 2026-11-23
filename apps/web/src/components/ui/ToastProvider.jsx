@@ -9,11 +9,13 @@ import {
   useRef,
   useState,
 } from "react";
+import { usePathname } from "next/navigation";
 import {
   AlertCircleIcon,
   CheckCircleIcon,
   CloseIcon,
 } from "@/components/ui/icons";
+import { isDialogInHiddenSubtree } from "@/lib/rightDrawer";
 import styles from "./ToastProvider.module.css";
 
 const MAX_TOASTS = 4;
@@ -37,7 +39,18 @@ function supportsNativePopover() {
   );
 }
 
+const RIGHT_DRAWER_SELECTOR =
+  'dialog[data-side-drawer="right"][open]:not([data-closing]):not([data-collapsed="true"])';
+
+function hasOpenRightDrawer() {
+  if (typeof document === "undefined") return false;
+  return Array.from(document.querySelectorAll(RIGHT_DRAWER_SELECTOR)).some(
+    (el) => !isDialogInHiddenSubtree(el)
+  );
+}
+
 export function ToastProvider({ children }) {
+  const pathname = usePathname();
   const viewportRef = useRef(null);
   const priorFocusRef = useRef(null);
   const closeButtonRefs = useRef(new Map());
@@ -49,6 +62,7 @@ export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const [politeText, setPoliteText] = useState("");
   const [assertiveText, setAssertiveText] = useState("");
+  const [isRightDrawerOpen, setIsRightDrawerOpen] = useState(false);
 
   const clearToastTimer = useCallback((id) => {
     const entry = timersRef.current.get(id);
@@ -189,6 +203,34 @@ export function ToastProvider({ children }) {
   );
 
   useEffect(() => {
+    if (typeof document === "undefined" || !document.body) return undefined;
+
+    const syncDrawerState = () => {
+      setIsRightDrawerOpen(hasOpenRightDrawer());
+    };
+
+    const rafId = window.requestAnimationFrame(syncDrawerState);
+    const timerId = window.setTimeout(syncDrawerState, 60);
+
+    const observer = new MutationObserver(syncDrawerState);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["open", "data-closing", "data-collapsed"],
+      childList: true,
+      subtree: true,
+    });
+
+    document.addEventListener("close", syncDrawerState, true);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(timerId);
+      observer.disconnect();
+      document.removeEventListener("close", syncDrawerState, true);
+    };
+  }, [pathname]);
+
+  useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
 
@@ -204,6 +246,13 @@ export function ToastProvider({ children }) {
       if (toasts.length > 0) {
         if (!viewport.matches(":popover-open")) {
           viewport.showPopover();
+        } else if (
+          isRightDrawerOpen &&
+          typeof document !== "undefined" &&
+          !viewport.contains(document.activeElement)
+        ) {
+          viewport.hidePopover();
+          viewport.showPopover();
         }
       } else if (viewport.matches(":popover-open")) {
         viewport.hidePopover();
@@ -215,7 +264,7 @@ export function ToastProvider({ children }) {
         toasts.length > 0
       );
     }
-  }, [toasts.length]);
+  }, [toasts.length, isRightDrawerOpen]);
 
   useEffect(() => {
     const timersMap = timersRef.current;
@@ -332,7 +381,9 @@ export function ToastProvider({ children }) {
         role="region"
         aria-label="Notificações"
         popover="manual"
-        className={styles.toastViewport}
+        className={`${styles.toastViewport} ${
+          isRightDrawerOpen ? styles.toastViewportBottomLeft : ""
+        }`}
         onFocusCapture={handleViewportFocusCapture}
       >
         {toasts.map((item) => {

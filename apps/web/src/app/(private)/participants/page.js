@@ -1,5 +1,7 @@
 import { ParticipantsView } from "@/features/participants/components/ParticipantsView";
 
+export const instant = false;
+
 export const metadata = {
   title: "Participantes",
 };

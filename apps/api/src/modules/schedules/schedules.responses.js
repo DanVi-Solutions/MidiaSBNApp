@@ -1,7 +1,12 @@
 import { z } from "zod";
 
 const department = z.object({ id: z.uuid(), name: z.string() });
-const person = z.object({ id: z.uuid(), name: z.string(), username: z.string().nullable() });
+const person = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  username: z.string().nullable(),
+  role: z.enum(["ADMINISTRATOR", "GENERAL_MANAGER", "DEPARTMENT_MANAGER", "SCHEDULER_MANAGER", "VOLUNTEER"]).optional(),
+});
 const changeStatus = z.enum(["NONE", "REQUESTED", "REJECTED"]).meta({
   description: "Pedido de troca: NONE (nenhum), REQUESTED (aguardando o substituto), REJECTED (substituto recusou).",
 });

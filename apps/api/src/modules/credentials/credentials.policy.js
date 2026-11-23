@@ -68,6 +68,23 @@ export function assertCanListDepartment(actor, departmentId) {
   }
 }
 
+export function assertCanListMembers(actor) {
+  if (!isAtLeast(actor.role, ROLES.VOLUNTEER)) throw AppError.forbidden();
+}
+
+export function assertCanViewMember(actor, target) {
+  if (isSelf(actor, target) || isAdmin(actor)) return;
+  if (isAtLeast(actor.role, ROLES.VOLUNTEER) && !isAdmin(target) && sharesDepartment(actor, target)) return;
+  throw AppError.forbidden();
+}
+
+export function assertCanListDepartmentMembers(actor, departmentId) {
+  assertCanListMembers(actor);
+  if (!isAdmin(actor) && !actor.departmentIds.includes(departmentId)) {
+    throw AppError.forbidden("Você só pode listar membros dos ministérios dos quais participa");
+  }
+}
+
 export function assertCanChangeRole(actor, target, role, departmentIds) {
   if (isSelf(actor, target)) throw AppError.forbidden("Você não pode alterar o próprio papel");
   if (!canManage(actor, target)) throw AppError.forbidden();

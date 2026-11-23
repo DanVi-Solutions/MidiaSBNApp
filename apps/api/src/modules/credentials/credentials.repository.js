@@ -91,11 +91,20 @@ export const credentialsRepository = {
     return toCredential(await prisma.credential.findUnique({ where: { id }, select: credentialSelect }));
   },
 
-  async list({ departmentIds = null } = {}) {
+  async list({ departmentIds = null, excludeRoles = null, statuses = null } = {}) {
+    const where = {};
+    if (departmentIds) {
+      where.departments = { some: { pending: false, departmentId: { in: departmentIds } } };
+    }
+    if (excludeRoles?.length) {
+      where.role = { notIn: excludeRoles };
+    }
+    if (statuses?.length) {
+      where.status = { in: statuses };
+    }
+
     const rows = await prisma.credential.findMany({
-      where: departmentIds
-        ? { departments: { some: { pending: false, departmentId: { in: departmentIds } } } }
-        : undefined,
+      where: Object.keys(where).length > 0 ? where : undefined,
       select: credentialSelect,
       orderBy: { name: "asc" },
     });
@@ -123,6 +132,14 @@ export const credentialsRepository = {
   async isUsernameTaken(username, exceptId) {
     const row = await prisma.credential.findFirst({
       where: { username, ...(exceptId && { id: { not: exceptId } }) },
+      select: { id: true },
+    });
+    return Boolean(row);
+  },
+
+  async isCredentialNumberTaken(credentialNumber, credentialNumberHash) {
+    const row = await prisma.credential.findFirst({
+      where: { OR: [{ credentialNumber }, { credentialNumberHash }] },
       select: { id: true },
     });
     return Boolean(row);

@@ -48,10 +48,6 @@ export const createBody = z.object({
   description: description.optional(),
   weekday,
   times,
-  departmentId: z.uuid("ID inválido").nullable().optional().meta({
-    description:
-      "Ministério do evento. Omitido ou `null` = evento **geral**, para todos os ministérios.",
-  }),
 });
 
 export const updateBody = z
@@ -82,8 +78,8 @@ export const applyBody = z
       }),
     departmentIds: departmentIds.optional().meta({
       description:
-        "Apenas para eventos gerais: ministérios que receberão as escalas. Padrão: todos os que você gerencia " +
-        "(administrador: todos os ministérios). Ignorado em eventos de um ministério.",
+        "Ministérios elegíveis dentro do escopo do evento que receberão as escalas. Padrão: todos os permitidos " +
+        "que você gerencia (administrador em evento geral: todos os ministérios).",
     }),
     selfSignup: z
       .boolean()
