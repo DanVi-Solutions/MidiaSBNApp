@@ -198,7 +198,9 @@ r.get(
       "- `isUnavailable`: registrou uma ausência que cobre o horário;",
       "- `available`: as duas condições favoráveis.",
       "",
-      "Os disponíveis vêm primeiro. Quem está indisponível **pode** ser escalado mesmo assim.",
+      "Os disponíveis vêm primeiro. Quem está indisponível **pode** ser escalado mesmo assim. O líder geral não " +
+        "preenche disponibilidade, então para ele as regras de indisponibilidade e de culto não valem: aparece sempre " +
+        "como disponível.",
       "",
       manageRule,
     ),

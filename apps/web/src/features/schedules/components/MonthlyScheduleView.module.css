@@ -266,40 +266,46 @@
   height: 20px;
   flex-shrink: 0;
   border-radius: 999px;
+  background-color: rgba(245, 158, 11, 0.24);
 }
 
-.attentionIndicator::before,
 .attentionIndicator::after {
   content: "";
-  position: absolute;
-  border-radius: 999px;
-}
-
-.attentionIndicator::before {
-  inset: 0;
-  background-color: rgba(245, 158, 11, 0.32);
-}
-
-.attentionIndicator::after {
   width: 9px;
   height: 9px;
+  border-radius: 999px;
   background-color: #f59e0b;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .attentionIndicator::before {
-    animation: attentionSonar 1.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  .attentionIndicator {
+    animation: attentionHaloPulse 1.5s ease-in-out infinite;
+  }
+
+  .attentionIndicator::after {
+    animation: attentionDotPulse 1.5s ease-in-out infinite;
   }
 }
 
-@keyframes attentionSonar {
-  0% {
-    transform: scale(0.55);
-    opacity: 0.9;
-  }
+@keyframes attentionHaloPulse {
+  0%,
   100% {
-    transform: scale(1.6);
-    opacity: 0;
+    transform: scale(1);
+    background-color: rgba(245, 158, 11, 0.24);
+  }
+  50% {
+    transform: scale(1.22);
+    background-color: rgba(245, 158, 11, 0.42);
+  }
+}
+
+@keyframes attentionDotPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.48;
   }
 }
 
@@ -784,6 +790,24 @@
   box-shadow: 0 2px 12px rgba(71, 107, 18, 0.05);
 }
 
+.eventCardDraft {
+  border: 1.5px dashed #c4c8bd;
+  background-color: #f5f6f2;
+}
+
+.eventCardDraft .eventDateColumn {
+  background-color: #4a4e49;
+}
+
+.eventCardDraft .eventMonth,
+.eventCardDraft .eventWeekday {
+  color: #c9ccc5;
+}
+
+.eventCardDraft .assignmentChip {
+  background-color: #fafaf8;
+}
+
 .eventCardAssigned .eventDateColumn {
   background-color: #151b14;
 }
@@ -877,7 +901,7 @@
 .assignmentChip {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
   padding: 0.75rem 0.85rem;
   border: 1px solid #e8ebe3;
@@ -940,16 +964,27 @@
 }
 
 .memberName {
+  overflow: hidden;
   font-size: 0.84rem;
   font-weight: 650;
   color: var(--ink-primary);
   line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.memberDetails .attendanceBadge {
+  align-self: flex-start;
+  margin-block-start: 0.4rem;
 }
 
 .memberHandle {
+  overflow: hidden;
   font-size: 0.74rem;
   color: var(--ink-muted);
   line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .attendanceBadge {

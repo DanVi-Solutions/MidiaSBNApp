@@ -8,7 +8,7 @@ import {
   CalendarXIcon,
   CheckIcon,
   CloseIcon,
-  PrayingHandsIcon,
+  ChurchIcon,
   SwapIcon,
 } from "@/components/ui/icons";
 import {
@@ -237,7 +237,7 @@ export function ReplaceDeclinedDrawer({ event, person, onClose }) {
                             />
                           )}
                           {candidate.worshipConflict && (
-                            <PrayingHandsIcon
+                            <ChurchIcon
                               className={styles.memberWorshipIcon}
                             />
                           )}
@@ -328,7 +328,7 @@ export function ReplaceDeclinedDrawer({ event, person, onClose }) {
                 {isUnavailable(chosen) ? (
                   <CalendarXIcon className={styles.memberUnavailableIcon} />
                 ) : (
-                  <PrayingHandsIcon className={styles.memberWorshipIcon} />
+                  <ChurchIcon className={styles.memberWorshipIcon} />
                 )}
                 <span>
                   <strong>{chosen.credential.name}</strong>{" "}

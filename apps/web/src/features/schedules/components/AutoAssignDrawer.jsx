@@ -8,7 +8,7 @@ import {
   AlertTriangleIcon,
   CheckIcon,
   CloseIcon,
-  PrayingHandsIcon,
+  ChurchIcon,
   UsersIcon,
 } from "@/components/ui/icons";
 import { autoAssignSchedules } from "@/features/schedules/services/schedulesService";
@@ -427,7 +427,7 @@ export function AutoAssignDrawer({ schedules = [], onClose }) {
                               <span>{pick.credential.name}</span>
                               {pick.worshipConflict && (
                                 <span className={styles.worshipTag}>
-                                  <PrayingHandsIcon className={styles.worshipIcon} />
+                                  <ChurchIcon className={styles.worshipIcon} />
                                   Horário do culto
                                 </span>
                               )}

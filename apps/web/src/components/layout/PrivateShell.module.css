@@ -554,8 +554,8 @@
   height: 17px;
   padding-inline: 4px;
   border-radius: 999px;
-  background-color: var(--accent-lime);
-  color: #121412;
+  background-color: #f97316;
+  color: #ffffff;
   font-size: 0.67rem;
   font-weight: 700;
   line-height: 17px;
@@ -569,7 +569,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background-color: var(--accent-lime);
+  background-color: #f97316;
   opacity: 0;
   z-index: -1;
   pointer-events: none;

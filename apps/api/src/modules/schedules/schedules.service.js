@@ -47,6 +47,14 @@ function assertCanRemoveFromSchedule(auth, memberRole) {
   }
 }
 
+const ALWAYS_AVAILABLE = Object.freeze({
+  hasWeeklyAvailability: true,
+  isUnavailable: false,
+  available: true,
+  worshipService: null,
+  worshipConflict: false,
+});
+
 function assessAvailability(member, period) {
   const hasWeeklyAvailability = member.availabilities.some((day) => day[period]);
   const isUnavailable = member.unavailabilities.length > 0;
@@ -221,12 +229,16 @@ export function createSchedulesService({
     });
     return members
       .filter(isSelectableBy(auth))
-      .map(({ availabilities, unavailabilities, worshipService, ...credential }) => ({
-        credential,
-        ...assessAvailability({ availabilities, unavailabilities }, period),
-        worshipService,
-        worshipConflict: conflictsWithWorship(schedule.scheduleAt, worshipService),
-      }));
+      .map(({ availabilities, unavailabilities, worshipService, ...credential }) =>
+        credential.role === ROLES.GENERAL_MANAGER
+          ? { credential, ...ALWAYS_AVAILABLE }
+          : {
+              credential,
+              ...assessAvailability({ availabilities, unavailabilities }, period),
+              worshipService,
+              worshipConflict: conflictsWithWorship(schedule.scheduleAt, worshipService),
+            },
+      );
   }
 
   return {

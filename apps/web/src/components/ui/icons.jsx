@@ -815,7 +815,7 @@ export function ShieldOffIcon({ className }) {
   );
 }
 
-export function PrayingHandsIcon({ className }) {
+export function ChurchIcon({ className }) {
   return (
     <svg
       className={className}
@@ -829,11 +829,11 @@ export function PrayingHandsIcon({ className }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M12 4c-1.1 0-2 .9-2 2v5.5l-4 4V20h3.5l2.5-2.5" />
-      <path d="M12 4c1.1 0 2 .9 2 2v5.5l4 4V20h-3.5L12 17.5" />
-      <path d="M12 4v13.5" />
-      <path d="M5 20h5" />
-      <path d="M14 20h5" />
+      <path d="M10 9h4" />
+      <path d="M12 7v5" />
+      <path d="M14 22v-4a2 2 0 0 0-4 0v4" />
+      <path d="M18 22V5.618a1 1 0 0 0-.553-.894l-4.553-2.277a2 2 0 0 0-1.788 0L6.553 4.724A1 1 0 0 0 6 5.618V22" />
+      <path d="m18 7 3.447 1.724a1 1 0 0 1 .553.894V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9.382a1 1 0 0 1 .553-.894L6 7" />
     </svg>
   );
 }

@@ -1461,7 +1461,11 @@ export function MonthlyScheduleView() {
                 key={event.id}
                 data-user-scheduled={isUserScheduled ? "true" : undefined}
                 className={`${styles.eventCard} ${
-                  isUserScheduled ? styles.eventCardAssigned : ""
+                  !isPublished
+                    ? styles.eventCardDraft
+                    : isUserScheduled
+                      ? styles.eventCardAssigned
+                      : ""
                 }`}
               >
                 <div className={styles.eventDateColumn}>
@@ -1496,16 +1500,14 @@ export function MonthlyScheduleView() {
                         </span>
                       )}
 
-                      <span
-                        className={`${styles.statusPill} ${
-                          isPublished
-                            ? styles.statusPillLime
-                            : styles.statusPillDraft
-                        }`}
-                      >
-                        <span className={styles.statusDot} aria-hidden="true" />
-                        {event.statusLabel}
-                      </span>
+                      {!isPublished && (
+                        <span
+                          className={`${styles.statusPill} ${styles.statusPillDraft}`}
+                        >
+                          <span className={styles.statusDot} aria-hidden="true" />
+                          {event.statusLabel}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -1565,17 +1567,16 @@ export function MonthlyScheduleView() {
                               <span className={styles.memberHandle}>
                                 {person.handle || "Primeiro acesso"}
                               </span>
-                            </div>
-
-                            <span
-                              className={`${styles.attendanceBadge} ${badgeToneClass}`}
-                            >
                               <span
-                                className={styles.statusDot}
-                                aria-hidden="true"
-                              />
-                              {badgeLabel}
-                            </span>
+                                className={`${styles.attendanceBadge} ${badgeToneClass}`}
+                              >
+                                <span
+                                  className={styles.statusDot}
+                                  aria-hidden="true"
+                                />
+                                {badgeLabel}
+                              </span>
+                            </div>
 
                             {person.changeStatus === "DECLINED" &&
                               isUpcoming &&

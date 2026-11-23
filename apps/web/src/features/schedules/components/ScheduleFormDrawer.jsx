@@ -10,7 +10,7 @@ import {
   CheckIcon,
   CloseIcon,
   PlusIcon,
-  PrayingHandsIcon,
+  ChurchIcon,
   SwapIcon,
 } from "@/components/ui/icons";
 import { applyRecurringEvent } from "@/features/recurring-events/services/recurringEventsService";
@@ -1820,7 +1820,7 @@ export function ScheduleFormDrawer({
                                   />
                                 )}
                                 {missesWorship(member.availability) && (
-                                  <PrayingHandsIcon
+                                  <ChurchIcon
                                     className={styles.memberWorshipIcon}
                                   />
                                 )}
@@ -1970,7 +1970,7 @@ export function ScheduleFormDrawer({
                 {isUnavailableMember(member.availability) ? (
                   <CalendarXIcon className={styles.memberUnavailableIcon} />
                 ) : (
-                  <PrayingHandsIcon className={styles.memberWorshipIcon} />
+                  <ChurchIcon className={styles.memberWorshipIcon} />
                 )}
                 <span>
                   <strong>{member.name}</strong>{" "}
