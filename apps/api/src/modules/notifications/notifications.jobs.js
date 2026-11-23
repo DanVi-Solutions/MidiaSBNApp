@@ -3,7 +3,6 @@ import { jobMarkersRepository } from "./job-markers.repository.js";
 import { messages } from "./notifications.messages.js";
 import { notifier as defaultNotifier } from "./notifications.notifier.js";
 import { notificationsRepository } from "./notifications.repository.js";
-import { pushSubscriptionsRepository } from "./push-subscriptions.repository.js";
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -85,21 +84,13 @@ export async function announceNewScheduleCycle({
   return sent.length;
 }
 
-export async function purgeStaleNotifications({
-  repository = notificationsRepository,
-  subscriptions = pushSubscriptionsRepository,
-  now = new Date(),
-} = {}) {
+export async function purgeStaleNotifications({ repository = notificationsRepository, now = new Date() } = {}) {
   const ago = (duration) => new Date(now.getTime() - duration);
-  const [notifications, devices] = await Promise.all([
-    repository.deleteStale({
-      readBefore: ago(RETENTION.read),
-      createdBefore: ago(RETENTION.any),
-      scheduleStartedBefore: ago(RETENTION.afterSchedule),
-    }),
-    subscriptions.deleteOfExpiredSessions(now),
-  ]);
-  return { notifications, devices };
+  return repository.deleteStale({
+    readBefore: ago(RETENTION.read),
+    createdBefore: ago(RETENTION.any),
+    scheduleStartedBefore: ago(RETENTION.afterSchedule),
+  });
 }
 
 export function startNotificationJobs() {
@@ -126,10 +117,8 @@ export function startNotificationJobs() {
     }
 
     try {
-      const { notifications, devices } = await purgeStaleNotifications();
-      if (notifications + devices > 0) {
-        console.log(`Limpeza de notificações: ${notifications} aviso(s) e ${devices} inscrição(ões) de dispositivo`);
-      }
+      const deleted = await purgeStaleNotifications();
+      if (deleted > 0) console.log(`Limpeza de notificações: ${deleted} aviso(s) apagado(s)`);
     } catch (error) {
       console.error("Falha na limpeza de notificações", error);
     }
