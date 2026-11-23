@@ -67,8 +67,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   .exportButton:not(:disabled):hover {
-    background-color: #fafbf8;
-    border-color: #cfd4c6;
+    background-color: #fbfaf8;
+    border-color: #d4cfc6;
   }
 }
 
@@ -83,7 +83,7 @@
   flex-direction: column;
   gap: 0.85rem;
   padding: 0.9rem 1.15rem;
-  border: 1px solid #e6e9e0;
+  border: 1px solid #e9e6e0;
   border-radius: 14px;
   background-color: var(--surface-card);
 }
@@ -165,7 +165,7 @@
   justify-content: space-between;
   gap: 0.45rem;
   padding: 0.5rem 0.95rem;
-  border: 1px solid #e5e8df;
+  border: 1px solid #e8e5df;
   border-radius: 10px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -202,7 +202,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   background-color: var(--surface-card);
-  box-shadow: 0 12px 28px rgba(17, 19, 18, 0.1);
+  box-shadow: 0 12px 28px rgba(26, 26, 31, 0.1);
 }
 
 .filterSelect::picker-icon {
@@ -221,7 +221,7 @@
 }
 
 .filterSelect option::checkmark {
-  color: var(--accent-lime-ink);
+  color: var(--accent-ink);
 }
 
 /* Top KPI Cards */
@@ -243,15 +243,15 @@
   justify-content: space-between;
   min-height: 158px;
   padding: 1.25rem 1.35rem;
-  border: 1px solid #e6e9e0;
+  border: 1px solid #e9e6e0;
   border-radius: 16px;
   background-color: var(--surface-card);
 }
 
 .kpiCardDark {
-  border-color: #1a1d1a;
-  background-color: #121412;
-  color: #f7f8f3;
+  border-color: #202026;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 .kpiTopRow {
@@ -270,7 +270,7 @@
 .kpiLabelDark {
   font-size: 0.82rem;
   font-weight: 550;
-  color: #aeb4ac;
+  color: #b4b1ac;
 }
 
 .kpiBadgeLime,
@@ -285,8 +285,8 @@
 }
 
 .kpiBadgeLime {
-  background-color: var(--accent-lime);
-  color: #121412;
+  background-color: var(--accent);
+  color: #1a1a1f;
 }
 
 .kpiBadgeNeutral {
@@ -319,7 +319,7 @@
 
 .kpiDeltaDark {
   font-size: 0.76rem;
-  color: #9ba399;
+  color: #a39f99;
 }
 
 /* Bottom Analytics Row */
@@ -340,7 +340,7 @@
   flex-direction: column;
   gap: 1.35rem;
   padding: 1.35rem 1.45rem;
-  border: 1px solid #e6e9e0;
+  border: 1px solid #e9e6e0;
   border-radius: 16px;
   background-color: var(--surface-card);
 }
@@ -380,8 +380,8 @@
   gap: 0.4rem;
   padding: 0.28rem 0.7rem;
   border-radius: 999px;
-  background-color: var(--accent-lime-soft);
-  color: var(--accent-lime-ink);
+  background-color: var(--accent-soft);
+  color: var(--accent-ink);
   font-size: 0.74rem;
   font-weight: 600;
   white-space: nowrap;
@@ -435,11 +435,11 @@
   width: 100%;
   height: var(--bar-height, 0%);
   border-radius: 8px 8px 4px 4px;
-  background-color: #121412;
+  background-color: #1a1a1f;
 }
 
 .barFillCurrent {
-  background-color: #7b9e14;
+  background-color: #9e2714;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -520,7 +520,7 @@
   justify-content: center;
   gap: 0.75rem;
   padding: 2.5rem 1.5rem;
-  border: 1px dashed #dce0d4;
+  border: 1px dashed #e0dcd4;
   border-radius: 16px;
   text-align: center;
 }
@@ -558,7 +558,7 @@
   width: 100%;
   height: 7px;
   border-radius: 999px;
-  background-color: #eef0ea;
+  background-color: #f0eeea;
   --progress-bar-radius: 999px;
 }
 
@@ -567,12 +567,12 @@
 }
 
 .coverageProgress::-webkit-progress-value {
-  background: var(--progress-bar-fill, #c8f03d);
+  background: var(--progress-bar-fill, #e8452b);
   border-radius: var(--progress-bar-radius);
 }
 
 .coverageProgress::-moz-progress-bar {
-  background: var(--progress-bar-fill, #c8f03d);
+  background: var(--progress-bar-fill, #e8452b);
   border-radius: var(--progress-bar-radius);
 }
 
@@ -611,7 +611,7 @@
   justify-content: space-between;
   gap: 0.45rem;
   padding: 0.5rem 0.95rem;
-  border: 1px solid #e5e8df;
+  border: 1px solid #e8e5df;
   border-radius: 10px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -627,8 +627,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   .memberPickerTrigger:hover {
-    background-color: #fafbf8;
-    border-color: #cfd4c6;
+    background-color: #fbfaf8;
+    border-color: #d4cfc6;
   }
 }
 
@@ -665,7 +665,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
   background-color: var(--surface-card);
-  box-shadow: 0 18px 42px rgba(17, 19, 18, 0.14);
+  box-shadow: 0 18px 42px rgba(26, 26, 31, 0.14);
 }
 
 .memberOptionCard {
@@ -675,9 +675,9 @@
   gap: 0.65rem;
   width: 100%;
   padding: 0.72rem 0.85rem;
-  border: 1px solid #e4e8dc;
+  border: 1px solid #e8e4dc;
   border-radius: 11px;
-  background-color: #fafbf8;
+  background-color: #fbfaf8;
   color: var(--ink-primary);
   font: inherit;
   text-align: left;
@@ -689,14 +689,14 @@
 
 @media (hover: hover) and (pointer: fine) {
   .memberOptionCard:hover {
-    border-color: #c5cbbd;
-    background-color: #f3f5ee;
+    border-color: #cbc6bd;
+    background-color: #f5f2ee;
   }
 }
 
 .memberOptionCardSelected {
   border-color: var(--ink-primary);
-  background-color: #f6f9ef;
+  background-color: #f8f3ef;
 }
 
 .memberOptionCardBody {
@@ -738,7 +738,7 @@
   display: inline-flex;
   align-items: center;
   padding: 0.16rem 0.5rem;
-  border: 1px solid #dfe4d7;
+  border: 1px solid #e4dfd7;
   border-radius: 7px;
   background-color: var(--surface-card);
   color: var(--ink-secondary);
@@ -754,7 +754,7 @@
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  background-color: var(--accent-lime);
+  background-color: var(--accent);
   color: var(--ink-primary);
   flex-shrink: 0;
   margin-block-start: 0.1rem;

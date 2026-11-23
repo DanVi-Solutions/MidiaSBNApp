@@ -47,7 +47,7 @@ const SHORT_MONTH_LABELS_PT = [
 ];
 
 const SERIES_COLORS = [
-  "#c8f03d",
+  "#e8452b",
   "#75ccfc",
   "#ccaafc",
   "#ffb66b",
@@ -628,7 +628,7 @@ export function computeMemberReport({
       meta: "Disponibilidade semanal",
       valueText: `${morningDays}/7 dias`,
       percent: Math.round((morningDays / 7) * 100),
-      color: "#c8f03d",
+      color: "#e8452b",
     },
     {
       id: "afternoon",

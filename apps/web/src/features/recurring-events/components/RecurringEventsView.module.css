@@ -54,8 +54,8 @@
   padding: 0.55rem 1.15rem;
   border: 1px solid var(--ink-primary);
   border-radius: 10px;
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -81,7 +81,7 @@
   display: grid;
   grid-template-rows: 1fr auto;
   padding: 1.3rem 1.35rem 1.15rem;
-  border: 1px solid #e6e9e0;
+  border: 1px solid #e9e6e0;
   border-radius: 16px;
   background-color: var(--surface-card);
 }
@@ -126,8 +126,8 @@
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background-color: #121412;
-  color: var(--accent-lime);
+  background-color: #1a1a1f;
+  color: var(--accent);
   flex-shrink: 0;
 }
 
@@ -147,8 +147,8 @@
 }
 
 .generalScopeBadge {
-  background-color: var(--accent-lime-soft);
-  color: var(--accent-lime-ink);
+  background-color: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .ministryScopeBadge {
@@ -183,7 +183,7 @@
 @media (hover: hover) and (pointer: fine) {
   .cardIconAction:hover {
     background-color: var(--surface-workspace);
-    border-color: #e2e5dc;
+    border-color: #e5e2dc;
     color: var(--ink-primary);
   }
 
@@ -214,7 +214,7 @@
   flex-direction: column;
   gap: 0.9rem;
   padding-block-start: 0.95rem;
-  border-block-start: 1px solid #f0f2ec;
+  border-block-start: 1px solid #f2f0ec;
 }
 
 .cardFooterMetaRow {
@@ -230,7 +230,7 @@
   align-items: center;
   justify-content: flex-end;
   padding-block-start: 0.75rem;
-  border-block-start: 1px dashed #e6e9e0;
+  border-block-start: 1px dashed #e9e6e0;
 }
 
 .promoteButton {
@@ -241,10 +241,10 @@
   width: 100%;
   min-height: 38px;
   padding: 0.45rem 0.85rem;
-  border: 1px solid #c8dc96;
+  border: 1px solid #dca096;
   border-radius: 9px;
-  background-color: #f6f9ef;
-  color: var(--accent-lime-ink);
+  background-color: #f8f3ef;
+  color: var(--accent-ink);
   font-size: 0.8rem;
   font-weight: 650;
   cursor: pointer;
@@ -255,8 +255,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   .promoteButton:hover {
-    background-color: var(--accent-lime-soft);
-    border-color: #acc76d;
+    background-color: var(--accent-soft);
+    border-color: #c77a6d;
   }
 }
 
@@ -305,9 +305,9 @@
   display: inline-flex;
   align-items: center;
   padding: 0.18rem 0.5rem;
-  border: 1px solid #e2e5dc;
+  border: 1px solid #e5e2dc;
   border-radius: 7px;
-  background-color: #f7f8f4;
+  background-color: #f8f7f4;
   color: var(--ink-primary);
   font-size: 0.77rem;
   font-weight: 650;
@@ -321,7 +321,7 @@
   justify-content: center;
   gap: 1rem;
   padding: 2.25rem 1.5rem;
-  border: 1px solid #e6e9e0;
+  border: 1px solid #e9e6e0;
   border-radius: 16px;
   background-color: var(--surface-card);
   text-align: center;
@@ -350,8 +350,8 @@
   padding: 0.55rem 1.15rem;
   border: 1px solid var(--ink-primary);
   border-radius: 10px;
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
   font-size: 0.86rem;
   font-weight: 600;
   cursor: pointer;
@@ -383,7 +383,7 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background-color: #e6e9df;
+  background-color: #e9e5df;
   color: var(--ink-primary);
   margin-block-end: 0.15rem;
 }
@@ -418,7 +418,7 @@
   border-inline-start: 1px solid var(--border-subtle);
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: -16px 0 48px rgba(17, 19, 18, 0.18);
+  box-shadow: -16px 0 48px rgba(26, 26, 31, 0.18);
   opacity: 0;
   transition-property: opacity, transform, display, overlay;
   transition-duration: 300ms;
@@ -464,7 +464,7 @@
 }
 
 .createDrawer::backdrop {
-  background-color: rgba(12, 14, 12, 0);
+  background-color: rgba(19, 19, 23, 0);
   overflow: hidden;
   overscroll-behavior: contain;
   transition-property: background-color, display, overlay;
@@ -474,12 +474,12 @@
 }
 
 .createDrawer[open]:where(:not([data-closing]))::backdrop {
-  background-color: rgba(12, 14, 12, 0.45);
+  background-color: rgba(19, 19, 23, 0.45);
 }
 
 @starting-style {
   .createDrawer[open]:where(:not([data-closing]))::backdrop {
-    background-color: rgba(12, 14, 12, 0);
+    background-color: rgba(19, 19, 23, 0);
   }
 }
 
@@ -591,8 +591,8 @@
 
 .drawerSubmitButton {
   border: 1px solid var(--ink-primary);
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -636,12 +636,12 @@
 }
 
 .requiredTag {
-  background-color: var(--accent-lime-soft);
-  color: var(--accent-lime-ink);
+  background-color: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .optionalTag {
-  background-color: #f1f2ec;
+  background-color: #f2f0ec;
   color: var(--ink-muted);
 }
 
@@ -651,7 +651,7 @@
   width: 100%;
   min-height: 44px;
   padding: 0.6rem 0.88rem;
-  border: 1px solid #dfe2d8;
+  border: 1px solid #e2ded8;
   border-radius: 11px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -664,7 +664,7 @@
 
 .input::placeholder,
 .textarea::placeholder {
-  color: #9ba096;
+  color: #a09c96;
   font-size: 0.88rem;
 }
 
@@ -694,7 +694,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   background-color: var(--surface-card);
-  box-shadow: 0 12px 28px rgba(17, 19, 18, 0.1);
+  box-shadow: 0 12px 28px rgba(26, 26, 31, 0.1);
 }
 
 .select::picker-icon {
@@ -713,7 +713,7 @@
 }
 
 .select option::checkmark {
-  color: var(--accent-lime-ink);
+  color: var(--accent-ink);
 }
 
 .timesFieldset,
@@ -740,9 +740,9 @@
 }
 
 .timesCard {
-  border: 1px solid #e7eae1;
+  border: 1px solid #eae7e1;
   border-radius: 13px;
-  background-color: #fafbf8;
+  background-color: #fbfaf8;
   padding: 0.95rem 1rem;
   display: flex;
   flex-direction: column;
@@ -775,7 +775,7 @@
   gap: 0.6rem;
   min-height: 54px;
   padding: 0.65rem 0.85rem;
-  border: 1px solid #dfe2d8;
+  border: 1px solid #e2ded8;
   border-radius: 11px;
   background-color: var(--surface-card);
   cursor: pointer;
@@ -786,8 +786,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   .scopeModeCard:hover {
-    border-color: #c5cabd;
-    background-color: #fafbf8;
+    border-color: #cac5bd;
+    background-color: #fbfaf8;
   }
 }
 
@@ -798,7 +798,7 @@
 
 .scopeModeCardActive {
   border-color: var(--ink-primary);
-  background-color: #f6f9ef;
+  background-color: #f8f3ef;
 }
 
 .scopeModeText {
@@ -827,7 +827,7 @@
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  background-color: var(--accent-lime);
+  background-color: var(--accent);
   color: var(--ink-primary);
   flex-shrink: 0;
 }
@@ -873,9 +873,9 @@
   grid-template-columns: 1fr;
   gap: 0.45rem;
   padding: 0.5rem;
-  border: 1px solid #e4e7de;
+  border: 1px solid #e7e4de;
   border-radius: 12px;
-  background-color: #fafbf8;
+  background-color: #fbfaf8;
 }
 
 .departmentCheckboxListError {
@@ -889,7 +889,7 @@
   gap: 0.65rem;
   min-height: 42px;
   padding: 0.5rem 0.8rem;
-  border: 1px solid #dfe2d8;
+  border: 1px solid #e2ded8;
   border-radius: 10px;
   background-color: var(--surface-card);
   cursor: pointer;
@@ -900,19 +900,19 @@
 
 @media (hover: hover) and (pointer: fine) {
   .departmentOption:hover {
-    border-color: #c5cabd;
+    border-color: #cac5bd;
   }
 }
 
 .departmentOptionSelected {
   border-color: var(--ink-primary);
-  background-color: #f6f9ef;
+  background-color: #f8f3ef;
 }
 
 .departmentCheckbox {
   width: 1.08rem;
   height: 1.08rem;
-  accent-color: #141614;
+  accent-color: #1a1a1f;
   flex-shrink: 0;
   cursor: pointer;
 }
@@ -984,7 +984,7 @@
   justify-content: center;
   width: 36px;
   height: 44px;
-  border: 1px solid #dfe2d8;
+  border: 1px solid #e2ded8;
   border-radius: 10px;
   background-color: var(--surface-card);
   color: var(--ink-secondary);
@@ -1012,7 +1012,7 @@
   align-self: flex-start;
   min-height: 36px;
   padding: 0.4rem 0.85rem;
-  border: 1px dashed #c8cdc0;
+  border: 1px dashed #cdc8c0;
   border-radius: 9px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -1038,9 +1038,9 @@
 
 .readonlyScopeBox {
   padding: 0.8rem 0.95rem;
-  border: 1px solid #e4e8dc;
+  border: 1px solid #e8e4dc;
   border-radius: 11px;
-  background-color: #f8f9f5;
+  background-color: #f9f8f5;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -1098,7 +1098,7 @@
   border-radius: 16px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: 0 24px 60px rgba(17, 19, 18, 0.22);
+  box-shadow: 0 24px 60px rgba(26, 26, 31, 0.22);
 }
 
 .modalDialog[open] {
@@ -1110,7 +1110,7 @@
 }
 
 .modalDialog::backdrop {
-  background: rgba(12, 14, 12, 0.56);
+  background: rgba(19, 19, 23, 0.56);
   overflow: hidden;
   overscroll-behavior: contain;
 }
@@ -1157,8 +1157,8 @@
 }
 
 .promoteModalBadge {
-  background-color: var(--accent-lime-soft);
-  color: var(--accent-lime-ink);
+  background-color: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .modalActions {
@@ -1195,8 +1195,8 @@
 
 .modalPrimaryButton {
   border: 1px solid var(--ink-primary);
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 @media (hover: hover) and (pointer: fine) {

@@ -1,24 +1,24 @@
 :root {
-  --surface-dark: #0d0f0c;
-  --surface-light: #f7f8f3;
+  --surface-dark: #131317;
+  --surface-light: #f4f1ec;
   --surface-card: #ffffff;
-  --ink-primary: #111312;
-  --ink-secondary: #676b64;
-  --ink-muted: #7c8078;
-  --border-subtle: #e2e4dc;
-  --border-divider: #e6e8e0;
-  --accent-hover: #232624;
+  --ink-primary: #1a1a1f;
+  --ink-secondary: #6b6864;
+  --ink-muted: #807d78;
+  --border-subtle: #e4e1dc;
+  --border-divider: #e8e5e0;
+  --accent-hover: #282830;
   --status-error: #b92c25;
   --status-error-bg: #fdf2f2;
-  --sidebar-bg: #121412;
-  --sidebar-surface: #191b19;
-  --sidebar-active: #1c1f1c;
-  --sidebar-border: #242824;
-  --accent-lime: #d6ff5b;
-  --accent-lime-soft: #effbd5;
-  --accent-lime-ink: #476b12;
-  --surface-workspace: #f4f5f0;
-  --surface-callout: #f3f5ee;
+  --sidebar-bg: #1a1a1f;
+  --sidebar-surface: #1f1f25;
+  --sidebar-active: #222228;
+  --sidebar-border: #2a2a32;
+  --accent: #f4543a;
+  --accent-soft: #fbe0d5;
+  --accent-ink: #6b1e12;
+  --surface-workspace: #f5f3f0;
+  --surface-callout: #f5f2ee;
   --status-amber-bg: #fff9ec;
   --status-amber-border: #e7cf9a;
   --status-amber-accent: #d49a2e;
@@ -105,7 +105,7 @@ dialog[data-side-drawer="right"][open][data-collapsed="true"]::backdrop {
     border: 0;
     border-block-start: 1px solid var(--border-subtle);
     border-radius: 20px 20px 0 0;
-    box-shadow: 0 -16px 48px rgba(17, 19, 18, 0.18);
+    box-shadow: 0 -16px 48px rgba(26, 26, 31, 0.18);
     overflow: hidden;
   }
 
@@ -117,7 +117,7 @@ dialog[data-side-drawer="right"][open][data-collapsed="true"]::backdrop {
     height: 5px;
     margin-block: 10px 2px;
     border-radius: 999px;
-    background-color: #d4d7cf;
+    background-color: #d7d4cf;
   }
 
   dialog[data-side-drawer="right"][data-sheet-dragging] {

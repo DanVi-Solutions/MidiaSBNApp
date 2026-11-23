@@ -86,7 +86,7 @@
 
 .inputShell:focus-within {
   border-color: var(--ink-primary);
-  box-shadow: 0 0 0 3px rgba(17, 19, 18, 0.08);
+  box-shadow: 0 0 0 3px rgba(26, 26, 31, 0.08);
 }
 
 .inputShell:has(:is(:user-invalid, .user-invalid-fallback)),
@@ -134,7 +134,7 @@
 }
 
 .input::placeholder {
-  color: #9da198;
+  color: #a19e98;
   font-family: var(--font-mono);
   letter-spacing: 0.05em;
 }

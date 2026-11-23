@@ -6,8 +6,8 @@ export default function manifest() {
     start_url: "/schedule",
     scope: "/",
     display: "standalone",
-    background_color: "#121412",
-    theme_color: "#121412",
+    background_color: "#1a1a1f",
+    theme_color: "#1a1a1f",
     lang: "pt-BR",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

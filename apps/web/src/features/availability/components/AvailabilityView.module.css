@@ -54,8 +54,8 @@
   padding: 0.55rem 1.15rem;
   border: 1px solid var(--ink-primary);
   border-radius: 10px;
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
   font-size: 0.86rem;
   font-weight: 600;
   cursor: pointer;
@@ -79,7 +79,7 @@
   flex-direction: column;
   gap: 1.2rem;
   padding: clamp(1.25rem, 2.5vw, 1.65rem);
-  border: 1px solid #e6e9e0;
+  border: 1px solid #e9e6e0;
   border-radius: 16px;
   background-color: var(--surface-card);
 }
@@ -149,7 +149,7 @@
 
 .worshipOptionSelected {
   border-color: var(--ink-primary);
-  background-color: #fbfdf4;
+  background-color: #fdf7f4;
 }
 
 .worshipOptionDay {
@@ -174,13 +174,13 @@
   height: 18px;
   padding: 2px;
   border-radius: 999px;
-  background-color: var(--accent-lime);
-  color: #121412;
+  background-color: var(--accent);
+  color: #1a1a1f;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .worshipOption:not(.worshipOptionSelected):hover {
-    border-color: #c2c7ba;
+    border-color: #c7c2ba;
   }
 }
 
@@ -189,7 +189,7 @@
   overflow: auto;
   max-inline-size: 100%;
   container-type: inline-size;
-  border: 1px solid #ecefe7;
+  border: 1px solid #efece7;
   border-radius: 12px;
   background-color: var(--surface-card);
 }
@@ -214,8 +214,8 @@
 
 .table thead th {
   padding: 0.82rem 1rem;
-  background-color: #f6f7f4;
-  border-block-end: 1px solid #ecefe7;
+  background-color: #f7f6f4;
+  border-block-end: 1px solid #efece7;
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--ink-muted);
@@ -230,7 +230,7 @@
 
 .table tbody tr:not(:last-child) th,
 .table tbody tr:not(:last-child) td {
-  border-block-end: 1px solid #f0f2ec;
+  border-block-end: 1px solid #f2f0ec;
 }
 
 .dayHeaderCell {
@@ -275,7 +275,7 @@
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  border: 1.5px solid #dcdfd6;
+  border: 1.5px solid #dfdcd6;
   background-color: var(--surface-card);
   transition:
     background-color 0.14s ease,
@@ -284,14 +284,14 @@
 
 @media (hover: hover) and (pointer: fine) {
   .slotControl:hover .checkboxBox {
-    border-color: #aeb4a6;
+    border-color: #b4afa6;
   }
 }
 
 .checkboxBoxAvailable {
-  border-color: #141614;
-  background-color: #141614;
-  color: var(--accent-lime);
+  border-color: #1a1a1f;
+  background-color: #1a1a1f;
+  color: var(--accent);
 }
 
 .checkboxBoxUnavailable {
@@ -328,7 +328,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.45rem;
     padding: 0.85rem;
-    border-block-end: 1px solid #ecefe7;
+    border-block-end: 1px solid #efece7;
   }
 
   .table tbody tr:last-child {
@@ -361,14 +361,14 @@
     justify-content: flex-start;
     width: 100%;
     padding: 0.42rem 0.72rem;
-    border: 1px solid #e6e9e0;
+    border: 1px solid #e9e6e0;
     border-radius: 999px;
-    background-color: #fafbf8;
+    background-color: #fbfaf8;
   }
 
   .slotControlAvailable {
-    border-color: #cdd6b4;
-    background-color: #f4f7ec;
+    border-color: #d6cab4;
+    background-color: #f6f0ed;
   }
 
   .slotControlUnavailable {
@@ -425,9 +425,9 @@
   align-self: flex-start;
   gap: 0.35rem;
   padding: 0.25rem;
-  border: 1px solid #e6e9e0;
+  border: 1px solid #e9e6e0;
   border-radius: 11px;
-  background-color: #f6f7f4;
+  background-color: #f7f6f4;
 }
 
 .modeOption {
@@ -456,7 +456,7 @@
   background-color: var(--surface-card);
   color: var(--ink-primary);
   font-weight: 650;
-  box-shadow: 0 1px 3px rgba(17, 19, 18, 0.08);
+  box-shadow: 0 1px 3px rgba(26, 26, 31, 0.08);
 }
 
 .inputsRow {
@@ -507,7 +507,7 @@
   min-height: 44px;
   padding: 0.45rem 0.85rem;
   border-radius: 10px;
-  background-color: #f4f6ef;
+  background-color: #f6f3ef;
   color: var(--ink-secondary);
   font-size: 0.82rem;
   font-weight: 600;
@@ -535,7 +535,7 @@
 @media (hover: hover) and (pointer: fine) {
   .addExceptionButton:not(:disabled):hover {
     background-color: var(--surface-workspace);
-    border-color: #cfd4c6;
+    border-color: #d4cfc6;
   }
 }
 
@@ -563,12 +563,12 @@
 }
 
 .requiredTag {
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 .optionalTag {
-  background-color: #eef0ea;
+  background-color: #f0eeea;
   color: var(--ink-muted);
 }
 
@@ -592,7 +592,7 @@
 }
 
 .reasonInput::placeholder {
-  color: #9ba096;
+  color: #a09c96;
   font-size: 0.88rem;
 }
 
@@ -613,10 +613,10 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.7rem 0.95rem;
-  border: 1px solid #d5e0b8;
+  border: 1px solid #ded1ba;
   border-radius: 10px;
-  background-color: var(--accent-lime-soft);
-  color: var(--accent-lime-ink);
+  background-color: var(--accent-soft);
+  color: var(--accent-ink);
   font-size: 0.83rem;
 }
 
@@ -630,7 +630,7 @@
   justify-content: center;
   min-height: 36px;
   padding: 0.35rem 0.85rem;
-  border: 1px solid rgba(17, 19, 18, 0.18);
+  border: 1px solid rgba(26, 26, 31, 0.18);
   border-radius: 8px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -741,7 +741,7 @@
   gap: 0.65rem;
   padding: 0.95rem 1.1rem;
   border-radius: 10px;
-  background-color: #f8f9f6;
+  background-color: #f9f8f6;
   color: var(--ink-muted);
   font-size: 0.83rem;
 }
@@ -764,14 +764,14 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.75rem 0.95rem;
-  border: 1px solid #ecefe7;
+  border: 1px solid #efece7;
   border-radius: 11px;
-  background-color: #fafbf8;
+  background-color: #fbfaf8;
 }
 
 .exceptionItemEditing {
-  border-color: #c7d69e;
-  background-color: #f6f9ee;
+  border-color: #d6a69e;
+  background-color: #f8f2ef;
 }
 
 .exceptionMain {
@@ -806,7 +806,7 @@
   align-items: center;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background-color: #eef0ea;
+  background-color: #f0eeea;
   color: var(--ink-secondary);
   font-size: 0.72rem;
   font-weight: 600;
@@ -854,7 +854,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .editExceptionButton:not(:disabled):hover {
-    background-color: #eef0ea;
+    background-color: #f0eeea;
     color: var(--ink-primary);
   }
 
@@ -951,7 +951,7 @@
   justify-content: center;
   gap: 1rem;
   padding: 2.25rem 1.5rem;
-  border: 1px solid #e6e9e0;
+  border: 1px solid #e9e6e0;
   border-radius: 16px;
   background-color: var(--surface-card);
   text-align: center;
@@ -986,8 +986,8 @@
 
 .restrictedPrimaryLink {
   border: 1px solid var(--ink-primary);
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 .restrictedSecondaryLink {
@@ -1002,7 +1002,7 @@
   }
 
   .restrictedSecondaryLink:hover {
-    background-color: #eaede5;
+    background-color: #edeae5;
   }
 }
 

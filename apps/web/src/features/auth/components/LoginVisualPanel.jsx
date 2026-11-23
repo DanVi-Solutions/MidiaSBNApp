@@ -96,10 +96,10 @@ function drawObsidianBlob(
     cy + baseRadius * 0.08,
     baseRadius * 1.18
   );
-  bodyGrad.addColorStop(0, "#2c302b");
-  bodyGrad.addColorStop(0.28, "#1e211d");
-  bodyGrad.addColorStop(0.68, "#131512");
-  bodyGrad.addColorStop(1, "#0b0d0a");
+  bodyGrad.addColorStop(0, "#30303a");
+  bodyGrad.addColorStop(0.28, "#23232a");
+  bodyGrad.addColorStop(0.68, "#19191e");
+  bodyGrad.addColorStop(1, "#111115");
 
   ctx.fillStyle = bodyGrad;
   ctx.fill();
@@ -132,8 +132,8 @@ function drawObsidianBlob(
     cy + baseRadius * 0.4,
     baseRadius * 0.9
   );
-  rimGrad.addColorStop(0, "rgba(198, 214, 198, 0.05)");
-  rimGrad.addColorStop(0.6, "rgba(198, 214, 198, 0.012)");
+  rimGrad.addColorStop(0, "rgba(214, 208, 198, 0.05)");
+  rimGrad.addColorStop(0.6, "rgba(214, 208, 198, 0.012)");
   rimGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
   ctx.fillStyle = rimGrad;
   ctx.fillRect(0, 0, width, height);

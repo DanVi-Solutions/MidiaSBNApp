@@ -71,7 +71,7 @@
 }
 
 .publishAllButton {
-  border: 1px solid #d4dab7;
+  border: 1px solid #dacdb7;
   background-color: var(--surface-card);
   color: var(--ink-primary);
 }
@@ -98,7 +98,7 @@
   height: 20px;
   padding-inline: 0.38rem;
   border-radius: 999px;
-  background-color: var(--accent-lime);
+  background-color: var(--accent);
   color: var(--ink-primary);
   font-size: 0.72rem;
   font-weight: 700;
@@ -107,19 +107,19 @@
 
 .newScheduleButton {
   border: 1px solid var(--ink-primary);
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .publishAllButton:not(:disabled):hover {
-    background-color: var(--accent-lime-soft);
-    border-color: #bdd084;
+    background-color: var(--accent-soft);
+    border-color: #d08f84;
   }
 
   .autoAssignButton:not(:disabled):hover {
     background-color: var(--surface-workspace);
-    border-color: #c2c7ba;
+    border-color: #c7c2ba;
   }
 
   .newScheduleButton:hover {
@@ -336,8 +336,8 @@
   padding: 0.52rem 1.05rem;
   border: 1px solid var(--ink-primary);
   border-radius: 10px;
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -384,8 +384,8 @@
 
 .acceptButton {
   border: 1px solid var(--ink-primary);
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -399,10 +399,10 @@
   display: grid;
   grid-template-columns: 1fr;
   background-color: var(--surface-card);
-  border: 1px solid #d4dab7;
+  border: 1px solid #dacdb7;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 2px 14px rgba(17, 19, 18, 0.03);
+  box-shadow: 0 2px 14px rgba(26, 26, 31, 0.03);
 }
 
 @media (min-width: 720px) {
@@ -418,8 +418,8 @@
   justify-content: center;
   gap: 0.3rem;
   padding: 1.5rem 1rem;
-  background-color: #141716;
-  color: #f7f8f3;
+  background-color: #1b1b20;
+  color: #f4f1ec;
   position: relative;
 }
 
@@ -444,7 +444,7 @@
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--accent-lime);
+  color: var(--accent);
   text-align: center;
 }
 
@@ -465,7 +465,7 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #f7f8f3;
+  color: #f4f1ec;
 }
 
 .heroWeekday {
@@ -473,7 +473,7 @@
   z-index: 1;
   font-size: 0.74rem;
   font-weight: 500;
-  color: #8f9691;
+  color: #96938f;
 }
 
 .heroBody {
@@ -541,13 +541,13 @@
 }
 
 .statusPillLime {
-  background-color: var(--accent-lime-soft);
-  color: var(--accent-lime-ink);
+  background-color: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .statusPillDraft {
-  background-color: #f1f2ec;
-  color: #5b6057;
+  background-color: #f2f0ec;
+  color: #605d57;
 }
 
 .heroFacts,
@@ -633,8 +633,8 @@
   padding: 0.5rem 1rem;
   border: 1px solid var(--ink-primary);
   border-radius: 10px;
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
   font: inherit;
   font-size: 0.84rem;
   font-weight: 650;
@@ -674,7 +674,7 @@
   flex-direction: column;
   gap: 0.75rem;
   padding: 0.65rem 0.9rem;
-  border: 1px solid #e5e8df;
+  border: 1px solid #e8e5df;
   border-radius: 14px;
   background-color: var(--surface-card);
 }
@@ -693,7 +693,7 @@
   flex: 1;
   display: flex;
   align-items: center;
-  border: 1px solid #e7eae1;
+  border: 1px solid #eae7e1;
   border-radius: 10px;
   background-color: var(--surface-card);
   transition: border-color 0.16s ease;
@@ -724,7 +724,7 @@
 }
 
 .searchInput::placeholder {
-  color: #9ba096;
+  color: #a09c96;
   font-size: 0.88rem;
 }
 
@@ -744,7 +744,7 @@
   min-height: 44px;
   min-width: 224px;
   padding: 0.55rem 0.95rem;
-  border: 1px solid #e5e8df;
+  border: 1px solid #e8e5df;
   border-radius: 10px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -760,7 +760,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   background-color: var(--surface-card);
-  box-shadow: 0 12px 28px rgba(17, 19, 18, 0.1);
+  box-shadow: 0 12px 28px rgba(26, 26, 31, 0.1);
 }
 
 .scopeSelect::picker-icon {
@@ -779,7 +779,7 @@
 }
 
 .scopeSelect option::checkmark {
-  color: var(--accent-lime-ink);
+  color: var(--accent-ink);
 }
 
 .eventCount {
@@ -799,42 +799,42 @@
 .eventCard {
   display: grid;
   grid-template-columns: 1fr;
-  border: 1px solid #e6e9e0;
+  border: 1px solid #e9e6e0;
   border-radius: 16px;
   background-color: var(--surface-card);
   overflow: hidden;
 }
 
 .eventCardAssigned {
-  border-color: #cbd9a3;
-  background-color: #f8fbf2;
-  box-shadow: 0 2px 12px rgba(71, 107, 18, 0.05);
+  border-color: #d9aba3;
+  background-color: #fbf5f2;
+  box-shadow: 0 2px 12px rgba(107, 30, 18, 0.05);
 }
 
 .eventCardDraft {
-  border: 1.5px dashed #c4c8bd;
-  background-color: #f5f6f2;
+  border: 1.5px dashed #c8c4bd;
+  background-color: #f6f5f2;
 }
 
 .eventCardDraft .eventDateColumn {
-  background-color: #4a4e49;
+  background-color: #4c4c5b;
 }
 
 .eventCardDraft .eventMonth,
 .eventCardDraft .eventWeekday {
-  color: #c9ccc5;
+  color: #ccc9c5;
 }
 
 .eventCardDraft .assignmentChip {
-  background-color: #fafaf8;
+  background-color: #faf9f8;
 }
 
 .eventCardAssigned .eventDateColumn {
-  background-color: #151b14;
+  background-color: #1c1c22;
 }
 
 .eventCardAssigned .eventMonth {
-  color: var(--accent-lime);
+  color: var(--accent);
 }
 
 @media (min-width: 640px) {
@@ -850,8 +850,8 @@
   justify-content: flex-start;
   gap: 0.55rem;
   padding: 0.9rem 1.25rem;
-  background-color: #121412;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 @media (min-width: 640px) {
@@ -876,13 +876,13 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #d5d9d2;
+  color: #d9d6d2;
 }
 
 .eventWeekday {
   font-size: 0.72rem;
   font-weight: 500;
-  color: #8f9691;
+  color: #96938f;
 }
 
 @media (min-width: 640px) {
@@ -925,9 +925,13 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 0.85rem;
-  border: 1px solid #e8ebe3;
+  border: 1px solid #ebe8e3;
   border-radius: 12px;
   background-color: var(--surface-card);
+}
+
+.assignmentChip .memberDetails {
+  flex: 1 1 11rem;
 }
 
 .chipReplaceButton {
@@ -939,8 +943,8 @@
   padding: 0.3rem 0.7rem;
   border: 1px solid var(--ink-primary);
   border-radius: 8px;
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
   font: inherit;
   font-size: 0.76rem;
   font-weight: 600;
@@ -1038,8 +1042,8 @@
 }
 
 .attendancePresent {
-  background-color: var(--accent-lime-soft);
-  color: var(--accent-lime-ink);
+  background-color: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .attendanceConfirmed {
@@ -1078,7 +1082,7 @@
   gap: 0.55rem;
   padding-block-start: 0.9rem;
   margin-block-start: 0.15rem;
-  border-block-start: 1px solid #eef0e8;
+  border-block-start: 1px solid #f0ede8;
 }
 
 .cardActionButton {
@@ -1099,20 +1103,20 @@
 }
 
 .cardPublishedButton {
-  border: 1px solid #dfe2d8;
-  background-color: #fafbf8;
-  color: #5a5e56;
+  border: 1px solid #e2ded8;
+  background-color: #fbfaf8;
+  color: #5e5b56;
   cursor: default;
 }
 
 .cardPublishButton {
-  border: 1px solid #c8dc96;
-  background-color: var(--accent-lime-soft);
-  color: var(--accent-lime-ink);
+  border: 1px solid #dca096;
+  background-color: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .cardEditButton {
-  border: 1px solid #d7dbd0;
+  border: 1px solid #dbd7d0;
   background-color: var(--surface-card);
   color: var(--ink-primary);
 }
@@ -1125,8 +1129,8 @@
 
 .cardSignupButton {
   border: 1px solid var(--ink-primary);
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 .cardWithdrawButton {
@@ -1137,13 +1141,13 @@
 
 @media (hover: hover) and (pointer: fine) {
   .cardPublishButton:hover {
-    background-color: #e4f7b8;
-    border-color: #b4cf74;
+    background-color: #f7cbb8;
+    border-color: #cf8174;
   }
 
   .cardEditButton:hover {
     background-color: var(--surface-workspace);
-    border-color: #c2c7ba;
+    border-color: #c7c2ba;
   }
 
   .cardDeleteButton:hover {
@@ -1178,7 +1182,7 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background-color: #e6e9df;
+  background-color: #e9e5df;
   color: var(--ink-primary);
   margin-block-end: 0.15rem;
 }
@@ -1201,7 +1205,7 @@
   min-height: 38px;
   margin-block-start: 0.25rem;
   padding: 0.48rem 1rem;
-  border: 1px solid #d5d9ce;
+  border: 1px solid #d9d5ce;
   border-radius: 10px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -1213,7 +1217,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .emptyResetBtn:hover {
-    background-color: #f0f2ec;
+    background-color: #f2f0ec;
   }
 }
 
@@ -1226,7 +1230,7 @@
   border-radius: 16px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: 0 24px 60px rgba(17, 19, 18, 0.2);
+  box-shadow: 0 24px 60px rgba(26, 26, 31, 0.2);
 }
 
 .modalDialog[open] {
@@ -1238,7 +1242,7 @@
 }
 
 .modalDialog::backdrop {
-  background: rgba(12, 14, 12, 0.56);
+  background: rgba(19, 19, 23, 0.56);
   overflow: hidden;
   overscroll-behavior: contain;
 }
@@ -1312,8 +1316,8 @@
 
 .modalConfirmButton {
   border: 1px solid var(--ink-primary);
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 /* Animated Right-Side Substitution Drawer (<dialog>) */
@@ -1332,7 +1336,7 @@
   border-inline-start: 1px solid var(--border-subtle);
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: -16px 0 44px rgba(17, 19, 18, 0.16);
+  box-shadow: -16px 0 44px rgba(26, 26, 31, 0.16);
   opacity: 0;
   transition-property: opacity, transform, display, overlay;
   transition-duration: 300ms;
@@ -1378,7 +1382,7 @@
 }
 
 .substitutionDrawer::backdrop {
-  background-color: rgba(12, 14, 12, 0);
+  background-color: rgba(19, 19, 23, 0);
   overflow: hidden;
   overscroll-behavior: contain;
   transition-property: background-color, display, overlay;
@@ -1388,12 +1392,12 @@
 }
 
 .substitutionDrawer[open]:where(:not([data-closing]))::backdrop {
-  background-color: rgba(12, 14, 12, 0.45);
+  background-color: rgba(19, 19, 23, 0.45);
 }
 
 @starting-style {
   .substitutionDrawer[open]:where(:not([data-closing]))::backdrop {
-    background-color: rgba(12, 14, 12, 0);
+    background-color: rgba(19, 19, 23, 0);
   }
 }
 
@@ -1498,9 +1502,9 @@
 
 .drawerMetaItem {
   padding: 0.85rem 1rem;
-  border: 1px solid #ecefe7;
+  border: 1px solid #efece7;
   border-radius: 12px;
-  background-color: #fafbf8;
+  background-color: #fbfaf8;
 }
 
 .drawerMetaItem dt {
@@ -1550,7 +1554,7 @@
   border-inline-start: 1px solid var(--border-subtle);
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: -16px 0 48px rgba(17, 19, 18, 0.18);
+  box-shadow: -16px 0 48px rgba(26, 26, 31, 0.18);
   opacity: 0;
   transition-property: opacity, transform, display, overlay;
   transition-duration: 300ms;
@@ -1596,7 +1600,7 @@
 }
 
 .scheduleDrawer::backdrop {
-  background-color: rgba(12, 14, 12, 0);
+  background-color: rgba(19, 19, 23, 0);
   overflow: hidden;
   overscroll-behavior: contain;
   transition-property: background-color, display, overlay;
@@ -1606,12 +1610,12 @@
 }
 
 .scheduleDrawer[open]:where(:not([data-closing]))::backdrop {
-  background-color: rgba(12, 14, 12, 0.45);
+  background-color: rgba(19, 19, 23, 0.45);
 }
 
 @starting-style {
   .scheduleDrawer[open]:where(:not([data-closing]))::backdrop {
-    background-color: rgba(12, 14, 12, 0);
+    background-color: rgba(19, 19, 23, 0);
   }
 }
 
@@ -1669,7 +1673,7 @@
   gap: 0.35rem;
   padding: 0.3rem;
   border-radius: 12px;
-  background-color: #f1f3eb;
+  background-color: #f3f0eb;
 }
 
 .modeSegmentButton {
@@ -1682,7 +1686,7 @@
   border: 0;
   border-radius: 9px;
   background: transparent;
-  color: #6b7067;
+  color: #706d67;
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
@@ -1695,14 +1699,14 @@
 .modeSegmentActive {
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: 0 1px 3px rgba(17, 19, 18, 0.08);
+  box-shadow: 0 1px 3px rgba(26, 26, 31, 0.08);
 }
 
 .recurringEmptyNote {
   padding: 0.75rem 0.9rem;
   border: 1px dashed var(--border-subtle);
   border-radius: 10px;
-  background-color: #fafbf8;
+  background-color: #fbfaf8;
   color: var(--ink-secondary);
   font-size: 0.82rem;
   line-height: 1.45;
@@ -1713,9 +1717,9 @@
   flex-direction: column;
   gap: 0.35rem;
   padding: 1rem 1.1rem;
-  border: 1px solid #dde6c7;
+  border: 1px solid #e5dac8;
   border-radius: 12px;
-  background-color: #f6f9ef;
+  background-color: #f8f3ef;
 }
 
 .recurringPreviewKicker {
@@ -1723,7 +1727,7 @@
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--accent-lime-ink);
+  color: var(--accent-ink);
 }
 
 .recurringPreviewTitle {
@@ -1754,8 +1758,8 @@
   gap: 0.42rem;
   padding: 0.34rem 0.68rem;
   border-radius: 8px;
-  background-color: #141614;
-  color: var(--accent-lime);
+  background-color: #1a1a1f;
+  color: var(--accent);
   font-size: 0.74rem;
   font-weight: 650;
   line-height: 1.2;
@@ -1764,7 +1768,7 @@
 .recurringDateTimes {
   padding-inline-start: 0.42rem;
   border-inline-start: 1px solid rgba(255, 255, 255, 0.22);
-  color: #f4f6ee;
+  color: #f6f3ee;
   font-weight: 550;
   font-variant-numeric: tabular-nums;
 }
@@ -1806,7 +1810,7 @@
   width: 100%;
   min-height: 44px;
   padding: 0.6rem 0.88rem;
-  border: 1px solid #dfe2d8;
+  border: 1px solid #e2ded8;
   border-radius: 11px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -1837,7 +1841,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   background-color: var(--surface-card);
-  box-shadow: 0 12px 28px rgba(17, 19, 18, 0.1);
+  box-shadow: 0 12px 28px rgba(26, 26, 31, 0.1);
 }
 
 .drawerSelect::picker-icon {
@@ -1856,12 +1860,12 @@
 }
 
 .drawerSelect option::checkmark {
-  color: var(--accent-lime-ink);
+  color: var(--accent-ink);
 }
 
 .drawerInput::placeholder,
 .drawerTextarea::placeholder {
-  color: #9ba096;
+  color: #a09c96;
   font-size: 0.88rem;
 }
 
@@ -1917,7 +1921,7 @@
   gap: 0.72rem;
   min-height: 56px;
   padding: 0.65rem 0.85rem;
-  border: 1px solid #e3e6dd;
+  border: 1px solid #e6e3dd;
   border-radius: 12px;
   background-color: var(--surface-card);
   cursor: pointer;
@@ -1928,14 +1932,14 @@
 
 @media (hover: hover) and (pointer: fine) {
   .memberCard:hover {
-    border-color: #c5cabd;
-    background-color: #fafbf8;
+    border-color: #cac5bd;
+    background-color: #fbfaf8;
   }
 }
 
 .memberCardSelected {
   border-color: var(--ink-primary);
-  background-color: #f6f9ef;
+  background-color: #f8f3ef;
 }
 
 .memberCardAvatar {
@@ -1945,7 +1949,7 @@
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  background-color: #ebede5;
+  background-color: #edeae5;
   color: var(--ink-primary);
   font-size: 0.74rem;
   font-weight: 700;
@@ -1954,7 +1958,7 @@
 
 .memberCardSelected .memberCardAvatar {
   background-color: var(--ink-primary);
-  color: var(--accent-lime);
+  color: var(--accent);
 }
 
 .memberCardText {
@@ -2050,7 +2054,7 @@
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  background-color: var(--accent-lime);
+  background-color: var(--accent);
   color: var(--ink-primary);
   flex-shrink: 0;
 }
@@ -2092,8 +2096,8 @@
 
 .drawerSubmitButton {
   border: 1px solid var(--ink-primary);
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 .drawerSubmitButton:disabled {
@@ -2121,7 +2125,7 @@
   border-radius: 16px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: 0 24px 64px rgba(17, 19, 18, 0.22);
+  box-shadow: 0 24px 64px rgba(26, 26, 31, 0.22);
   overflow: hidden;
   opacity: 0;
   transition-property: opacity, transform, display, overlay;
@@ -2164,7 +2168,7 @@
 }
 
 .confirmDialog::backdrop {
-  background-color: rgba(12, 14, 12, 0);
+  background-color: rgba(19, 19, 23, 0);
   overflow: hidden;
   overscroll-behavior: contain;
   transition-property: background-color, display, overlay;
@@ -2174,12 +2178,12 @@
 }
 
 .confirmDialog[open]::backdrop {
-  background-color: rgba(12, 14, 12, 0.54);
+  background-color: rgba(19, 19, 23, 0.54);
 }
 
 @starting-style {
   .confirmDialog[open]::backdrop {
-    background-color: rgba(12, 14, 12, 0);
+    background-color: rgba(19, 19, 23, 0);
   }
 }
 
@@ -2201,7 +2205,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1.35rem 1.5rem 1.15rem;
-  border-block-end: 1px solid #eaede5;
+  border-block-end: 1px solid #edeae5;
 }
 
 .confirmEyebrow {
@@ -2307,8 +2311,8 @@
   justify-content: flex-end;
   gap: 0.75rem;
   padding: 1rem 1.5rem 1.15rem;
-  border-block-start: 1px solid #eaede5;
-  background-color: #fafaf7;
+  border-block-start: 1px solid #edeae5;
+  background-color: #faf9f7;
 }
 
 .confirmCancelBtn,
@@ -2342,13 +2346,13 @@
 
 .confirmPrimaryBtn {
   border: 1px solid var(--ink-primary);
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .confirmCancelBtn:hover {
-    background-color: rgba(17, 19, 18, 0.06);
+    background-color: rgba(26, 26, 31, 0.06);
     color: var(--ink-primary);
   }
 
@@ -2367,9 +2371,9 @@
   align-items: flex-start;
   gap: 0.65rem;
   padding: 0.82rem 1.05rem;
-  border: 1px solid #e1e6d8;
+  border: 1px solid #e6e1d8;
   border-radius: 12px;
-  background-color: #f7f9f2;
+  background-color: #f9f6f2;
   color: var(--ink-secondary);
   font-size: 0.82rem;
   line-height: 1.45;
@@ -2378,7 +2382,7 @@
 .windowInfoIcon {
   flex-shrink: 0;
   margin-block-start: 0.14rem;
-  color: var(--accent-lime-ink);
+  color: var(--accent-ink);
 }
 
 .windowInfoText strong {
@@ -2390,9 +2394,9 @@
   align-items: flex-start;
   gap: 0.55rem;
   padding: 0.72rem 0.9rem;
-  border: 1px solid #e2e6da;
+  border: 1px solid #e6e2da;
   border-radius: 11px;
-  background-color: #fafbf7;
+  background-color: #fbfaf7;
   color: var(--ink-secondary);
   font-size: 0.78rem;
   line-height: 1.42;
@@ -2416,10 +2420,10 @@
   display: inline-flex;
   align-items: center;
   padding: 0.24rem 0.62rem;
-  border: 1px solid #d4e3b1;
+  border: 1px solid #e3b8b1;
   border-radius: 999px;
-  background-color: #f6f9ef;
-  color: var(--accent-lime-ink);
+  background-color: #f8f3ef;
+  color: var(--accent-ink);
   font-size: 0.71rem;
   font-weight: 650;
   white-space: nowrap;
@@ -2430,7 +2434,7 @@
   align-items: center;
   padding: 0.28rem 0.68rem;
   border-radius: 8px;
-  background-color: #f2f3ee;
+  background-color: #f3f1ee;
   color: var(--ink-muted);
   font-size: 0.75rem;
   font-weight: 600;
@@ -2464,20 +2468,20 @@
 }
 
 .requiredTag {
-  background-color: var(--accent-lime-soft);
-  color: var(--accent-lime-ink);
+  background-color: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .optionalTag {
-  background-color: #f1f2ec;
+  background-color: #f2f0ec;
   color: var(--ink-muted);
 }
 
 .readonlyScopeBox {
   padding: 0.72rem 0.9rem;
-  border: 1px solid #e4e8dc;
+  border: 1px solid #e8e4dc;
   border-radius: 11px;
-  background-color: #f8f9f5;
+  background-color: #f9f8f5;
 }
 
 .readonlyScopeValue {
@@ -2491,9 +2495,9 @@
   flex-direction: column;
   gap: 0.85rem;
   padding: 0.95rem 1rem;
-  border: 1px solid #dfe2d8;
+  border: 1px solid #e2ded8;
   border-radius: 13px;
-  background-color: #fafbf8;
+  background-color: #fbfaf8;
   transition:
     border-color 0.15s ease,
     background-color 0.15s ease;
@@ -2501,7 +2505,7 @@
 
 .switchCardActive {
   border-color: var(--ink-primary);
-  background-color: #f6f9ef;
+  background-color: #f8f3ef;
 }
 
 .switchHeaderRow {
@@ -2540,9 +2544,9 @@
   height: 26px;
   margin: 0;
   padding: 2px;
-  border: 1px solid #c3c8bb;
+  border: 1px solid #c8c3bb;
   border-radius: 999px;
-  background-color: #e4e7de;
+  background-color: #e7e4de;
   flex-shrink: 0;
   cursor: pointer;
   transition:
@@ -2556,17 +2560,17 @@
   height: 20px;
   border-radius: 999px;
   background-color: #ffffff;
-  box-shadow: 0 1px 3px rgba(17, 19, 18, 0.25);
+  box-shadow: 0 1px 3px rgba(26, 26, 31, 0.25);
   transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .switchInput:checked {
-  border-color: #141614;
-  background-color: #141614;
+  border-color: #1a1a1f;
+  background-color: #1a1a1f;
 }
 
 .switchInput:checked::before {
-  background-color: var(--accent-lime);
+  background-color: var(--accent);
   transform: translateX(20px);
 }
 
@@ -2582,7 +2586,7 @@
   flex-direction: column;
   gap: 0.4rem;
   padding-block-start: 0.75rem;
-  border-block-start: 1px solid #dce5c9;
+  border-block-start: 1px solid #e5dbc9;
 }
 
 .memberAvailabilityTag {
@@ -2593,7 +2597,7 @@
 }
 
 .memberAvailabilityOk {
-  color: var(--accent-lime-ink);
+  color: var(--accent-ink);
 }
 
 .memberAvailabilityWarn {

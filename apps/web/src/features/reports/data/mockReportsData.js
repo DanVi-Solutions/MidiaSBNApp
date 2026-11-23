@@ -30,7 +30,7 @@ export const REPORTS_BY_SCOPE = {
       { month: "Jun", value: 92, highlight: true },
     ],
     areaCoverage: [
-      { id: "projecao", name: "Projeção", coverage: 96, color: "#c8f03d" },
+      { id: "projecao", name: "Projeção", coverage: 96, color: "#e8452b" },
       {
         id: "transmissao",
         name: "Transmissão / Live",
@@ -64,7 +64,7 @@ export const REPORTS_BY_SCOPE = {
       { month: "Jun", value: 96, highlight: true },
     ],
     areaCoverage: [
-      { id: "projecao", name: "Projeção", coverage: 96, color: "#c8f03d" },
+      { id: "projecao", name: "Projeção", coverage: 96, color: "#e8452b" },
     ],
   },
   "min-transmissao": {

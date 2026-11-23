@@ -9,9 +9,9 @@
   padding: 0;
   border: 0;
   background:
-    radial-gradient(circle at 50% 18%, rgba(214, 255, 91, 0.1), transparent 55%),
-    #0d0f0c;
-  color: #f7f8f3;
+    radial-gradient(circle at 50% 18%, rgba(244, 84, 58, 0.1), transparent 55%),
+    #131317;
+  color: #f4f1ec;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -21,7 +21,7 @@
 }
 
 .splash::backdrop {
-  background-color: #0d0f0c;
+  background-color: #131317;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -69,7 +69,7 @@
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.16em;
-  color: var(--accent-lime);
+  color: var(--accent);
 }
 
 .welcomeTitle {
@@ -94,7 +94,7 @@
   font-size: 1rem;
   font-style: italic;
   line-height: 1.55;
-  color: #e6e9e1;
+  color: #e9e6e1;
 }
 
 .verse cite {
@@ -102,14 +102,14 @@
   font-style: normal;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: var(--accent-lime);
+  color: var(--accent);
 }
 
 .welcomeText {
   max-width: 400px;
   font-size: 0.92rem;
   line-height: 1.5;
-  color: #b9bdb5;
+  color: #bdbab5;
 }
 
 .panel {
@@ -131,8 +131,8 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background-color: var(--accent-lime-soft);
-  color: var(--accent-lime-ink);
+  background-color: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .panelTitle {
@@ -176,7 +176,7 @@
 
 .choiceSelected {
   border-color: var(--ink-primary);
-  background-color: #fbfdf4;
+  background-color: #fdf7f4;
 }
 
 .choiceDay {
@@ -200,8 +200,8 @@
   height: 22px;
   padding: 3px;
   border-radius: 999px;
-  background-color: var(--accent-lime);
-  color: #121412;
+  background-color: var(--accent);
+  color: #1a1a1f;
   transform: translateY(-50%);
 }
 
@@ -256,9 +256,9 @@
 }
 
 .periodChipOn {
-  border-color: #141614;
-  background-color: #141614;
-  color: #f7f8f3;
+  border-color: #1a1a1f;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 .status {
@@ -279,8 +279,8 @@
 }
 
 .statusOk {
-  background-color: var(--accent-lime-soft);
-  color: var(--accent-lime-ink);
+  background-color: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .statusWarn {
@@ -322,8 +322,8 @@
 
 .primaryButton {
   border: 0;
-  background-color: var(--accent-lime);
-  color: #121412;
+  background-color: var(--accent);
+  color: #1a1a1f;
 }
 
 .primaryButton:disabled {
@@ -335,14 +335,14 @@
 .backButton {
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: transparent;
-  color: #e6e9e1;
+  color: #e9e6e1;
 }
 
 .primaryButton:focus-visible,
 .secondaryButton:focus-visible,
 .backButton:focus-visible,
 .periodChip:focus-visible {
-  outline: 2px solid var(--accent-lime);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -364,12 +364,12 @@
 }
 
 .dotDone {
-  background-color: rgba(214, 255, 91, 0.55);
+  background-color: rgba(244, 84, 58, 0.55);
 }
 
 .dotActive {
   width: 24px;
-  background-color: var(--accent-lime);
+  background-color: var(--accent);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -384,7 +384,7 @@
 
   .choice:not(.choiceSelected):hover,
   .periodChip:not(.periodChipOn):hover {
-    border-color: #c2c7ba;
+    border-color: #c7c2ba;
   }
 }
 

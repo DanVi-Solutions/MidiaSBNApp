@@ -38,7 +38,7 @@
   gap: 0.35rem;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background-color: #e9ebe4;
+  background-color: #ebe8e4;
   color: var(--ink-secondary);
   font-size: 0.76rem;
   font-weight: 650;
@@ -50,8 +50,8 @@
 }
 
 .statusOn {
-  background-color: var(--accent-lime-soft);
-  color: var(--accent-lime-ink);
+  background-color: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .help {
@@ -89,8 +89,8 @@
 
 .primaryButton {
   border: 1px solid var(--ink-primary);
-  background-color: #141614;
-  color: #f7f8f3;
+  background-color: #1a1a1f;
+  color: #f4f1ec;
 }
 
 .secondaryButton {

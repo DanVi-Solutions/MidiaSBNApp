@@ -29,12 +29,12 @@
   min-width: 34px;
   min-height: 68px;
   padding: 0.65rem 0.4rem 0.65rem 0.5rem;
-  border: 1px solid #2b2f2b;
+  border: 1px solid #303039;
   border-inline-end: 0;
   border-radius: 14px 0 0 14px;
-  background-color: #141614;
-  color: #f7f8f3;
-  box-shadow: -8px 4px 24px rgba(12, 14, 12, 0.24);
+  background-color: #1a1a1f;
+  color: #f4f1ec;
+  box-shadow: -8px 4px 24px rgba(19, 19, 23, 0.24);
   cursor: pointer;
   pointer-events: auto;
   animation: edgeTabEnter 220ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -46,14 +46,14 @@
 
 @media (hover: hover) and (pointer: fine) {
   .edgeHandle:hover {
-    background-color: #202420;
+    background-color: #26262d;
     padding-inline-start: 0.72rem;
-    box-shadow: -10px 6px 28px rgba(12, 14, 12, 0.32);
+    box-shadow: -10px 6px 28px rgba(19, 19, 23, 0.32);
   }
 }
 
 .edgeHandle:focus-visible {
-  outline: 2px solid var(--accent-lime);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -61,8 +61,8 @@
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background-color: var(--accent-lime);
-  box-shadow: 0 0 0 3px rgba(214, 255, 91, 0.22);
+  background-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(244, 84, 58, 0.22);
 }
 
 .edgeHandleArrow {
