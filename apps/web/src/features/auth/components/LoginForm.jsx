@@ -340,7 +340,7 @@ export function LoginForm() {
                   required
                   minLength={4}
                   maxLength={30}
-                  autoComplete="username"
+                  autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="none"
                   spellCheck={false}

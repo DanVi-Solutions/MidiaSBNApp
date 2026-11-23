@@ -1066,6 +1066,19 @@
   }
 }
 
+@media (max-width: 640px) {
+  .helpPopover {
+    position: fixed;
+    position-area: none;
+    inset: 0;
+    margin: auto;
+    height: fit-content;
+    max-height: calc(100dvh - 2rem);
+    width: calc(100vw - 2rem);
+    overflow-y: auto;
+  }
+}
+
 .helpPopoverHeader {
   display: flex;
   align-items: flex-start;

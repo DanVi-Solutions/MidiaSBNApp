@@ -20,7 +20,6 @@ import {
 } from "@/features/auth/services/authService";
 import {
   copyTextToClipboard,
-  getRoleLabel,
   normalizeUsername,
   ROLES,
   validateDisplayName,
@@ -410,13 +409,6 @@ function CredentialOnboardingContent({
           <div className={styles.modalBody}>
             <div className={styles.welcomeContextCard}>
               <div className={styles.contextItem}>
-                <span className={styles.contextLabel}>Papel atribuído</span>
-                <span className={styles.contextValue}>
-                  {getRoleLabel(credential?.role)}
-                </span>
-              </div>
-
-              <div className={styles.contextItem}>
                 <span className={styles.contextLabel}>
                   {departments.length > 1 ? "Ministérios" : "Ministério"}
                 </span>
@@ -453,7 +445,7 @@ function CredentialOnboardingContent({
                 minLength={2}
                 maxLength={80}
                 autoFocus
-                autoComplete="name"
+                autoComplete="off"
                 enterKeyHint="next"
                 aria-invalid={nameError ? "true" : "false"}
                 aria-describedby={
@@ -496,7 +488,7 @@ function CredentialOnboardingContent({
                 required
                 minLength={3}
                 maxLength={15}
-                autoComplete="username"
+                autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="none"
                 spellCheck={false}
@@ -574,7 +566,7 @@ function CredentialOnboardingContent({
               aria-busy={isSubmitting}
             >
               <span>
-                {isSubmitting ? "Gerando código..." : "Confirmar e gerar código"}
+                {isSubmitting ? "Confirmando..." : "Confirmar"}
               </span>
               <ArrowRightIcon />
             </button>

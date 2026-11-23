@@ -694,6 +694,17 @@
   }
 }
 
+@media (max-width: 640px) {
+  .popoverPanel {
+    position: fixed;
+    position-area: none;
+    inset-block: calc(var(--topbar-height, 64px) + 0.5rem) auto;
+    inset-inline: 0;
+    margin: 0 auto;
+    max-width: calc(100vw - 2rem);
+  }
+}
+
 .popoverHeader {
   display: flex;
   align-items: center;

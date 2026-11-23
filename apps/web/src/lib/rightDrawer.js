@@ -234,10 +234,10 @@ export function dismissHiddenModalDialogs() {
 
 const SHEET_QUERY = "(max-width: 640px)";
 const SHEET_GRAB_AREA = 72;
-const SHEET_CLOSE_DISTANCE = 110;
+const SHEET_COLLAPSE_DISTANCE = 110;
 const sheetGestureReady = new WeakSet();
 
-function enableSheetSwipeToClose(dialog) {
+function enableSheetSwipeToCollapse(dialog) {
   if (sheetGestureReady.has(dialog) || typeof window === "undefined") return;
   sheetGestureReady.add(dialog);
 
@@ -275,9 +275,9 @@ function enableSheetSwipeToClose(dialog) {
 
   const finish = () => {
     if (startY === null) return;
-    const shouldClose = offset > SHEET_CLOSE_DISTANCE;
+    const shouldCollapse = offset > SHEET_COLLAPSE_DISTANCE;
     reset();
-    if (shouldClose) closeAnimatedRightDrawer(dialog);
+    if (shouldCollapse) collapseRightDrawer(dialog);
   };
 
   dialog.addEventListener("touchend", finish);
@@ -286,7 +286,7 @@ function enableSheetSwipeToClose(dialog) {
 
 export function openRightDrawer(dialog) {
   if (!dialog || isDialogInHiddenSubtree(dialog)) return false;
-  enableSheetSwipeToClose(dialog);
+  enableSheetSwipeToCollapse(dialog);
   const isCollapsed = dialog.hasAttribute(COLLAPSED_ATTR);
   if (dialog.open && !isCollapsed && !dialog.hasAttribute(CLOSING_ATTR)) {
     return false;

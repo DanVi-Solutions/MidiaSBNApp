@@ -11,6 +11,14 @@
   width: min(360px, calc(100vw - 2rem));
 }
 
+@media (max-width: 640px) {
+  .popoverPanel {
+    width: calc(100vw - 2rem);
+    max-height: calc(100dvh - var(--topbar-height, 64px) - 1.5rem);
+    overflow-y: auto;
+  }
+}
+
 .popoverHeader {
   composes: popoverHeader from "../../../components/layout/PrivateShell.module.css";
 }
