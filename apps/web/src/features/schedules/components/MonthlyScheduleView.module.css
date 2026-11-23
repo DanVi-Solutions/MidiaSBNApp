@@ -369,10 +369,18 @@
 .heroMonth {
   position: relative;
   z-index: 1;
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  color: #f7f8f3;
+}
+
+.heroWeekday {
+  position: relative;
+  z-index: 1;
+  font-size: 0.74rem;
+  font-weight: 500;
   color: #8f9691;
 }
 
@@ -507,30 +515,18 @@
   flex-shrink: 0;
 }
 
-.absenceButton {
-  border: 0;
-  background: transparent;
-  padding: 0.35rem 0.5rem;
-  border-radius: 8px;
-  font-size: 0.84rem;
-  font-weight: 650;
-  color: var(--ink-primary);
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .absenceButton:hover {
-    background-color: rgba(17, 19, 18, 0.06);
-  }
-}
-
 .heroActions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.heroActionButton {
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  font-size: 0.84rem;
 }
 
 .heroPrimaryButton {
@@ -724,7 +720,7 @@
   background-color: #151b14;
 }
 
-.eventCardAssigned .eventDateMeta {
+.eventCardAssigned .eventMonth {
   color: var(--accent-lime);
 }
 
@@ -750,24 +746,44 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
+    gap: 0;
     padding: 1.35rem 0.75rem;
   }
 }
 
 .eventDay {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 2.1rem;
+  font-weight: 750;
   line-height: 1;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.03em;
 }
 
-.eventDateMeta {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+.eventMonth {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  color: #d5d9d2;
+}
+
+.eventWeekday {
+  font-size: 0.72rem;
+  font-weight: 500;
   color: #8f9691;
+}
+
+@media (min-width: 640px) {
+  .eventDay {
+    font-size: 2.6rem;
+  }
+
+  .eventMonth {
+    margin-block-start: 0.3rem;
+  }
+
+  .eventWeekday {
+    margin-block-start: 0.2rem;
+  }
 }
 
 .eventBody {
@@ -792,12 +808,46 @@
 
 .assignmentChip {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 0.85rem;
   border: 1px solid #e8ebe3;
   border-radius: 12px;
   background-color: var(--surface-card);
+}
+
+.chipReplaceButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-inline-start: auto;
+  min-height: 32px;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--ink-primary);
+  border-radius: 8px;
+  background-color: #141614;
+  color: #f7f8f3;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chipReplaceButton svg {
+  width: 14px;
+  height: 14px;
+}
+
+.chipReplaceButton:focus-visible {
+  outline: 2px solid var(--ink-primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chipReplaceButton:hover {
+    background-color: var(--accent-hover);
+  }
 }
 
 .memberInitials {
@@ -1773,13 +1823,56 @@
 }
 
 .memberCardName {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
   font-size: 0.84rem;
   font-weight: 650;
   color: var(--ink-primary);
   line-height: 1.25;
+}
+
+.memberCardNameText {
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.memberUnavailableIcon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: #c0392b;
+}
+
+.unavailablePickList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #f0c9c9;
+  border-radius: 10px;
+  background-color: #fff6f6;
+}
+
+.unavailablePickItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--ink-secondary);
+}
+
+.unavailablePickItem strong {
+  color: var(--ink-primary);
+}
+
+.unavailablePickItem .memberUnavailableIcon {
+  margin-block-start: 0.12rem;
 }
 
 .memberCardHandle {
@@ -2363,7 +2456,6 @@
   font-weight: 550;
 }
 
-.absenceButton:disabled,
 .cardSignupButton:disabled,
 .cardWithdrawButton:disabled,
 .drawerCloseButton:disabled,
@@ -2390,7 +2482,6 @@
 .drawerCloseButton:focus-visible,
 .declineButton:focus-visible,
 .acceptButton:focus-visible,
-.absenceButton:focus-visible,
 .scopeSelect:focus-visible,
 .emptyResetBtn:focus-visible,
 .modalCancelButton:focus-visible,

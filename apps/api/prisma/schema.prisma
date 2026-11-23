@@ -28,6 +28,7 @@ enum ChangeStatus {
   NONE
   REQUESTED
   REJECTED
+  DECLINED
 }
 
 enum Role {
@@ -55,6 +56,8 @@ enum NotificationType {
   ROLE_CHANGED
   UNAVAILABILITY_CONFLICT
   SCHEDULE_CYCLE_OPENED
+  ASSIGNMENT_DECLINED
+  PRESENCE_NOT_CONFIRMED
 }
 
 // SCHEMAS:
@@ -67,11 +70,11 @@ model Credential {
   credentialNumber     String?          @unique @map("credential_number") @db.VarChar(30)
   credentialNumberHash String?          @unique @map("credential_number_hash") @db.Char(64)
 
-  availabilities     Availability[]
-  departments        CredentialDepartment[] @relation("CredentialDepartments")
-  refreshTokens      RefreshToken[]
-  schedules          CredentialSchedule[]
-  credentialChanges  CredentialSchedule[]   @relation("CredentialChange")
+  availabilities         Availability[]
+  departments            CredentialDepartment[] @relation("CredentialDepartments")
+  refreshTokens          RefreshToken[]
+  schedules              CredentialSchedule[]
+  credentialChanges      CredentialSchedule[]   @relation("CredentialChange")
   requestedTransfers     CredentialDepartment[] @relation("TransferRequestedBy")
   unavailabilities       Unavailability[]
   createdRecurringEvents RecurringEvent[]       @relation("CreatedRecurringEvents")
@@ -128,15 +131,16 @@ model CredentialDepartment {
 }
 
 model Schedule {
-  id               String   @id @default(uuid(7)) @db.Uuid
-  name             String   @db.VarChar(80)
-  scheduleAt       DateTime @map("schedule_at") @db.Timestamptz(6)
-  departmentId     String   @map("department_id") @db.Uuid
-  published        Boolean  @default(false)
-  description      String?  @db.VarChar(255)
-  recurringEventId String?  @map("recurring_event_id") @db.Uuid
-  selfSignup       Boolean  @default(false) @map("self_signup")
-  volunteersNeeded Int?     @map("volunteers_needed") @db.SmallInt
+  id                     String    @id @default(uuid(7)) @db.Uuid
+  name                   String    @db.VarChar(80)
+  scheduleAt             DateTime  @map("schedule_at") @db.Timestamptz(6)
+  departmentId           String    @map("department_id") @db.Uuid
+  published              Boolean   @default(false)
+  description            String?   @db.VarChar(255)
+  recurringEventId       String?   @map("recurring_event_id") @db.Uuid
+  selfSignup             Boolean   @default(false) @map("self_signup")
+  volunteersNeeded       Int?      @map("volunteers_needed") @db.SmallInt
+  attendanceNoticeSentAt DateTime? @map("attendance_notice_sent_at") @db.Timestamptz(6)
 
   credentials   CredentialSchedule[]
   notifications Notification[]
@@ -144,7 +148,8 @@ model Schedule {
   department     Department      @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   recurringEvent RecurringEvent? @relation(fields: [recurringEventId], references: [id], onDelete: SetNull)
 
-  @@unique([departmentId, scheduleAt])
+  @@unique([recurringEventId, departmentId, scheduleAt])
+  @@index([departmentId, scheduleAt])
   @@index([recurringEventId])
   @@map("schedule")
 }

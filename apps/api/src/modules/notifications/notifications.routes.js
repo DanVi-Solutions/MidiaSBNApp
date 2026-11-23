@@ -28,7 +28,9 @@ export const notificationsRouter = createDocumentedRouter({
     "- pedidos de substituição: recebido, aceito, recusado ou cancelado;",
     "- mudança de papel ou de ministério, transferências aguardando aprovação ou recusadas;",
     "- para quem gerencia escalas: alguém do ministério informou ausência num horário em que está escalado, e a " +
-      "virada do ciclo (um novo mês liberado para montar as escalas).",
+      "virada do ciclo (um novo mês liberado para montar as escalas);",
+    "- para gerentes do ministério e líderes gerais: alguém escalado avisou que não vai participar sem indicar " +
+      "substituto, ou a escala começou e alguém não confirmou presença (para verificarem se a pessoa está no local).",
     "",
     "**Limpeza automática** (a cada 15 minutos): somem as notificações lidas há mais de 15 dias, qualquer " +
       "notificação com mais de 60 dias e as ligadas a escalas que já aconteceram há mais de um dia. Quando uma " +

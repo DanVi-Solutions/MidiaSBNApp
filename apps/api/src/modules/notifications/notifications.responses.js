@@ -18,6 +18,8 @@ const notificationType = z
     "ROLE_CHANGED",
     "UNAVAILABILITY_CONFLICT",
     "SCHEDULE_CYCLE_OPENED",
+    "ASSIGNMENT_DECLINED",
+    "PRESENCE_NOT_CONFIRMED",
   ])
   .meta({ description: "O que originou o aviso. Útil para escolher ícone ou cor no frontend." });
 

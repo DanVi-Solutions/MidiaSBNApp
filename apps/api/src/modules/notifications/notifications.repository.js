@@ -13,6 +13,7 @@ const notificationSelect = {
 
 const RECIPIENT_STATUSES = ["ACTIVE", "RECOVERING"];
 const SCHEDULE_MANAGER_ROLES = ["SCHEDULER_MANAGER", "DEPARTMENT_MANAGER", "GENERAL_MANAGER"];
+const DEPARTMENT_LEADER_ROLES = ["DEPARTMENT_MANAGER", "GENERAL_MANAGER"];
 
 const activeMemberOf = (departmentId) => ({
   status: { in: RECIPIENT_STATUSES },
@@ -67,6 +68,10 @@ export const notificationsRepository = {
     return count;
   },
 
+  async discardForEveryone(scheduleId, types) {
+    await prisma.notification.deleteMany({ where: { scheduleId, type: { in: types } } });
+  },
+
   async discardAboutSchedule(credentialId, scheduleId, types) {
     await prisma.notification.deleteMany({ where: { credentialId, scheduleId, type: { in: types } } });
   },
@@ -91,6 +96,36 @@ export const notificationsRepository = {
         select: { id: true },
       }),
     );
+  },
+
+  departmentLeadersOf(departmentId) {
+    return ids(
+      prisma.credential.findMany({
+        where: { ...activeMemberOf(departmentId), role: { in: DEPARTMENT_LEADER_ROLES } },
+        select: { id: true },
+      }),
+    );
+  },
+
+  findStartedWithoutAttendanceNotice({ from, until }) {
+    return prisma.schedule.findMany({
+      where: { published: true, attendanceNoticeSentAt: null, scheduleAt: { gt: from, lte: until } },
+      select: {
+        id: true,
+        name: true,
+        scheduleAt: true,
+        department: { select: { id: true, name: true } },
+        credentials: {
+          where: { confirmedAt: null, changeStatus: { not: "DECLINED" } },
+          select: { credential: { select: { name: true } } },
+          orderBy: { credential: { name: "asc" } },
+        },
+      },
+    });
+  },
+
+  async markAttendanceNoticeSent(scheduleIds, sentAt) {
+    await prisma.schedule.updateMany({ where: { id: { in: scheduleIds } }, data: { attendanceNoticeSentAt: sentAt } });
   },
 
   transferReviewersOf(departmentId) {
@@ -136,6 +171,7 @@ export const notificationsRepository = {
     return prisma.credentialSchedule.findMany({
       where: {
         reminderSentAt: null,
+        changeStatus: { not: "DECLINED" },
         credential: { status: { in: RECIPIENT_STATUSES } },
         schedule: { published: true, scheduleAt: { gt: from, lte: until } },
       },

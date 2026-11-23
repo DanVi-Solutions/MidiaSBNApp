@@ -2,6 +2,7 @@ import { APP_TIME_ZONE } from "@/features/schedules/utils/scheduleDates";
 
 export const ATTENDANCE_PHASE = Object.freeze({
   SUBSTITUTION_REQUESTED: "substitution-requested",
+  DECLINED: "declined",
   NEEDS_CONFIRMATION: "needs-confirmation",
   CONFIRMATION_MISSED: "confirmation-missed",
   WAITING_CHECK_IN: "waiting-check-in",
@@ -27,6 +28,11 @@ export function attendancePhaseOf({
   if (assignment.checkedInAt) return ATTENDANCE_PHASE.CHECKED_IN;
   if (assignment.changeStatus === "REQUESTED") {
     return ATTENDANCE_PHASE.SUBSTITUTION_REQUESTED;
+  }
+  if (assignment.changeStatus === "DECLINED") {
+    return nowMs < Date.parse(scheduleAt)
+      ? ATTENDANCE_PHASE.DECLINED
+      : ATTENDANCE_PHASE.CONFIRMATION_MISSED;
   }
   if (!assignment.confirmedAt) {
     return nowMs < Date.parse(scheduleAt)

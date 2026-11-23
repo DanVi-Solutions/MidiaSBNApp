@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import {
   AlertCircleIcon,
   CalendarIcon,
+  CalendarXIcon,
   CheckIcon,
   CloseIcon,
   PlusIcon,
@@ -15,7 +16,7 @@ import { applyRecurringEvent } from "@/features/recurring-events/services/recurr
 import {
   assignCredentialToSchedule,
   createSchedule,
-  getAvailableCredentials,
+  getScheduleCandidates,
   getScheduleWindow,
   unassignCredentialFromSchedule,
   updateSchedule,
@@ -102,6 +103,21 @@ function validateVolunteersNeededValue(value) {
   }
   return "";
 }
+
+const CANDIDATES_DEBOUNCE = 300;
+
+const isUnavailableMember = (availability) =>
+  Boolean(availability) && !availability.available;
+
+const availabilityRank = (availability) => {
+  if (!isUnavailableMember(availability)) return 0;
+  return availability.isUnavailable ? 2 : 1;
+};
+
+const unavailabilityReason = (availability) =>
+  availability.isUnavailable
+    ? "registrou ausência neste horário"
+    : "não marcou disponibilidade neste dia e período";
 
 const ASSIGNMENT_WARNING_LABELS = {
   NO_WEEKLY_AVAILABILITY: "sem disponibilidade semanal marcada",
@@ -224,6 +240,11 @@ export function ScheduleFormDrawer({
     isEditing ? event.details || "" : ""
   );
   const [availableMemberMeta, setAvailableMemberMeta] = useState({});
+  const [unavailablePicksToConfirm, setUnavailablePicksToConfirm] = useState(
+    []
+  );
+  const unavailableDialogRef = useRef(null);
+  const unavailableDialogTitleId = useId();
   const [isLoadingAvailableMembers, setIsLoadingAvailableMembers] = useState(
     () => Boolean(isEditing && event?.id)
   );
@@ -276,26 +297,6 @@ export function ScheduleFormDrawer({
     };
   }, [initialScheduleWindow]);
 
-  useEffect(() => {
-    if (!isEditing || !event?.id) return undefined;
-    let active = true;
-    getAvailableCredentials(event.id).then((res) => {
-      if (!active) return;
-      setIsLoadingAvailableMembers(false);
-      if (res.ok && Array.isArray(res.data)) {
-        const nextMap = {};
-        for (const item of res.data) {
-          if (item?.credential?.id) {
-            nextMap[item.credential.id] = item;
-          }
-        }
-        setAvailableMemberMeta(nextMap);
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, [isEditing, event?.id]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -482,6 +483,37 @@ export function ScheduleFormDrawer({
     return map;
   }, [availableMemberMeta, event, isEditing, participants]);
 
+  const candidatesScheduleAt =
+    !isRecurringCreate && effectiveFormMinistryId && formDateIso && formTime
+      ? buildIsoDateTimeInZone(formDateIso, formTime, APP_TIME_ZONE)
+      : "";
+
+  useEffect(() => {
+    if (!candidatesScheduleAt || !effectiveFormMinistryId) return undefined;
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      const res = await getScheduleCandidates({
+        departmentId: effectiveFormMinistryId,
+        scheduleAt: candidatesScheduleAt,
+      });
+      if (!active) return;
+      setIsLoadingAvailableMembers(false);
+      if (res.ok && Array.isArray(res.data)) {
+        setAvailableMemberMeta(
+          Object.fromEntries(
+            res.data
+              .filter((item) => item?.credential?.id)
+              .map((item) => [item.credential.id, item])
+          )
+        );
+      }
+    }, CANDIDATES_DEBOUNCE);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [candidatesScheduleAt, effectiveFormMinistryId]);
+
   const visibleMembers = useMemo(() => {
     if (!effectiveFormMinistryId) return [];
 
@@ -542,12 +574,11 @@ export function ScheduleFormDrawer({
       }
     }
 
-    return [...byId.values()].sort((a, b) => {
-      const aAvail = a.availability?.available ? 1 : 0;
-      const bAvail = b.availability?.available ? 1 : 0;
-      if (aAvail !== bAvail) return bAvail - aAvail;
-      return a.name.localeCompare(b.name, "pt-BR");
-    });
+    return [...byId.values()].sort(
+      (a, b) =>
+        availabilityRank(a.availability) - availabilityRank(b.availability) ||
+        a.name.localeCompare(b.name, "pt-BR")
+    );
   }, [
     availableMemberMeta,
     currentUser,
@@ -654,8 +685,11 @@ export function ScheduleFormDrawer({
     }
   };
 
-  const handleScheduleSubmit = async (submitEvent) => {
-    submitEvent.preventDefault();
+  const handleScheduleSubmit = async (
+    submitEvent,
+    { acknowledgedUnavailable = false } = {}
+  ) => {
+    submitEvent?.preventDefault();
     if (isSavingSchedule) return;
 
     setDrawerFormError("");
@@ -826,6 +860,23 @@ export function ScheduleFormDrawer({
     if (nextVolError) {
       announce(nextVolError);
       volunteersNeededInputRef.current?.focus();
+      return;
+    }
+
+    const alreadyAssignedIds = new Set(
+      isEditing ? (event.assignments || []).map((person) => person.memberId) : []
+    );
+    const unavailablePicks = formSelfSignup
+      ? []
+      : visibleMembers.filter(
+          (member) =>
+            selectedMemberIds.includes(member.id) &&
+            !alreadyAssignedIds.has(member.id) &&
+            isUnavailableMember(member.availability)
+        );
+    if (unavailablePicks.length > 0 && !acknowledgedUnavailable) {
+      setUnavailablePicksToConfirm(unavailablePicks);
+      unavailableDialogRef.current?.showModal();
       return;
     }
 
@@ -1729,7 +1780,14 @@ export function ScheduleFormDrawer({
                             </span>
                             <span className={styles.memberCardText}>
                               <span className={styles.memberCardName}>
-                                {member.name}
+                                <span className={styles.memberCardNameText}>
+                                  {member.name}
+                                </span>
+                                {isUnavailableMember(member.availability) && (
+                                  <CalendarXIcon
+                                    className={styles.memberUnavailableIcon}
+                                  />
+                                )}
                               </span>
                               <span className={styles.memberCardHandle}>
                                 {member.handle || "Primeiro acesso"}
@@ -1842,6 +1900,59 @@ export function ScheduleFormDrawer({
           </button>
         </div>
       </form>
+
+      <dialog
+        ref={unavailableDialogRef}
+        aria-labelledby={unavailableDialogTitleId}
+        className={styles.modalDialog}
+        onClose={() => setUnavailablePicksToConfirm([])}
+      >
+        <div className={styles.modalForm}>
+          <h2 id={unavailableDialogTitleId} className={styles.modalTitle}>
+            Escalar quem está indisponível?
+          </h2>
+          <p className={styles.modalSubtitle}>
+            Você escalou{" "}
+            {unavailablePicksToConfirm.length === 1
+              ? "um membro que informou estar indisponível"
+              : "membros que informaram estar indisponíveis"}{" "}
+            neste horário. Vale conversar com{" "}
+            {unavailablePicksToConfirm.length === 1 ? "essa pessoa" : "essas pessoas"}{" "}
+            antes de manter a escala.
+          </p>
+          <ul className={styles.unavailablePickList}>
+            {unavailablePicksToConfirm.map((member) => (
+              <li key={member.id} className={styles.unavailablePickItem}>
+                <CalendarXIcon className={styles.memberUnavailableIcon} />
+                <span>
+                  <strong>{member.name}</strong>{" "}
+                  {unavailabilityReason(member.availability)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className={styles.modalActions}>
+            <button
+              type="button"
+              autoFocus
+              className={styles.modalCancelButton}
+              onClick={() => unavailableDialogRef.current?.close()}
+            >
+              Voltar e revisar
+            </button>
+            <button
+              type="button"
+              className={styles.modalConfirmButton}
+              onClick={() => {
+                unavailableDialogRef.current?.close();
+                handleScheduleSubmit(null, { acknowledgedUnavailable: true });
+              }}
+            >
+              Salvar mesmo assim
+            </button>
+          </div>
+        </div>
+      </dialog>
     </dialog>
   );
 }

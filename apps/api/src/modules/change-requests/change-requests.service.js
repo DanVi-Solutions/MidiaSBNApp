@@ -1,6 +1,7 @@
 import { AppError } from "../../shared/errors/AppError.js";
 import { isUniqueViolationOn } from "../../shared/errors/prismaErrors.js";
 import { messages } from "../notifications/notifications.messages.js";
+import { schedulesRepository } from "../schedules/schedules.repository.js";
 import { notifier as defaultNotifier } from "../notifications/notifications.notifier.js";
 import { changeRequestsRepository } from "./change-requests.repository.js";
 
@@ -20,7 +21,11 @@ const OUTDATED_AFTER_HANDING_OVER = [
   "CHANGE_REQUEST_REJECTED",
 ];
 
-export function createChangeRequestsService({ repository = changeRequestsRepository, notifier = defaultNotifier } = {}) {
+export function createChangeRequestsService({
+  repository = changeRequestsRepository,
+  schedules = schedulesRepository,
+  notifier = defaultNotifier,
+} = {}) {
   async function findOwnAssignment(auth, id) {
     const assignment = await repository.findAssignment(id);
     if (!assignment || assignment.credentialId !== auth.id) throw AppError.notFound(NOT_FOUND);
@@ -100,6 +105,11 @@ export function createChangeRequestsService({ repository = changeRequestsReposit
       await notifier.discardAboutSchedule(auth.id, scheduleId, REQUEST_RECEIVED);
       await notifier.discardAboutSchedule(requesterId, scheduleId, OUTDATED_AFTER_HANDING_OVER);
       await notifier.to([requesterId], messages.changeRequestAccepted(assignment.credentialChange.name, assignment.schedule));
+      await notifier.safely(async () => {
+        if ((await schedules.countDeclined(scheduleId)) === 0) {
+          await notifier.discardForEveryone(scheduleId, ["ASSIGNMENT_DECLINED"]);
+        }
+      });
       return repository.findAssignment(assignmentId);
     },
 

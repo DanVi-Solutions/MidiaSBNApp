@@ -18,6 +18,11 @@ export function createSchedulesController(service = schedulesService) {
       res.json(await service.confirmPresence(req.auth, req.validated.params.assignmentId));
     },
 
+    async decline(req, res) {
+      await service.decline(req.auth, req.validated.params.assignmentId);
+      res.status(204).end();
+    },
+
     async checkIn(req, res) {
       res.json(await service.checkIn(req.auth, req.validated.params.assignmentId));
     },
@@ -42,6 +47,15 @@ export function createSchedulesController(service = schedulesService) {
 
     async getById(req, res) {
       res.json(await service.getById(req.auth, req.validated.params.id));
+    },
+
+    async candidatesAt(req, res) {
+      res.json(await service.candidatesAt(req.auth, req.validated.query));
+    },
+
+    async replaceDeclined(req, res) {
+      const { id, credentialId } = req.validated.params;
+      res.json(await service.replaceDeclined(req.auth, id, credentialId, req.validated.body.credentialId));
     },
 
     async availableCredentials(req, res) {

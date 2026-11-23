@@ -9,8 +9,10 @@ import {
   createBody,
   idParams,
   listQuery,
+  candidatesQuery,
   mineQuery,
   ownAssignmentParams,
+  replacementBody,
   updateBody,
 } from "./schedules.validation.js";
 
@@ -113,14 +115,18 @@ r.post(
     description: markdown(
       "A pessoa escalada confirma que vai participar. Só depois da confirmação o check-in é liberado.",
       "",
-      "Para indicar que **não** vai participar, peça uma substituição em `POST /change-requests`: o pedido desfaz " +
-        "a confirmação. Se o substituto aceitar, a participação passa para ele já confirmada.",
+      "Para indicar que **não** vai participar: com substituto, `POST /change-requests` (o pedido desfaz a " +
+        "confirmação; se o substituto aceitar, a participação passa para ele já confirmada); sem substituto, " +
+        "`POST /schedules/me/{assignmentId}/decline`. Confirmar depois de avisar que não vai desfaz o aviso.",
+      "",
+      "Se a escala começar sem a confirmação, os gerentes do ministério e líderes gerais são avisados para " +
+        "verificar se a pessoa está no local.",
       "",
       "- Confirmar de novo não muda nada.",
       "- Uma substituição recusada é encerrada ao confirmar: a pessoa assume que vai.",
       "- Se o horário da escala mudar, a confirmação é desfeita e precisa ser feita de novo.",
       "",
-      "**Quem pode:** a própria pessoa escalada, até o início da escala.",
+      "**Quem pode:** a própria pessoa escalada, até o horário de início da escala.",
     ),
     params: ownAssignmentParams,
     responses: {
@@ -129,6 +135,31 @@ r.post(
     },
   },
   controller.confirmPresence,
+);
+
+r.post(
+  "/me/:assignmentId/decline",
+  {
+    summary: "Avisar que não vou participar (sem substituto)",
+    description: markdown(
+      "A pessoa escalada avisa que não vai participar, sem indicar substituto. Ela **continua na escala** " +
+        "(`changeStatus: DECLINED`) até um **gerente do ministério** ou **líder geral** colocar outra pessoa no " +
+        "lugar (`POST /schedules/{id}/credentials/{credentialId}/replacement`). Os dois são avisados.",
+      "",
+      "Se mudar de ideia antes disso, a pessoa pode confirmar presença de novo ou indicar um substituto.",
+      "",
+      "Para indicar um substituto, use `POST /change-requests`: aí quem é avisado é o substituto.",
+      "",
+      "**Quem pode:** a própria pessoa escalada, até o início da escala e sem pedido de substituição aguardando " +
+        "resposta.",
+    ),
+    params: ownAssignmentParams,
+    responses: {
+      204: null,
+      409: { description: "A escala já começou ou há um pedido de substituição aguardando resposta" },
+    },
+  },
+  controller.decline,
 );
 
 r.post(
@@ -153,6 +184,28 @@ r.post(
     },
   },
   controller.checkIn,
+);
+
+r.get(
+  "/candidates",
+  {
+    summary: "Disponibilidade para uma escala em montagem",
+    description: markdown(
+      "Lista os membros do ministério com a disponibilidade deles no dia e horário informados, antes mesmo de a " +
+        "escala existir. Use ao montar uma escala nova para mostrar quem está indisponível.",
+      "",
+      "- `hasWeeklyAvailability`: marcou disponibilidade no dia da semana e período (manhã/tarde/noite);",
+      "- `isUnavailable`: registrou uma ausência que cobre o horário;",
+      "- `available`: as duas condições favoráveis.",
+      "",
+      "Os disponíveis vêm primeiro. Quem está indisponível **pode** ser escalado mesmo assim.",
+      "",
+      manageRule,
+    ),
+    query: candidatesQuery,
+    responses: { 200: res.candidates },
+  },
+  controller.candidatesAt,
 );
 
 r.get(
@@ -219,7 +272,7 @@ r.post(
       manageRule,
     ),
     body: createBody,
-    responses: { 201: res.schedule, 409: { description: "O ministério já tem uma escala neste dia e horário" } },
+    responses: { 201: res.schedule },
   },
   controller.create,
 );
@@ -269,6 +322,8 @@ r.post(
       "A pessoa logada entra numa escala de **inscrição voluntária**, se ainda houver vaga. Vagas são disputadas: " +
         "se duas pessoas se inscreverem ao mesmo tempo na última vaga, só uma consegue.",
       "",
+      "Quem se inscreve já fica com a **presença confirmada**: o próximo passo é o check-in no dia.",
+      "",
       "**Quem pode:** membros do ministério da escala, com a conta ativa, enquanto a escala estiver publicada e " +
         "não tiver começado.",
     ),
@@ -305,6 +360,28 @@ r.post(
   controller.assign,
 );
 
+r.post(
+  "/:id/credentials/:credentialId/replacement",
+  {
+    summary: "Substituir quem avisou que não vai",
+    description: markdown(
+      "Coloca outra pessoa no lugar de quem avisou que não vai participar sem indicar substituto " +
+        "(`changeStatus: DECLINED`). Quem saiu é avisado; quem entra recebe o aviso de escala (se publicada) e " +
+        "precisa confirmar presença.",
+      "",
+      "**Quem pode:** o administrador, ou o gerente do ministério ou líder geral que participam do ministério.",
+    ),
+    params: assignmentParams,
+    body: replacementBody,
+    responses: {
+      200: res.schedule,
+      409: { description: "A pessoa não avisou que não vai, a escala já começou ou o substituto já está nela" },
+      422: { description: "O substituto não participa do ministério ou está com a conta desativada" },
+    },
+  },
+  controller.replaceDeclined,
+);
+
 r.patch(
   "/:id",
   {
@@ -317,7 +394,7 @@ r.patch(
     ),
     params: idParams,
     body: updateBody,
-    responses: { 200: res.schedule, 409: { description: "O ministério já tem uma escala neste dia e horário" } },
+    responses: { 200: res.schedule },
   },
   controller.update,
 );

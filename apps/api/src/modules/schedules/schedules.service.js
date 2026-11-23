@@ -18,12 +18,18 @@ import { checkInWindowOf, stillCheckingIn } from "./schedules.attendance.js";
 import { distribute, randomSeed, seededRandom } from "./schedules.distribution.js";
 import { schedulesRepository } from "./schedules.repository.js";
 
-const SAME_TIME_CONFLICT = "Este ministério já tem uma escala neste dia e horário";
 
 function excludedAssigneeRolesFor(auth) {
   return isAtLeast(auth.role, ROLES.GENERAL_MANAGER)
     ? [ROLES.ADMINISTRATOR]
     : [ROLES.ADMINISTRATOR, ROLES.GENERAL_MANAGER];
+}
+
+function assertCanResolveDeclinesOf(auth, departmentId) {
+  const isLeader = [ROLES.DEPARTMENT_MANAGER, ROLES.GENERAL_MANAGER].includes(auth.role) && participatesIn(auth, departmentId);
+  if (!isAdmin(auth) && !isLeader) {
+    throw AppError.forbidden("Apenas o gerente do ministério ou o líder geral pode substituir quem não vai participar");
+  }
 }
 
 function assertCanManageAssignmentOf(auth, memberRole) {
@@ -60,7 +66,13 @@ const ASSIGNMENT_NOT_FOUND = "Participação na escala não encontrada";
 
 const assigneeIdsOf = (schedule) => (schedule.assignments ?? []).map((assignment) => assignment.credential.id);
 
-const OUTDATED_AFTER_LEAVING = ["SCHEDULE_ASSIGNED", "SCHEDULE_CHANGED", "SCHEDULE_REMINDER", "SELF_SIGNUP_OPENED"];
+const OUTDATED_AFTER_LEAVING = [
+  "SCHEDULE_ASSIGNED",
+  "SCHEDULE_CHANGED",
+  "SCHEDULE_REMINDER",
+  "SELF_SIGNUP_OPENED",
+  "CHANGE_REQUEST_REJECTED",
+];
 
 export function createSchedulesService({
   repository = schedulesRepository,
@@ -84,15 +96,6 @@ export function createSchedulesService({
     const schedule = await findManageableSchedule(auth, id);
     assertInsideWindow(schedule.scheduleAt);
     return schedule;
-  }
-
-  async function translateSameTimeConflict(operation) {
-    try {
-      return await operation();
-    } catch (error) {
-      if (isUniqueViolationOn(error, "schedule_department_id_schedule_at")) throw AppError.conflict(SAME_TIME_CONFLICT);
-      throw error;
-    }
   }
 
   async function findSelfSignupSchedule(auth, id) {
@@ -192,6 +195,14 @@ export function createSchedulesService({
     if (!before.selfSignup && after.selfSignup) await announceOpenSlots(auth, after);
   }
 
+  async function resolveDeclinedNotice(scheduleId) {
+    await notifier.safely(async () => {
+      if ((await repository.countDeclined(scheduleId)) === 0) {
+        await notifier.discardForEveryone(scheduleId, ["ASSIGNMENT_DECLINED"]);
+      }
+    });
+  }
+
   async function availabilityAt(schedule, excludeRoles = []) {
     const { weekday, period } = weekdayAndPeriodOf(schedule.scheduleAt);
     const members = await repository.membersWithAvailabilityAt(schedule.department.id, {
@@ -233,9 +244,33 @@ export function createSchedulesService({
         throw AppError.conflict("Você pediu substituição nesta escala. Cancele o pedido antes de confirmar presença");
       }
 
-      if (!assignment.confirmedAt) await repository.confirmPresence(assignmentId);
+      if (!assignment.confirmedAt || assignment.changeStatus !== "NONE") await repository.confirmPresence(assignmentId);
       await notifier.discardAboutSchedule(auth.id, assignment.schedule.id, ["CHANGE_REQUEST_REJECTED"]);
+      await resolveDeclinedNotice(assignment.schedule.id);
       return withCheckInWindow(await repository.findOwnAssignment(assignmentId, auth.id));
+    },
+
+    async decline(auth, assignmentId) {
+      const assignment = await repository.findOwnAssignment(assignmentId, auth.id);
+      if (!assignment) throw AppError.notFound(ASSIGNMENT_NOT_FOUND);
+      if (assignment.schedule.scheduleAt <= new Date()) throw AppError.conflict("A escala já começou");
+      if (assignment.changeStatus === "REQUESTED") {
+        throw AppError.conflict(
+          "Você já indicou um substituto para esta escala. Cancele o pedido antes de avisar que não vai participar",
+        );
+      }
+      if (assignment.changeStatus === "DECLINED") {
+        throw AppError.conflict("Você já avisou que não vai participar. Os líderes do ministério vão escolher alguém");
+      }
+
+      if (!(await repository.markDeclined(assignmentId))) throw AppError.conflict("A participação mudou. Atualize a página");
+
+      const { schedule } = assignment;
+      await notifier.discardAboutSchedule(auth.id, schedule.id, ["CHANGE_REQUEST_REJECTED", "SCHEDULE_REMINDER"]);
+      await notifier.safely(async () => {
+        const leaders = await recipients.departmentLeadersOf(schedule.department.id);
+        await notifier.to(leaders, messages.assignmentDeclined(assignment.credential.name, schedule), { except: auth.id });
+      });
     },
 
     async checkIn(auth, assignmentId) {
@@ -349,7 +384,7 @@ export function createSchedulesService({
       assertCanManageSchedulesOf(auth, data.departmentId);
       assertInsideWindow(data.scheduleAt);
       ensureVolunteersNeededWhenSelfSignup(data);
-      return translateSameTimeConflict(() => repository.create(data));
+      return repository.create(data);
     },
 
     async update(auth, id, changes) {
@@ -359,7 +394,7 @@ export function createSchedulesService({
         selfSignup: changes.selfSignup ?? current.selfSignup,
         volunteersNeeded: changes.volunteersNeeded === undefined ? current.volunteersNeeded : changes.volunteersNeeded,
       });
-      const updated = await translateSameTimeConflict(() => repository.update(id, changes));
+      const updated = await repository.update(id, changes);
       if (updated.scheduleAt.getTime() !== current.scheduleAt.getTime()) await repository.resetAfterReschedule(id);
       await announceUpdate(auth, current, updated);
       return updated;
@@ -402,6 +437,44 @@ export function createSchedulesService({
       return { schedule: updated, warnings };
     },
 
+    async replaceDeclined(auth, id, credentialId, substituteId) {
+      const schedule = await findEditableSchedule(auth, id);
+      assertCanResolveDeclinesOf(auth, schedule.department.id);
+      if (schedule.scheduleAt <= new Date()) throw AppError.conflict("A escala já começou");
+
+      const declined = schedule.assignments.find((assignment) => assignment.credential.id === credentialId);
+      if (!declined) throw AppError.notFound("A pessoa não está nesta escala");
+      if (declined.changeStatus !== "DECLINED") {
+        throw AppError.conflict("Só é possível substituir quem avisou que não vai participar");
+      }
+
+      const substitute = await repository.findMember(schedule.department.id, substituteId);
+      if (!substitute) throw AppError.unprocessable("O substituto precisa participar do ministério desta escala");
+      if (substitute.status === "INACTIVE") throw AppError.unprocessable("A conta do substituto está desativada");
+      assertCanManageAssignmentOf(auth, substitute.role);
+
+      try {
+        await repository.replaceAssignment(declined.id, substituteId);
+      } catch (error) {
+        if (isUniqueViolationOn(error, "credential_schedule")) throw AppError.conflict("O substituto já está nesta escala");
+        throw error;
+      }
+
+      const updated = await repository.findById(id);
+      await notifier.discardAboutSchedule(credentialId, id, OUTDATED_AFTER_LEAVING);
+      await notifier.to([credentialId], messages.scheduleReplaced(updated), { except: auth.id });
+      if (updated.published) await notifier.to([substituteId], messages.scheduleAssigned(updated), { except: auth.id });
+      await resolveDeclinedNotice(id);
+      return updated;
+    },
+
+    async candidatesAt(auth, { departmentId, scheduleAt }) {
+      if (!(await departments.findById(departmentId))) throw AppError.notFound("Ministério não encontrado");
+      assertCanManageSchedulesOf(auth, departmentId);
+      const candidates = await availabilityAt({ scheduleAt, department: { id: departmentId } }, excludedAssigneeRolesFor(auth));
+      return candidates.sort(byAvailabilityThenName);
+    },
+
     async unassign(auth, id, credentialId) {
       const schedule = await findEditableSchedule(auth, id);
       const existingAssignment = (schedule.assignments || []).find(
@@ -420,6 +493,7 @@ export function createSchedulesService({
       }
       await notifier.discardAboutSchedule(credentialId, id, OUTDATED_AFTER_LEAVING);
       if (schedule.published) await notifier.to([credentialId], messages.scheduleUnassigned(schedule), { except: auth.id });
+      await resolveDeclinedNotice(id);
     },
   };
 }

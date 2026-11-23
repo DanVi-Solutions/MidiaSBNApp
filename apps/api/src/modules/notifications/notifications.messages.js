@@ -39,6 +39,14 @@ export const messages = {
       `Você foi retirado de ${scheduleLabel(schedule)} — ${when(schedule)}.`,
     ),
 
+  scheduleReplaced: (schedule) =>
+    aboutSchedule(
+      "SCHEDULE_UNASSIGNED",
+      schedule,
+      "Você foi substituído",
+      `Os líderes escolheram outra pessoa para o seu lugar em ${scheduleLabel(schedule)} — ${when(schedule)}.`,
+    ),
+
   scheduleMoved: (schedule) =>
     aboutSchedule(
       "SCHEDULE_CHANGED",
@@ -152,6 +160,24 @@ export const messages = {
       schedule,
       "Ausência em uma escala",
       `${personName} informou que estará ausente em ${scheduleLabel(schedule)} — ${when(schedule)}.`,
+    ),
+
+  assignmentDeclined: (personName, schedule) =>
+    aboutSchedule(
+      "ASSIGNMENT_DECLINED",
+      schedule,
+      "Escala precisa de outra pessoa",
+      `${personName} não poderá participar de ${scheduleLabel(schedule)} — ${when(schedule)} e não indicou substituto. Escolha alguém para a vaga.`,
+    ),
+
+  presenceNotConfirmed: (names, schedule) =>
+    aboutSchedule(
+      "PRESENCE_NOT_CONFIRMED",
+      schedule,
+      "Presença não confirmada",
+      names.length === 1
+        ? `${names[0]} não confirmou presença em ${scheduleLabel(schedule)} — ${when(schedule)}. Verifique se está no local.`
+        : `${listNames(names)} não confirmaram presença em ${scheduleLabel(schedule)} — ${when(schedule)}. Verifique se estão no local.`,
     ),
 
   cycleOpened: ({ releasedMonth, lastEditableDay }) => ({

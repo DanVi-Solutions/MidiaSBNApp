@@ -152,6 +152,7 @@ export function formatScheduleDateDisplay(iso) {
         day: String(dayNumber).padStart(2, "0"),
         monthShort: MONTH_SHORT_PT[monthIndex] ?? "---",
         weekdayShort: WEEKDAY_SHORT_PT[weekdayIndex] ?? "",
+        weekdayFull: WEEKDAY_FULL_PT[weekdayIndex] ?? "",
         fullDateLabel: `${WEEKDAY_FULL_PT[weekdayIndex]}, ${String(dayNumber).padStart(2, "0")} de ${MONTH_FULL_PT[monthIndex]}`,
       };
     } catch {
@@ -165,6 +166,7 @@ export function formatScheduleDateDisplay(iso) {
       day: "--",
       monthShort: "---",
       weekdayShort: "",
+      weekdayFull: "",
       fullDateLabel: String(iso ?? ""),
     };
   }
@@ -175,6 +177,7 @@ export function formatScheduleDateDisplay(iso) {
     day: String(parts.day).padStart(2, "0"),
     monthShort: MONTH_SHORT_PT[monthIndex] ?? "---",
     weekdayShort: WEEKDAY_SHORT_PT[weekdayIndex] ?? "",
+    weekdayFull: WEEKDAY_FULL_PT[weekdayIndex] ?? "",
     fullDateLabel: `${WEEKDAY_FULL_PT[weekdayIndex]}, ${String(parts.day).padStart(2, "0")} de ${MONTH_FULL_PT[monthIndex]}`,
   };
 }

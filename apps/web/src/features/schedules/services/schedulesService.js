@@ -52,6 +52,7 @@ export function formatScheduleForUi(apiSchedule) {
     day: dateDisplay.day,
     monthShort: dateDisplay.monthShort,
     weekdayShort: dateDisplay.weekdayShort,
+    weekdayFull: dateDisplay.weekdayFull,
     fullDateLabel: dateDisplay.fullDateLabel,
     time,
     ministryId: department.id,
@@ -98,6 +99,18 @@ export function getScheduleById(id) {
 
 export function getAvailableCredentials(id) {
   return apiRequest(`/schedules/${encodeURIComponent(id)}/available-credentials`);
+}
+
+export function getScheduleCandidates({ departmentId, scheduleAt }) {
+  const params = new URLSearchParams({ departmentId, scheduleAt });
+  return apiRequest(`/schedules/candidates?${params}`);
+}
+
+export function replaceDeclinedAssignment(scheduleId, credentialId, substituteId) {
+  return apiRequest(
+    `/schedules/${encodeURIComponent(scheduleId)}/credentials/${encodeURIComponent(credentialId)}/replacement`,
+    { method: "POST", body: { credentialId: substituteId } }
+  );
 }
 
 export function listMyAssignments({ from } = {}) {
@@ -222,6 +235,13 @@ export function cancelChangeRequest(assignmentId) {
 export function confirmPresence(assignmentId) {
   return apiRequest(
     `/schedules/me/${encodeURIComponent(assignmentId)}/confirmation`,
+    { method: "POST" }
+  );
+}
+
+export function declineAssignment(assignmentId) {
+  return apiRequest(
+    `/schedules/me/${encodeURIComponent(assignmentId)}/decline`,
     { method: "POST" }
   );
 }

@@ -9,7 +9,7 @@ const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-const JOB_INTERVAL = 15 * MINUTE;
+const JOB_INTERVAL = 5 * MINUTE;
 const REMINDER_LEAD_TIME = DAY;
 
 export const RETENTION = Object.freeze({
@@ -37,6 +37,34 @@ export async function sendDueReminders({
     })),
   );
   return due.length;
+}
+
+export async function warnUnconfirmedPresence({
+  repository = notificationsRepository,
+  notifier = defaultNotifier,
+  now = new Date(),
+} = {}) {
+  const started = await repository.findStartedWithoutAttendanceNotice({ from: new Date(now.getTime() - DAY), until: now });
+  if (started.length === 0) return 0;
+
+  await repository.markAttendanceNoticeSent(
+    started.map((schedule) => schedule.id),
+    now,
+  );
+
+  const pending = started.filter((schedule) => schedule.credentials.length > 0);
+  const entries = await Promise.all(
+    pending.map(async (schedule) => {
+      const leaders = await repository.departmentLeadersOf(schedule.department.id);
+      const message = messages.presenceNotConfirmed(
+        schedule.credentials.map((assignment) => assignment.credential.name),
+        schedule,
+      );
+      return leaders.map((credentialId) => ({ credentialId, message }));
+    }),
+  );
+  await notifier.send(entries.flat());
+  return pending.length;
 }
 
 const CYCLE_MARKER = "schedule_cycle_announced";
@@ -81,6 +109,13 @@ export function startNotificationJobs() {
       if (managers > 0) console.log(`Novo ciclo de escalas anunciado para ${managers} pessoa(s)`);
     } catch (error) {
       console.error("Falha ao anunciar o novo ciclo de escalas", error);
+    }
+
+    try {
+      const unconfirmed = await warnUnconfirmedPresence();
+      if (unconfirmed > 0) console.log(`Escalas com presença não confirmada avisadas: ${unconfirmed}`);
+    } catch (error) {
+      console.error("Falha ao avisar presenças não confirmadas", error);
     }
 
     try {

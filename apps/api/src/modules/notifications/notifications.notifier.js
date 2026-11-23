@@ -79,6 +79,10 @@ export function createNotifier({
       }
     },
 
+    discardForEveryone(scheduleId, types) {
+      return this.safely(() => repository.discardForEveryone(scheduleId, types));
+    },
+
     discardAboutSchedule(credentialId, scheduleId, types) {
       return this.safely(() => repository.discardAboutSchedule(credentialId, scheduleId, types));
     },

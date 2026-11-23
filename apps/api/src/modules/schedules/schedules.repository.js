@@ -14,6 +14,7 @@ const assignmentSelect = {
 const ownAssignmentSelect = {
   id: true,
   changeStatus: true,
+  credential: { select: { id: true, name: true } },
   confirmedAt: true,
   checkedInAt: true,
   credentialChange: { select: { id: true, name: true } },
@@ -117,7 +118,7 @@ export const schedulesRepository = {
         select: { volunteersNeeded: true, _count: { select: { credentials: true } } },
       });
       if (schedule._count.credentials >= schedule.volunteersNeeded) return false;
-      await tx.credentialSchedule.create({ data: { scheduleId, credentialId } });
+      await tx.credentialSchedule.create({ data: { scheduleId, credentialId, confirmedAt: new Date() } });
       return true;
     });
   },
@@ -135,10 +136,39 @@ export const schedulesRepository = {
   },
 
   async resetAfterReschedule(scheduleId) {
-    await prisma.credentialSchedule.updateMany({
-      where: { scheduleId },
-      data: { reminderSentAt: null, confirmedAt: null, checkedInAt: null },
+    await prisma.$transaction([
+      prisma.credentialSchedule.updateMany({
+        where: { scheduleId },
+        data: { reminderSentAt: null, confirmedAt: null, checkedInAt: null },
+      }),
+      prisma.schedule.update({ where: { id: scheduleId }, data: { attendanceNoticeSentAt: null } }),
+    ]);
+  },
+
+  async markDeclined(id) {
+    const { count } = await prisma.credentialSchedule.updateMany({
+      where: { id, changeStatus: { in: ["NONE", "REJECTED"] }, checkedInAt: null },
+      data: { changeStatus: "DECLINED", credentialChangeId: null, confirmedAt: null },
     });
+    return count === 1;
+  },
+
+  replaceAssignment(id, substituteId) {
+    return prisma.credentialSchedule.update({
+      where: { id },
+      data: {
+        credentialId: substituteId,
+        changeStatus: "NONE",
+        credentialChangeId: null,
+        confirmedAt: null,
+        checkedInAt: null,
+        reminderSentAt: null,
+      },
+    });
+  },
+
+  countDeclined(scheduleId) {
+    return prisma.credentialSchedule.count({ where: { scheduleId, changeStatus: "DECLINED" } });
   },
 
   async deleteBefore(date) {

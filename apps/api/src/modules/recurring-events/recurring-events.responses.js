@@ -23,7 +23,7 @@ export const applied = z.object({
   departments: z.array(department).meta({ description: "Ministérios que receberam as escalas." }),
   created: z.number().int().meta({ description: "Escalas criadas agora." }),
   skipped: z.number().int().meta({
-    description: "Escalas que já existiam no mesmo ministério e horário (ex.: evento aplicado duas vezes).",
+    description: "Escalas que este evento já tinha gerado no mesmo ministério e horário (ex.: evento aplicado duas vezes).",
   }),
   outsideWindow: z.number().int().meta({
     description: "Ocorrências ignoradas por estarem fora do período liberado (no passado ou depois do limite).",

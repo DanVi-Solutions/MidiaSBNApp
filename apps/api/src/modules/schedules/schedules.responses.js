@@ -7,8 +7,10 @@ const person = z.object({
   username: z.string().nullable(),
   role: z.enum(["ADMINISTRATOR", "GENERAL_MANAGER", "DEPARTMENT_MANAGER", "SCHEDULER_MANAGER", "VOLUNTEER"]).optional(),
 });
-const changeStatus = z.enum(["NONE", "REQUESTED", "REJECTED"]).meta({
-  description: "Pedido de troca: NONE (nenhum), REQUESTED (aguardando o substituto), REJECTED (substituto recusou).",
+const changeStatus = z.enum(["NONE", "REQUESTED", "REJECTED", "DECLINED"]).meta({
+  description:
+    "Situação da participação: NONE (normal), REQUESTED (substituto indicado, aguardando resposta), REJECTED " +
+    "(substituto recusou), DECLINED (avisou que não vai, sem substituto: aguardando os líderes substituírem).",
 });
 
 const attendance = {

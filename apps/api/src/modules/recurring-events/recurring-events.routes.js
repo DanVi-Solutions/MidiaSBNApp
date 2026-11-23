@@ -82,8 +82,8 @@ r.post(
       "- **Evento geral:** gera uma escala para cada ministério em `departmentIds` (padrão: todos os que você " +
         "gerencia; administrador: todos os ministérios).",
       "",
-      "As escalas nascem **não publicadas** e sem pessoas. Pode ser chamado de novo sem duplicar: escalas que já " +
-        "existem no mesmo ministério e horário são contadas em `skipped`.",
+      "As escalas nascem **não publicadas** e sem pessoas. Pode ser chamado de novo sem duplicar: escalas que este " +
+        "mesmo evento já gerou no ministério e horário são contadas em `skipped`.",
       "",
       "**Inscrição voluntária:** o evento não define isso; quem decide é quem gera as escalas. Envie " +
         "`selfSignup: true` e `volunteersNeeded` para que as escalas geradas fiquem abertas para os membros se " +

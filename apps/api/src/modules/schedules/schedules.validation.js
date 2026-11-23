@@ -36,6 +36,15 @@ export const ownAssignmentParams = z.object({
   assignmentId: uuidParam("ID da participação (o `id` de cada item de `GET /schedules/me`)"),
 });
 
+export const candidatesQuery = z.object({
+  departmentId: z.uuid("ID inválido").meta({ description: "Ministério da escala que está sendo montada." }),
+  scheduleAt: dateTime("Data e hora de início da escala que está sendo montada."),
+});
+
+export const replacementBody = z.object({
+  credentialId: z.uuid("ID inválido").meta({ description: "Pessoa que vai assumir a vaga." }),
+});
+
 export const listQuery = z.object({
   departmentId: z.uuid("ID inválido").optional().meta({ description: "Filtra por um ministério (department)." }),
   from: dateTime("Início do intervalo. Padrão: agora.").optional(),

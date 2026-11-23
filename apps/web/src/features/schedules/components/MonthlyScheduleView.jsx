@@ -31,14 +31,17 @@ import {
   cancelChangeRequest,
   checkInToSchedule,
   confirmPresence,
+  declineAssignment,
   deleteSchedule,
   formatScheduleForUi,
+  getAvailableCredentials,
   getScheduleById,
   getScheduleWindow,
   listMyAssignments,
   listMyChangeRequests,
   listOpenSchedules,
   listSchedules,
+  replaceDeclinedAssignment,
   requestScheduleChange,
   signUpForSchedule,
   updateSchedule,
@@ -106,6 +109,21 @@ function setupClosedByFallback(dialog, onDismiss) {
 
 const LIVE_CLOCK_INTERVAL = 30 * 1000;
 
+const CONFIRM_MODAL_TEXT = {
+  "check-in": { title: "Fazer check-in?", action: "Fazer check-in" },
+  "confirm-presence": {
+    title: "Confirmar presença?",
+    action: "Confirmar presença",
+  },
+  "sign-up": { title: "Inscrever-se na escala?", action: "Inscrever-me" },
+  delete: { title: "Excluir escala?", action: "Excluir escala" },
+  "publish-all": {
+    title: "Publicar todas as escalas?",
+    action: "Publicar todas",
+  },
+  "publish-one": { title: "Publicar escala?", action: "Publicar escala" },
+};
+
 const ATTENDANCE_BADGE_TONE = {
   pending: styles.attendancePending,
   confirmed: styles.attendanceConfirmed,
@@ -117,6 +135,9 @@ const DRAFT_BADGE = { tone: "confirmed", label: "Escalado" };
 function attendanceBadgeOf(person) {
   if (person.changeStatus === "REQUESTED") {
     return { tone: "pending", label: "Troca pendente" };
+  }
+  if (person.changeStatus === "DECLINED") {
+    return { tone: "pending", label: "Não vai participar" };
   }
   if (person.checkedInAt) return { tone: "present", label: "Check-in feito" };
   if (person.confirmedAt) return { tone: "confirmed", label: "Confirmado" };
@@ -154,6 +175,12 @@ function describeHeroAttendance(schedule, nowMs) {
             : "Substituição solicitada",
         },
         hint: "Aguardando a resposta de quem você indicou.",
+      };
+    case ATTENDANCE_PHASE.DECLINED:
+      return {
+        target,
+        pill: { tone: "amber", label: "Aguardando substituição" },
+        hint: "Os líderes do ministério foram avisados e vão escolher alguém para o seu lugar.",
       };
     case ATTENDANCE_PHASE.NEEDS_CONFIRMATION:
       return {
@@ -250,13 +277,14 @@ export function MonthlyScheduleView() {
   const scopeSelectId = useId();
   const modalTitleId = useId();
   const substituteSelectId = useId();
-  const substituteErrorId = useId();
   const confirmModalTitleId = useId();
 
   const absenceDialogRef = useRef(null);
+  const replaceDialogRef = useRef(null);
+  const replaceTitleId = useId();
+  const replaceSelectId = useId();
   const confirmDialogRef = useRef(null);
   const confirmCancelBtnRef = useRef(null);
-  const announceTimerRef = useRef(null);
 
   const [scheduleWindow, setScheduleWindow] = useState(null);
   const [referenceNowMs, setReferenceNowMs] = useState(0);
@@ -268,7 +296,6 @@ export function MonthlyScheduleView() {
   });
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(true);
   const [schedulesLoadError, setSchedulesLoadError] = useState("");
-  const [liveAnnouncement, setLiveAnnouncement] = useState("");
 
   const [searchQuery, setSearchQuery] = useState("");
   const defaultScopeFilter = userIsAdmin ? "all-ministries" : "my-ministry";
@@ -277,14 +304,16 @@ export function MonthlyScheduleView() {
   );
 
   const [absenceTargetSchedule, setAbsenceTargetSchedule] = useState(null);
+  const [replaceTarget, setReplaceTarget] = useState(null);
+  const [replaceOptions, setReplaceOptions] = useState(null);
+  const [replaceChoiceId, setReplaceChoiceId] = useState("");
+  const [replaceError, setReplaceError] = useState("");
+  const [isReplacing, setIsReplacing] = useState(false);
   const [suggestedSubstituteId, setSuggestedSubstituteId] = useState("");
-  const [substituteError, setSubstituteError] = useState("");
   const [absenceFormError, setAbsenceFormError] = useState("");
   const [isSubmittingAbsence, setIsSubmittingAbsence] = useState(false);
   const [cancelingAssignmentId, setCancelingAssignmentId] = useState("");
 
-  const [busySignupScheduleId, setBusySignupScheduleId] = useState("");
-  const [confirmingAssignmentId, setConfirmingAssignmentId] = useState("");
   const [liveNowMs, setLiveNowMs] = useState(0);
 
   const [confirmModal, setConfirmModal] = useState(null);
@@ -417,26 +446,6 @@ export function MonthlyScheduleView() {
     };
   }, [fetchAllScheduleState, schedulesVersion]);
 
-  const announce = useCallback((message) => {
-    if (announceTimerRef.current !== null) {
-      window.clearTimeout(announceTimerRef.current);
-    }
-    setLiveAnnouncement("");
-    if (!message) return;
-
-    announceTimerRef.current = window.setTimeout(() => {
-      setLiveAnnouncement(message);
-    }, 200);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (announceTimerRef.current !== null) {
-        window.clearTimeout(announceTimerRef.current);
-      }
-    };
-  }, []);
-
   useEffect(() => {
     const tick = () => setLiveNowMs(Date.now());
     const firstTick = window.setTimeout(tick, 0);
@@ -551,6 +560,7 @@ export function MonthlyScheduleView() {
       scheduleAt: first.schedule.scheduleAt,
       day: dateInfo.day,
       monthShort: dateInfo.monthShort,
+      weekdayFull: dateInfo.weekdayFull,
       ministryId: first.schedule.department?.id || "",
       ministryName: first.schedule.department?.name || "Ministério",
       title: first.schedule.name,
@@ -657,13 +667,67 @@ export function MonthlyScheduleView() {
     openWorkspaceDrawer("substitution", { request: pendingReceivedRequest });
   };
 
+  const canResolveDeclinesOf = (ministryId) => {
+    if (userIsAdmin) return true;
+    const isLeader =
+      roleCode === ROLES.DEPARTMENT_MANAGER ||
+      roleCode === ROLES.GENERAL_MANAGER;
+    return isLeader && userDepartmentIds.includes(ministryId);
+  };
+
+  const openReplaceModal = async (eventItem, person) => {
+    const dialog = replaceDialogRef.current;
+    if (!dialog || dialog.open) return;
+
+    setReplaceTarget({ event: eventItem, person });
+    setReplaceOptions(null);
+    setReplaceChoiceId("");
+    setReplaceError("");
+    dialog.showModal();
+
+    const res = await getAvailableCredentials(eventItem.id);
+    if (!res.ok || !Array.isArray(res.data)) {
+      setReplaceOptions([]);
+      setReplaceError(res.error || "Não foi possível carregar as pessoas.");
+      return;
+    }
+    setReplaceOptions(res.data);
+  };
+
+  const handleReplaceSubmit = async (submitEvent) => {
+    submitEvent.preventDefault();
+    if (isReplacing || !replaceTarget || !replaceChoiceId) return;
+
+    setIsReplacing(true);
+    setReplaceError("");
+    const res = await replaceDeclinedAssignment(
+      replaceTarget.event.id,
+      replaceTarget.person.memberId,
+      replaceChoiceId
+    );
+    setIsReplacing(false);
+
+    if (!res.ok) {
+      setReplaceError(res.error || "Não foi possível fazer a substituição.");
+      return;
+    }
+
+    const chosen = replaceOptions?.find(
+      (option) => option.credential.id === replaceChoiceId
+    );
+    replaceDialogRef.current?.close();
+    await refreshSchedules();
+    toast.success(
+      `${chosen?.credential.name ?? "A nova pessoa"} assumiu o lugar de ${replaceTarget.person.name}.`
+    );
+  };
+
   const handleOpenAbsenceModal = (targetSchedule) => {
     const dialog = absenceDialogRef.current;
     if (!dialog || dialog.open || !targetSchedule?.assignmentId) return;
 
     setAbsenceTargetSchedule(targetSchedule);
     setSuggestedSubstituteId("");
-    setSubstituteError("");
     setAbsenceFormError("");
     setIsSubmittingAbsence(false);
     dialog.returnValue = "";
@@ -677,35 +741,36 @@ export function MonthlyScheduleView() {
     }
     setAbsenceTargetSchedule(null);
     setSuggestedSubstituteId("");
-    setSubstituteError("");
     setAbsenceFormError("");
     setIsSubmittingAbsence(false);
   };
 
+  const absenceRequiresSubstitute =
+    absenceTargetSchedule?.changeStatus === "DECLINED";
+
   const handleAbsenceSubmit = async (event) => {
     event.preventDefault();
     if (isSubmittingAbsence || !absenceTargetSchedule?.assignmentId) return;
+    if (absenceRequiresSubstitute && !suggestedSubstituteId) return;
 
-    setSubstituteError("");
     setAbsenceFormError("");
-
-    if (!suggestedSubstituteId) {
-      const msg = "Selecione um membro do ministério para indicar como substituto.";
-      setSubstituteError(msg);
-      announce(msg);
-      return;
-    }
-
     setIsSubmittingAbsence(true);
-    const res = await requestScheduleChange({
-      assignmentId: absenceTargetSchedule.assignmentId,
-      substituteId: suggestedSubstituteId,
-    });
+
+    const assignmentId = absenceTargetSchedule.assignmentId;
+    const res = suggestedSubstituteId
+      ? await requestScheduleChange({
+          assignmentId,
+          substituteId: suggestedSubstituteId,
+        })
+      : await declineAssignment(assignmentId);
     setIsSubmittingAbsence(false);
 
     if (!res.ok) {
       setAbsenceFormError(
-        res.error || "Não foi possível enviar o pedido de substituição."
+        res.error ||
+          (suggestedSubstituteId
+            ? "Não foi possível enviar o pedido de substituição."
+            : "Não foi possível avisar que você não vai participar.")
       );
       return;
     }
@@ -717,8 +782,8 @@ export function MonthlyScheduleView() {
     await refreshSchedules();
     toast.success(
       chosen
-        ? `Substituição solicitada indicando ${chosen.name}.`
-        : "Solicitação de substituição enviada."
+        ? `Pedido enviado para ${chosen.name}.`
+        : "Pronto! Os líderes do ministério foram avisados e vão escolher alguém para o seu lugar."
     );
   };
 
@@ -744,36 +809,16 @@ export function MonthlyScheduleView() {
     );
   };
 
-  const handleConfirmPresence = async (target) => {
-    if (confirmingAssignmentId || !target?.assignmentId) return;
-    setConfirmingAssignmentId(target.assignmentId);
-    const res = await confirmPresence(target.assignmentId);
-    setConfirmingAssignmentId("");
-
-    if (!res.ok) {
-      toast.error(res.error || "Não foi possível confirmar sua presença.");
-      return;
-    }
-
-    await refreshSchedules();
-    toast.success(`Presença confirmada em "${target.title}".`);
-  };
-
-  const openCheckInConfirm = (target) => {
-    openConfirmModal({ type: "check-in", attendance: target });
-  };
 
   const renderAttendanceActions = (target, variant) => {
-    const secondaryClass =
-      variant === "hero"
-        ? styles.absenceButton
-        : `${styles.cardActionButton} ${styles.cardWithdrawButton}`;
-    const primaryClass =
-      variant === "hero"
-        ? styles.heroPrimaryButton
-        : `${styles.cardActionButton} ${styles.cardSignupButton}`;
+    const isHero = variant === "hero";
+    const secondaryClass = `${styles.cardActionButton} ${styles.cardWithdrawButton} ${
+      isHero ? styles.heroActionButton : ""
+    }`;
+    const primaryClass = isHero
+      ? styles.heroPrimaryButton
+      : `${styles.cardActionButton} ${styles.cardSignupButton}`;
     const isBeforeStart = nowMs < Date.parse(target.scheduleAt);
-    const isConfirming = confirmingAssignmentId === target.assignmentId;
     const isCanceling = cancelingAssignmentId === target.assignmentId;
 
     const absenceButton = isBeforeStart && (
@@ -784,7 +829,9 @@ export function MonthlyScheduleView() {
       >
         {target.changeStatus === "REJECTED"
           ? "Indicar outra pessoa"
-          : "Não conseguirei participar"}
+          : target.changeStatus === "DECLINED"
+            ? "Indicar substituto"
+            : "Não conseguirei participar"}
       </button>
     );
 
@@ -802,19 +849,35 @@ export function MonthlyScheduleView() {
             {isCanceling ? "Cancelando..." : "Cancelar pedido de troca"}
           </button>
         );
+      case ATTENDANCE_PHASE.DECLINED:
+        return (
+          <>
+            {absenceButton}
+            <button
+              type="button"
+              className={primaryClass}
+              onClick={() =>
+                openConfirmModal({ type: "confirm-presence", attendance: target })
+              }
+            >
+              <CheckCircleIcon />
+              <span>Vou participar</span>
+            </button>
+          </>
+        );
       case ATTENDANCE_PHASE.NEEDS_CONFIRMATION:
         return (
           <>
             {absenceButton}
             <button
               type="button"
-              disabled={isConfirming}
-              aria-busy={isConfirming}
               className={primaryClass}
-              onClick={() => handleConfirmPresence(target)}
+              onClick={() =>
+                openConfirmModal({ type: "confirm-presence", attendance: target })
+              }
             >
               <CheckCircleIcon />
-              <span>{isConfirming ? "Confirmando..." : "Confirmar presença"}</span>
+              <span>Confirmar presença</span>
             </button>
           </>
         );
@@ -822,14 +885,16 @@ export function MonthlyScheduleView() {
         return (
           <>
             {absenceButton}
-            <button type="button" disabled className={primaryClass}>
-              <ClockIcon />
-              <span>
-                {target.checkIn
-                  ? `Check-in às ${formatClock(target.checkIn.opensAt)}`
-                  : "Check-in em breve"}
-              </span>
-            </button>
+            {isHero && (
+              <button type="button" disabled className={primaryClass}>
+                <ClockIcon />
+                <span>
+                  {target.checkIn
+                    ? `Check-in às ${formatClock(target.checkIn.opensAt)}`
+                    : "Check-in em breve"}
+                </span>
+              </button>
+            )}
           </>
         );
       case ATTENDANCE_PHASE.CHECK_IN_OPEN:
@@ -839,7 +904,9 @@ export function MonthlyScheduleView() {
             <button
               type="button"
               className={primaryClass}
-              onClick={() => openCheckInConfirm(target)}
+              onClick={() =>
+                openConfirmModal({ type: "check-in", attendance: target })
+              }
             >
               <CheckCircleIcon />
               <span>Fazer check-in</span>
@@ -849,21 +916,6 @@ export function MonthlyScheduleView() {
       default:
         return null;
     }
-  };
-
-  const handleSignUpClick = async (eventItem) => {
-    if (busySignupScheduleId) return;
-    setBusySignupScheduleId(eventItem.id);
-    const res = await signUpForSchedule(eventItem.id);
-    setBusySignupScheduleId("");
-
-    if (!res.ok) {
-      toast.error(res.error || "Não foi possível realizar sua inscrição.");
-      return;
-    }
-
-    await refreshSchedules();
-    toast.success(`Inscrição confirmada em "${eventItem.title}".`);
   };
 
   const openCreateScheduleDrawer = () => {
@@ -913,6 +965,38 @@ export function MonthlyScheduleView() {
 
     setConfirmError("");
     setIsConfirmingAction(true);
+
+    if (confirmModal.type === "confirm-presence" && confirmModal.attendance) {
+      const target = confirmModal.attendance;
+      const res = await confirmPresence(target.assignmentId);
+      setIsConfirmingAction(false);
+
+      if (!res.ok) {
+        setConfirmError(res.error || "Não foi possível confirmar sua presença.");
+        return;
+      }
+
+      confirmDialogRef.current?.close("confirm");
+      await refreshSchedules();
+      toast.success(`Presença confirmada em "${target.title}".`);
+      return;
+    }
+
+    if (confirmModal.type === "sign-up" && confirmModal.event) {
+      const target = confirmModal.event;
+      const res = await signUpForSchedule(target.id);
+      setIsConfirmingAction(false);
+
+      if (!res.ok) {
+        setConfirmError(res.error || "Não foi possível realizar sua inscrição.");
+        return;
+      }
+
+      confirmDialogRef.current?.close("confirm");
+      await refreshSchedules();
+      toast.success(`Inscrição feita em "${target.title}". Sua presença já está confirmada.`);
+      return;
+    }
 
     if (confirmModal.type === "check-in" && confirmModal.attendance) {
       const target = confirmModal.attendance;
@@ -992,6 +1076,9 @@ export function MonthlyScheduleView() {
     }
   };
 
+  const confirmModalText =
+    CONFIRM_MODAL_TEXT[confirmModal?.type] ?? CONFIRM_MODAL_TEXT["publish-one"];
+
   const heroAttendance = nextUserSchedule
     ? describeHeroAttendance(nextUserSchedule, nowMs)
     : null;
@@ -1069,9 +1156,6 @@ export function MonthlyScheduleView() {
         )}
       </header>
 
-      <div className="visually-hidden" aria-live="polite" role="status">
-        {liveAnnouncement}
-      </div>
 
       {pendingReceivedRequest && (
         <section
@@ -1110,6 +1194,9 @@ export function MonthlyScheduleView() {
             <span className={styles.heroDay}>{nextUserSchedule.day}</span>
             <span className={styles.heroMonth}>
               {nextUserSchedule.monthShort}
+            </span>
+            <span className={styles.heroWeekday}>
+              {nextUserSchedule.weekdayFull}
             </span>
           </div>
 
@@ -1355,8 +1442,9 @@ export function MonthlyScheduleView() {
               >
                 <div className={styles.eventDateColumn}>
                   <span className={styles.eventDay}>{event.day}</span>
-                  <span className={styles.eventDateMeta}>
-                    {event.monthShort} {event.weekdayShort}
+                  <span className={styles.eventMonth}>{event.monthShort}</span>
+                  <span className={styles.eventWeekday}>
+                    {event.weekdayFull}
                   </span>
                 </div>
 
@@ -1456,6 +1544,19 @@ export function MonthlyScheduleView() {
                               />
                               {badgeLabel}
                             </span>
+
+                            {person.changeStatus === "DECLINED" &&
+                              isUpcoming &&
+                              canResolveDeclinesOf(event.ministryId) && (
+                                <button
+                                  type="button"
+                                  className={styles.chipReplaceButton}
+                                  onClick={() => openReplaceModal(event, person)}
+                                >
+                                  <SwapIcon />
+                                  <span>Substituir</span>
+                                </button>
+                              )}
                           </div>
                         );
                       })}
@@ -1470,13 +1571,12 @@ export function MonthlyScheduleView() {
                         hasFreeSlots && (
                           <button
                             type="button"
-                            disabled={busySignupScheduleId === event.id}
                             className={`${styles.cardActionButton} ${styles.cardSignupButton}`}
-                            onClick={() => handleSignUpClick(event)}
+                            onClick={() =>
+                              openConfirmModal({ type: "sign-up", event })
+                            }
                           >
-                            {busySignupScheduleId === event.id
-                              ? "Inscrevendo..."
-                              : "Inscrever-me"}
+                            Inscrever-me
                           </button>
                         )}
 
@@ -1562,44 +1662,60 @@ export function MonthlyScheduleView() {
           onSubmit={handleAbsenceSubmit}
         >
           <h2 id={modalTitleId} className={styles.modalTitle}>
-            Não conseguirei participar
+            {absenceRequiresSubstitute
+              ? "Indicar substituto"
+              : "Não conseguirei participar"}
           </h2>
-          <p className={styles.modalSubtitle}>
-            Indique um membro ativo do mesmo ministério para assumir sua vaga em{" "}
-            <strong>
-              {absenceTargetSchedule?.title} (
-              {absenceTargetSchedule?.fullDateLabel},{" "}
-              {absenceTargetSchedule?.time})
-            </strong>
-            .
-          </p>
+          {absenceRequiresSubstitute ? (
+            <p className={styles.modalSubtitle}>
+              Escolha alguém do ministério para assumir sua vaga em{" "}
+              <strong>
+                {absenceTargetSchedule?.title} (
+                {absenceTargetSchedule?.fullDateLabel},{" "}
+                {absenceTargetSchedule?.time})
+              </strong>
+              . A pessoa recebe o pedido e, se aceitar, fica com a vaga.
+            </p>
+          ) : (
+            <p className={styles.modalSubtitle}>
+              Você avisa que não vai participar de{" "}
+              <strong>
+                {absenceTargetSchedule?.title} (
+                {absenceTargetSchedule?.fullDateLabel},{" "}
+                {absenceTargetSchedule?.time})
+              </strong>
+              . Se quiser, indique alguém do ministério para assumir: essa pessoa
+              recebe o pedido. Sem indicação, você continua na escala até os
+              líderes do ministério escolherem outra pessoa.
+            </p>
+          )}
 
           <div className={styles.modalField}>
             <div className={styles.fieldLabelRow}>
               <label htmlFor={substituteSelectId} className={styles.modalLabel}>
                 Indicar substituto
               </label>
-              <span className={styles.requiredTag}>Obrigatório</span>
+              {absenceRequiresSubstitute ? (
+                <span className={styles.requiredTag}>Obrigatório</span>
+              ) : (
+                <span className={styles.optionalTag}>Opcional</span>
+              )}
             </div>
 
             {eligibleSubstitutes.length > 0 ? (
               <select
                 id={substituteSelectId}
                 value={suggestedSubstituteId}
-                required
-                aria-invalid={substituteError ? "true" : "false"}
-                aria-describedby={
-                  substituteError ? substituteErrorId : undefined
+                className={styles.modalSelect}
+                onChange={(event) =>
+                  setSuggestedSubstituteId(event.currentTarget.value)
                 }
-                className={`${styles.modalSelect} ${
-                  substituteError ? styles.drawerInputError : ""
-                }`}
-                onChange={(event) => {
-                  setSuggestedSubstituteId(event.currentTarget.value);
-                  if (substituteError) setSubstituteError("");
-                }}
               >
-                <option value="">Selecione um participante...</option>
+                <option value="">
+                  {absenceRequiresSubstitute
+                    ? "Selecione uma pessoa..."
+                    : "Não indicar ninguém"}
+                </option>
                 {eligibleSubstitutes.map((mate) => (
                   <option key={mate.id} value={mate.id}>
                     {mate.name}
@@ -1609,16 +1725,9 @@ export function MonthlyScheduleView() {
               </select>
             ) : (
               <p className={styles.recurringEmptyNote}>
-                Não há outros participantes disponíveis listados para este
-                ministério neste momento.
+                Não há outros participantes disponíveis neste ministério agora.
+                Os líderes do ministério serão avisados.
               </p>
-            )}
-
-            {substituteError && (
-              <div id={substituteErrorId} className={styles.fieldErrorMsg}>
-                <AlertCircleIcon className={styles.fieldErrorIcon} />
-                <span>{substituteError}</span>
-              </div>
             )}
           </div>
 
@@ -1639,18 +1748,114 @@ export function MonthlyScheduleView() {
             >
               Voltar
             </button>
-            {eligibleSubstitutes.length > 0 && (
-              <button
-                type="submit"
-                disabled={isSubmittingAbsence}
-                aria-busy={isSubmittingAbsence}
-                className={styles.modalConfirmButton}
+            <button
+              type="submit"
+              disabled={
+                isSubmittingAbsence ||
+                (absenceRequiresSubstitute && !suggestedSubstituteId)
+              }
+              aria-busy={isSubmittingAbsence}
+              className={styles.modalConfirmButton}
+            >
+              {isSubmittingAbsence
+                ? "Enviando..."
+                : suggestedSubstituteId
+                  ? "Enviar pedido de substituição"
+                  : "Avisar que não vou"}
+            </button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog
+        ref={replaceDialogRef}
+        closedby="any"
+        aria-labelledby={replaceTitleId}
+        className={styles.modalDialog}
+        onCancel={(event) => {
+          if (isReplacing) event.preventDefault();
+        }}
+        onClose={() => {
+          setReplaceTarget(null);
+          setReplaceOptions(null);
+          setReplaceChoiceId("");
+          setReplaceError("");
+        }}
+      >
+        <form className={styles.modalForm} noValidate onSubmit={handleReplaceSubmit}>
+          <h2 id={replaceTitleId} className={styles.modalTitle}>
+            Substituir {replaceTarget?.person.name}
+          </h2>
+          <p className={styles.modalSubtitle}>
+            {replaceTarget?.person.name} avisou que não vai participar de{" "}
+            <strong>
+              {replaceTarget?.event.title} ({replaceTarget?.event.fullDateLabel},{" "}
+              {replaceTarget?.event.time})
+            </strong>
+            . Escolha quem assume a vaga: a pessoa é avisada e precisa confirmar
+            presença.
+          </p>
+
+          <div className={styles.modalField}>
+            <div className={styles.fieldLabelRow}>
+              <label htmlFor={replaceSelectId} className={styles.modalLabel}>
+                Nova pessoa
+              </label>
+              <span className={styles.requiredTag}>Obrigatório</span>
+            </div>
+            {replaceOptions === null ? (
+              <p className={styles.recurringEmptyNote}>Carregando pessoas...</p>
+            ) : replaceOptions.length === 0 ? (
+              <p className={styles.recurringEmptyNote}>
+                Não há outras pessoas do ministério para colocar nesta escala.
+              </p>
+            ) : (
+              <select
+                id={replaceSelectId}
+                value={replaceChoiceId}
+                className={styles.modalSelect}
+                onChange={(event) => setReplaceChoiceId(event.currentTarget.value)}
               >
-                {isSubmittingAbsence
-                  ? "Enviando..."
-                  : "Enviar pedido de substituição"}
-              </button>
+                <option value="">Selecione uma pessoa...</option>
+                {replaceOptions.map((option) => (
+                  <option key={option.credential.id} value={option.credential.id}>
+                    {option.credential.name}
+                    {option.available
+                      ? ""
+                      : option.isUnavailable
+                        ? " — ausência no horário"
+                        : " — sem disponibilidade no período"}
+                  </option>
+                ))}
+              </select>
             )}
+          </div>
+
+          {replaceError && (
+            <div className={styles.formBannerError} role="alert">
+              <AlertCircleIcon className={styles.fieldErrorIcon} />
+              <span>{replaceError}</span>
+            </div>
+          )}
+
+          <div className={styles.modalActions}>
+            <button
+              type="button"
+              autoFocus
+              disabled={isReplacing}
+              className={styles.modalCancelButton}
+              onClick={() => replaceDialogRef.current?.close()}
+            >
+              Voltar
+            </button>
+            <button
+              type="submit"
+              disabled={isReplacing || !replaceChoiceId}
+              aria-busy={isReplacing}
+              className={styles.modalConfirmButton}
+            >
+              {isReplacing ? "Substituindo..." : "Colocar no lugar"}
+            </button>
           </div>
         </form>
       </dialog>
@@ -1676,13 +1881,7 @@ export function MonthlyScheduleView() {
             <div>
               <p className={styles.confirmEyebrow}>CONFIRMAÇÃO NECESSÁRIA</p>
               <h2 id={confirmModalTitleId} className={styles.confirmTitle}>
-                {confirmModal?.type === "check-in"
-                  ? "Fazer check-in?"
-                  : confirmModal?.type === "delete"
-                    ? "Excluir escala?"
-                    : confirmModal?.type === "publish-all"
-                      ? "Publicar todas as escalas?"
-                      : "Publicar escala?"}
+                {confirmModalText.title}
               </h2>
             </div>
 
@@ -1747,6 +1946,25 @@ export function MonthlyScheduleView() {
                         já estiver no local para servir.
                       </>
                     )}
+                  {confirmModal?.type === "confirm-presence" &&
+                    confirmModal.attendance && (
+                      <>
+                        Você confirma que vai servir em{" "}
+                        <strong>{confirmModal.attendance.title}</strong> (
+                        {confirmModal.attendance.fullDateLabel},{" "}
+                        {confirmModal.attendance.time})? Depois de confirmar, o
+                        check-in libera 10 minutos antes do início.
+                      </>
+                    )}
+                  {confirmModal?.type === "sign-up" && confirmModal.event && (
+                    <>
+                      Você vai entrar em{" "}
+                      <strong>{confirmModal.event.title}</strong> (
+                      {confirmModal.event.fullDateLabel},{" "}
+                      {confirmModal.event.time}) com a presença já confirmada.
+                      Se depois não puder ir, use “Não conseguirei participar”.
+                    </>
+                  )}
                   {confirmModal?.type === "publish-all" && (
                     <>
                       Todas as{" "}
@@ -1792,13 +2010,7 @@ export function MonthlyScheduleView() {
             >
               {isConfirmingAction
                 ? "Processando..."
-                : confirmModal?.type === "check-in"
-                  ? "Fazer check-in"
-                  : confirmModal?.type === "delete"
-                    ? "Excluir escala"
-                    : confirmModal?.type === "publish-all"
-                      ? "Publicar todas"
-                      : "Publicar escala"}
+                : confirmModalText.action}
             </button>
           </div>
         </form>
