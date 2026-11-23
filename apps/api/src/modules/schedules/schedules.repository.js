@@ -68,6 +68,7 @@ const availabilityAtSelect = (at, weekday) => ({
   name: true,
   username: true,
   role: true,
+  worshipService: true,
   availabilities: { where: { weekday }, select: { morning: true, afternoon: true, night: true } },
   unavailabilities: { where: { startAt: { lte: at }, endAt: { gt: at } }, select: { id: true } },
 });

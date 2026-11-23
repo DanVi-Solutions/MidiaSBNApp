@@ -384,7 +384,7 @@ export function MinistriesView() {
                         className={styles.manageButton}
                         onClick={() => handleSelectActiveMinistry(ministry)}
                       >
-                        <span>Ativar ministério</span>
+                        <span>Gerenciar ministério</span>
                       </button>
                     )}
 

@@ -53,7 +53,9 @@ export function createChangeRequestsService({
 
       if (substituteId === auth.id) throw AppError.unprocessable("Escolha outra pessoa como substituta");
       if (!(await repository.findActiveMember(assignment.schedule.department.id, substituteId))) {
-        throw AppError.unprocessable("O substituto precisa ser um membro ativo do ministério da escala");
+        throw AppError.unprocessable(
+          "O substituto precisa ser um membro ativo do ministério da escala (o líder geral não pode ser indicado)",
+        );
       }
       if (await repository.isAssigned(assignment.schedule.id, substituteId)) {
         throw AppError.conflict("O substituto já está nesta escala");

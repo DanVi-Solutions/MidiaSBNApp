@@ -24,6 +24,12 @@ enum Weekday {
   SATURDAY
 }
 
+enum WorshipService {
+  SUNDAY_0815
+  SUNDAY_1030
+  SUNDAY_1800
+}
+
 enum ChangeStatus {
   NONE
   REQUESTED
@@ -69,6 +75,7 @@ model Credential {
   role                 Role             @default(VOLUNTEER)
   credentialNumber     String?          @unique @map("credential_number") @db.VarChar(30)
   credentialNumberHash String?          @unique @map("credential_number_hash") @db.Char(64)
+  worshipService       WorshipService?  @map("worship_service")
 
   availabilities         Availability[]
   departments            CredentialDepartment[] @relation("CredentialDepartments")

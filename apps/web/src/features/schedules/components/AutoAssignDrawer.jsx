@@ -8,6 +8,7 @@ import {
   AlertTriangleIcon,
   CheckIcon,
   CloseIcon,
+  PrayingHandsIcon,
   UsersIcon,
 } from "@/components/ui/icons";
 import { autoAssignSchedules } from "@/features/schedules/services/schedulesService";
@@ -21,7 +22,7 @@ import {
 import drawerStyles from "./MonthlyScheduleView.module.css";
 import styles from "./AutoAssignDrawer.module.css";
 
-const DEFAULT_VOLUNTEERS = 2;
+const DEFAULT_VOLUNTEERS = 1;
 const MAX_VOLUNTEERS = 100;
 
 function parseVolunteers(value) {
@@ -30,6 +31,15 @@ function parseVolunteers(value) {
     ? number
     : null;
 }
+
+const uniquePeopleIn = (distribution) =>
+  new Set(
+    distribution.schedules.flatMap((item) =>
+      item.assigned.map((pick) => pick.credential.id)
+    )
+  ).size;
+
+const peopleLabel = (count) => (count === 1 ? "1 pessoa" : `${count} pessoas`);
 
 function groupByMinistry(schedules) {
   const groups = new Map();
@@ -196,10 +206,11 @@ export function AutoAssignDrawer({ schedules = [], onClose }) {
 
     notifySchedulesChanged();
     await closeAnimatedRightDrawer(dialogRef.current);
+    const people = uniquePeopleIn(res.data);
     toast.success(
-      res.data.assignedTotal === 1
+      people === 1
         ? "1 pessoa escalada pela distribuição automática."
-        : `${res.data.assignedTotal} pessoas escaladas pela distribuição automática.`
+        : `${people} pessoas escaladas pela distribuição automática.`
     );
   };
 
@@ -372,14 +383,14 @@ export function AutoAssignDrawer({ schedules = [], onClose }) {
                   <UsersIcon />
                 </span>
                 <p>
-                  <strong>{result.assignedTotal}</strong>{" "}
+                  <strong>{peopleLabel(uniquePeopleIn(result))}</strong>{" "}
+                  {uniquePeopleIn(result) === 1 ? "vai preencher" : "vão preencher"}{" "}
                   {result.assignedTotal === 1
-                    ? "pessoa será escalada"
-                    : "pessoas serão escaladas"}{" "}
+                    ? "1 vaga"
+                    : `${result.assignedTotal} vagas`}{" "}
                   em {result.schedules.length} escala(s).
                   {result.missingTotal > 0 &&
-                    ` ${result.missingTotal} vaga(s) ficarão sem ninguém por falta de pessoas disponíveis.`}{" "}
-                  Pessoas de escalas já publicadas recebem um aviso.
+                    ` ${result.missingTotal} vaga(s) ficarão sem ninguém por falta de pessoas disponíveis.`}
                 </p>
               </div>
 
@@ -414,6 +425,12 @@ export function AutoAssignDrawer({ schedules = [], onClose }) {
                             >
                               <CheckIcon className={styles.pickIcon} />
                               <span>{pick.credential.name}</span>
+                              {pick.worshipConflict && (
+                                <span className={styles.worshipTag}>
+                                  <PrayingHandsIcon className={styles.worshipIcon} />
+                                  Horário do culto
+                                </span>
+                              )}
                               {pick.sameDayConflict && (
                                 <span className={styles.sameDayTag}>
                                   Outra escala no mesmo dia

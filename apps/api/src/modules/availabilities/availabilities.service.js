@@ -31,6 +31,14 @@ export function createAvailabilitiesService({
       return toWeek(await repository.findByCredential(auth.id));
     },
 
+    async getMyWorshipService(auth) {
+      return { worshipService: await repository.findWorshipService(auth.id) };
+    },
+
+    async setMyWorshipService(auth, worshipService) {
+      return { worshipService: await repository.setWorshipService(auth.id, worshipService) };
+    },
+
     async getOf(auth, credentialId) {
       const target = await credentials.findById(credentialId);
       if (!target) throw AppError.notFound("Credencial não encontrada");

@@ -291,11 +291,15 @@ r.post(
       "- não registrou ausência que cubra o horário;",
       "- não está em outra escala no mesmo horário.",
       "",
+      "O administrador e o líder geral nunca entram na distribuição.",
+      "",
       "**Critérios de preferência:**",
-      "1. evitar a mesma pessoa mais de uma vez no mesmo dia (contando escalas que ela já tem) — ainda pode " +
+      "1. evitar escalar a pessoa no horário do culto de domingo que ela frequenta — se não houver alternativa, " +
+        "vem marcado em `worshipConflict`;",
+      "2. evitar a mesma pessoa mais de uma vez no mesmo dia (contando escalas que ela já tem) — ainda pode " +
         "acontecer se não houver alternativa, e vem marcado em `sameDayConflict`;",
-      "2. distribuir a carga: quem tem menos escalas pela frente tem prioridade;",
-      "3. empates são sorteados. A resposta traz o `seed` do sorteio: reenvie-o ao confirmar uma prévia para " +
+      "3. distribuir a carga: quem tem menos escalas pela frente tem prioridade;",
+      "4. empates são sorteados. A resposta traz o `seed` do sorteio: reenvie-o ao confirmar uma prévia para " +
         "salvar exatamente as mesmas pessoas.",
       "",
       "As escalas com menos pessoas disponíveis são preenchidas primeiro. Vagas sem candidatos aparecem em `missing`.",
@@ -344,8 +348,11 @@ r.post(
       "Adiciona a pessoa à escala. Ela precisa participar do ministério da escala e não pode estar com a conta " +
         "desativada.",
       "",
-      "Se a pessoa não marcou disponibilidade nesse período ou registrou ausência, a escalação acontece mesmo " +
-        "assim e a resposta traz `warnings` para o front avisar o gestor.",
+      "Se a pessoa não marcou disponibilidade nesse período, registrou ausência ou a escala coincide com o culto " +
+        "dela, a escalação acontece mesmo assim e a resposta traz `warnings` para o front avisar o gestor.",
+      "",
+      "O líder geral só entra numa escala quando **ele mesmo** se coloca. Ninguém mais pode escalá-lo, nem indicá-lo " +
+        "como substituto.",
       "",
       manageRule,
     ),

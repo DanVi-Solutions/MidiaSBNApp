@@ -70,10 +70,11 @@ export const schedule = scheduleBase.extend({
 
 export const assigned = z.object({
   schedule,
-  warnings: z.array(z.enum(["NO_WEEKLY_AVAILABILITY", "UNAVAILABLE", "OVER_CAPACITY"])).meta({
+  warnings: z.array(z.enum(["NO_WEEKLY_AVAILABILITY", "UNAVAILABLE", "WORSHIP_SERVICE", "OVER_CAPACITY"])).meta({
     description:
       "Avisos sobre a pessoa escalada: NO_WEEKLY_AVAILABILITY (não marcou disponibilidade neste dia e período), " +
-      "UNAVAILABLE (registrou uma ausência neste horário), OVER_CAPACITY (a escala passou de `volunteersNeeded`). " +
+      "UNAVAILABLE (registrou uma ausência neste horário), WORSHIP_SERVICE (a escala coincide com o culto dela), " +
+      "OVER_CAPACITY (a escala passou de `volunteersNeeded`). " +
       "A escalação é feita mesmo assim.",
   }),
 });
@@ -106,6 +107,12 @@ export const candidates = z.array(
     hasWeeklyAvailability: z.boolean().meta({ description: "Marcou disponibilidade neste dia da semana e período." }),
     isUnavailable: z.boolean().meta({ description: "Registrou uma ausência que cobre o horário da escala." }),
     available: z.boolean().meta({ description: "Resumo: disponível e sem ausência registrada." }),
+    worshipService: z.enum(["SUNDAY_0815", "SUNDAY_1030", "SUNDAY_1800"]).nullable().meta({
+      description: "Culto de domingo que a pessoa frequenta, se informou.",
+    }),
+    worshipConflict: z.boolean().meta({
+      description: "`true` se a escala coincide com o culto da pessoa (ela deixaria de ir ao culto dela).",
+    }),
   }),
 );
 
@@ -139,6 +146,9 @@ export const distribution = z.object({
           credential: person,
           sameDayConflict: z.boolean().meta({
             description: "`true` se a pessoa ficou com mais de uma escala no mesmo dia (evitado ao máximo).",
+          }),
+          worshipConflict: z.boolean().meta({
+            description: "`true` se a escala coincide com o culto da pessoa (evitado antes de qualquer outro critério).",
           }),
         }),
       ),

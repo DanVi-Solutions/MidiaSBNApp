@@ -1,3 +1,4 @@
+import { conflictsWithWorship } from "../../shared/time/worshipServices.js";
 import { localDateOf } from "../../shared/time/zonedTime.js";
 
 const instantKey = (credentialId, date) => `${credentialId}|${date.getTime()}`;
@@ -57,12 +58,20 @@ export function distribute(slots, { existingAssignments, upcomingLoad, random = 
       );
       if (options.length === 0) break;
 
+      const missesWorship = (candidate) => Number(conflictsWithWorship(slot.scheduleAt, candidate.worshipService));
       options.sort(
-        (a, b) => sameDayCount(a.id, day) - sameDayCount(b.id, day) || (load.get(a.id) ?? 0) - (load.get(b.id) ?? 0),
+        (a, b) =>
+          missesWorship(a) - missesWorship(b) ||
+          sameDayCount(a.id, day) - sameDayCount(b.id, day) ||
+          (load.get(a.id) ?? 0) - (load.get(b.id) ?? 0),
       );
       const chosen = options[0];
 
-      picks.push({ credential: chosen, sameDayConflict: sameDayCount(chosen.id, day) > 0 });
+      picks.push({
+        credential: chosen,
+        sameDayConflict: sameDayCount(chosen.id, day) > 0,
+        worshipConflict: missesWorship(chosen) === 1,
+      });
       addCommitment(chosen.id, slot.scheduleAt);
       load.set(chosen.id, (load.get(chosen.id) ?? 0) + 1);
     }

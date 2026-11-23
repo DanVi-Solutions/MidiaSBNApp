@@ -9,6 +9,7 @@ import { AppError } from "../../shared/errors/AppError.js";
 import { isUniqueViolationOn } from "../../shared/errors/prismaErrors.js";
 import { assertInsideWindow, scheduleWindow } from "../../shared/time/scheduleWindow.js";
 import { formatMoment } from "../../shared/time/formatting.js";
+import { conflictsWithWorship } from "../../shared/time/worshipServices.js";
 import { localDateOf, weekdayAndPeriodOf } from "../../shared/time/zonedTime.js";
 import { departmentsRepository } from "../departments/departments.repository.js";
 import { messages } from "../notifications/notifications.messages.js";
@@ -19,10 +20,18 @@ import { distribute, randomSeed, seededRandom } from "./schedules.distribution.j
 import { schedulesRepository } from "./schedules.repository.js";
 
 
-function excludedAssigneeRolesFor(auth) {
-  return isAtLeast(auth.role, ROLES.GENERAL_MANAGER)
-    ? [ROLES.ADMINISTRATOR]
-    : [ROLES.ADMINISTRATOR, ROLES.GENERAL_MANAGER];
+const NEVER_DISTRIBUTED_ROLES = [ROLES.ADMINISTRATOR, ROLES.GENERAL_MANAGER];
+
+const isSelectableBy = (auth) => (credential) =>
+  credential.role !== ROLES.ADMINISTRATOR && (credential.role !== ROLES.GENERAL_MANAGER || credential.id === auth.id);
+
+function assertCanAddToSchedule(auth, member) {
+  if (member.role === ROLES.ADMINISTRATOR) {
+    throw AppError.forbidden("Administradores não podem ser escalados");
+  }
+  if (member.role === ROLES.GENERAL_MANAGER && member.id !== auth.id) {
+    throw AppError.forbidden("O líder geral só entra em uma escala quando ele mesmo se coloca nela");
+  }
 }
 
 function assertCanResolveDeclinesOf(auth, departmentId) {
@@ -32,12 +41,9 @@ function assertCanResolveDeclinesOf(auth, departmentId) {
   }
 }
 
-function assertCanManageAssignmentOf(auth, memberRole) {
-  if (memberRole === ROLES.ADMINISTRATOR) {
-    throw AppError.forbidden("Administradores não podem ser escalados");
-  }
+function assertCanRemoveFromSchedule(auth, memberRole) {
   if (memberRole === ROLES.GENERAL_MANAGER && !isAtLeast(auth.role, ROLES.GENERAL_MANAGER)) {
-    throw AppError.forbidden("Apenas o líder geral ou administrador pode escalar ou remover um líder geral");
+    throw AppError.forbidden("Apenas o líder geral ou administrador pode tirar um líder geral da escala");
   }
 }
 
@@ -58,7 +64,10 @@ function ensureVolunteersNeededWhenSelfSignup({ selfSignup, volunteersNeeded }) 
   }
 }
 
-const byAvailabilityThenName = (a, b) => Number(b.available) - Number(a.available) || a.credential.name.localeCompare(b.credential.name);
+const suitabilityRank = (candidate) => (candidate.available ? 0 : 2) + (candidate.worshipConflict ? 1 : 0);
+
+const byAvailabilityThenName = (a, b) =>
+  suitabilityRank(a) - suitabilityRank(b) || a.credential.name.localeCompare(b.credential.name);
 
 const withCheckInWindow = (assignment) => ({ ...assignment, checkIn: checkInWindowOf(assignment.schedule.scheduleAt) });
 
@@ -115,7 +124,7 @@ export function createSchedulesService({
     if (schedules.length !== requests.length) throw AppError.notFound("Uma ou mais escalas não existem");
 
     const requested = new Map(requests.map((request) => [request.scheduleId, request.volunteers]));
-    const excludeRoles = excludedAssigneeRolesFor(auth);
+    const excludeRoles = NEVER_DISTRIBUTED_ROLES;
 
     return Promise.all(
       schedules.map(async (schedule) => {
@@ -203,17 +212,21 @@ export function createSchedulesService({
     });
   }
 
-  async function availabilityAt(schedule, excludeRoles = []) {
+  async function availabilityAt(schedule, auth) {
     const { weekday, period } = weekdayAndPeriodOf(schedule.scheduleAt);
     const members = await repository.membersWithAvailabilityAt(schedule.department.id, {
       at: schedule.scheduleAt,
       weekday,
-      excludeRoles,
+      excludeRoles: [ROLES.ADMINISTRATOR],
     });
-    return members.map(({ availabilities, unavailabilities, ...credential }) => ({
-      credential,
-      ...assessAvailability({ availabilities, unavailabilities }, period),
-    }));
+    return members
+      .filter(isSelectableBy(auth))
+      .map(({ availabilities, unavailabilities, worshipService, ...credential }) => ({
+        credential,
+        ...assessAvailability({ availabilities, unavailabilities }, period),
+        worshipService,
+        worshipConflict: conflictsWithWorship(schedule.scheduleAt, worshipService),
+      }));
   }
 
   return {
@@ -375,7 +388,7 @@ export function createSchedulesService({
     async availableCredentials(auth, id) {
       const schedule = await findManageableSchedule(auth, id);
       const assignedIds = new Set(schedule.assignments.map((assignment) => assignment.credential.id));
-      const candidates = await availabilityAt(schedule, excludedAssigneeRolesFor(auth));
+      const candidates = await availabilityAt(schedule, auth);
       return candidates.filter(({ credential }) => !assignedIds.has(credential.id)).sort(byAvailabilityThenName);
     },
 
@@ -414,7 +427,7 @@ export function createSchedulesService({
       const member = await repository.findMember(schedule.department.id, credentialId);
       if (!member) throw AppError.unprocessable("A pessoa não participa do ministério desta escala");
       if (member.status === "INACTIVE") throw AppError.unprocessable("A conta da pessoa está desativada");
-      assertCanManageAssignmentOf(auth, member.role);
+      assertCanAddToSchedule(auth, member);
 
       try {
         await repository.addAssignment(id, credentialId);
@@ -423,7 +436,7 @@ export function createSchedulesService({
         throw error;
       }
 
-      const assessment = (await availabilityAt(schedule, excludedAssigneeRolesFor(auth))).find(
+      const assessment = (await availabilityAt(schedule, auth)).find(
         ({ credential }) => credential.id === credentialId,
       );
       const updated = await repository.findById(id);
@@ -432,6 +445,7 @@ export function createSchedulesService({
       const warnings = [
         ...(assessment?.hasWeeklyAvailability ? [] : ["NO_WEEKLY_AVAILABILITY"]),
         ...(assessment?.isUnavailable ? ["UNAVAILABLE"] : []),
+        ...(assessment?.worshipConflict ? ["WORSHIP_SERVICE"] : []),
         ...(overCapacity ? ["OVER_CAPACITY"] : []),
       ];
       return { schedule: updated, warnings };
@@ -451,7 +465,7 @@ export function createSchedulesService({
       const substitute = await repository.findMember(schedule.department.id, substituteId);
       if (!substitute) throw AppError.unprocessable("O substituto precisa participar do ministério desta escala");
       if (substitute.status === "INACTIVE") throw AppError.unprocessable("A conta do substituto está desativada");
-      assertCanManageAssignmentOf(auth, substitute.role);
+      assertCanAddToSchedule(auth, substitute);
 
       try {
         await repository.replaceAssignment(declined.id, substituteId);
@@ -471,7 +485,7 @@ export function createSchedulesService({
     async candidatesAt(auth, { departmentId, scheduleAt }) {
       if (!(await departments.findById(departmentId))) throw AppError.notFound("Ministério não encontrado");
       assertCanManageSchedulesOf(auth, departmentId);
-      const candidates = await availabilityAt({ scheduleAt, department: { id: departmentId } }, excludedAssigneeRolesFor(auth));
+      const candidates = await availabilityAt({ scheduleAt, department: { id: departmentId } }, auth);
       return candidates.sort(byAvailabilityThenName);
     },
 
@@ -486,7 +500,7 @@ export function createSchedulesService({
         targetRole = member?.role;
       }
       if (targetRole) {
-        assertCanManageAssignmentOf(auth, targetRole);
+        assertCanRemoveFromSchedule(auth, targetRole);
       }
       if (!(await repository.removeAssignment(id, credentialId))) {
         throw AppError.notFound("A pessoa não está nesta escala");

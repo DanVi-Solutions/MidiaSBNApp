@@ -23,6 +23,8 @@ import {
   EMPTY_WEEKLY_AVAILABILITY,
   formatUnavailabilityForUi,
   getMyWeeklyAvailability,
+  getMyWorshipService,
+  saveMyWorshipService,
   listMyUnavailabilities,
   mapApiWeekToUi,
   mapUiWeekToApiDays,
@@ -41,6 +43,7 @@ import {
 } from "@/features/availability/utils/calendarDates";
 import { getTodayIsoInZone } from "@/features/schedules/utils/scheduleDates";
 import { isAtLeast, ROLES } from "@/lib/roles";
+import { WORSHIP_SERVICE_OPTIONS } from "@/lib/worshipServices";
 import styles from "./AvailabilityView.module.css";
 
 function updateDaySlots(currentSlots, slotId, checked) {
@@ -89,17 +92,19 @@ function formatExceptionDisplay(item) {
 }
 
 async function fetchAvailabilityData() {
-  const [weekRes, unavailRes] = await Promise.all([
+  const [weekRes, unavailRes, worshipRes] = await Promise.all([
     getMyWeeklyAvailability(),
     listMyUnavailabilities(),
+    getMyWorshipService(),
   ]);
 
-  if (!weekRes.ok || !unavailRes.ok) {
+  if (!weekRes.ok || !unavailRes.ok || !worshipRes.ok) {
     return {
       ok: false,
       error:
         weekRes.error ||
         unavailRes.error ||
+        worshipRes.error ||
         "Não foi possível carregar sua disponibilidade.",
     };
   }
@@ -115,6 +120,7 @@ async function fetchAvailabilityData() {
     ok: true,
     mappedWeek,
     mappedExceptions,
+    worshipService: worshipRes.data?.worshipService ?? "",
   };
 }
 
@@ -124,6 +130,7 @@ export function AvailabilityView() {
   const isAvailabilityRestricted = isAtLeast(currentUser, ROLES.GENERAL_MANAGER);
 
   const weeklyHeadingId = useId();
+  const worshipHeadingId = useId();
   const exceptionsHeadingId = useId();
   const singleDateId = useId();
   const rangeStartId = useId();
@@ -144,6 +151,8 @@ export function AvailabilityView() {
     () => ({ ...EMPTY_WEEKLY_AVAILABILITY })
   );
   const [savedWeeklySnapshot, setSavedWeeklySnapshot] = useState(null);
+  const [worshipService, setWorshipService] = useState("");
+  const [savedWorshipService, setSavedWorshipService] = useState("");
   const [isSavingWeekly, setIsSavingWeekly] = useState(false);
 
   const [exceptionMode, setExceptionMode] = useState("single");
@@ -174,6 +183,8 @@ export function AvailabilityView() {
       JSON.stringify(mapUiWeekToApiDays(result.mappedWeek))
     );
     setExceptions(result.mappedExceptions);
+    setWorshipService(result.worshipService);
+    setSavedWorshipService(result.worshipService);
     setIsLoading(false);
   }, []);
 
@@ -528,8 +539,22 @@ export function AvailabilityView() {
 
     setIsSavingWeekly(true);
     const payloadDays = mapUiWeekToApiDays(weeklyAvailability);
-    const result = await replaceMyWeeklyAvailability(payloadDays);
+    const [result, worshipResult] = await Promise.all([
+      replaceMyWeeklyAvailability(payloadDays),
+      worshipService !== savedWorshipService
+        ? saveMyWorshipService(worshipService)
+        : Promise.resolve({ ok: true, data: { worshipService } }),
+    ]);
     setIsSavingWeekly(false);
+
+    if (!worshipResult.ok) {
+      const msg =
+        worshipResult.error || "Não foi possível salvar seu horário de culto.";
+      announce(msg);
+      toast.error(msg);
+    } else {
+      setSavedWorshipService(worshipResult.data?.worshipService ?? "");
+    }
 
     if (!result.ok) {
       const msg =
@@ -538,11 +563,12 @@ export function AvailabilityView() {
       toast.error(msg);
       return;
     }
+    if (!worshipResult.ok) return;
 
     const mappedWeek = mapApiWeekToUi(result.data);
     setWeeklyAvailability(mappedWeek);
     setSavedWeeklySnapshot(JSON.stringify(mapUiWeekToApiDays(mappedWeek)));
-    const okMsg = "Rotina semanal salva com sucesso.";
+    const okMsg = "Disponibilidade salva com sucesso.";
     announce(okMsg);
     toast.success(okMsg);
   };
@@ -744,6 +770,61 @@ export function AvailabilityView() {
                   })}
                 </tbody>
               </table>
+            </div>
+          </section>
+
+          <section className={styles.card} aria-labelledby={worshipHeadingId}>
+            <div className={styles.sectionHeaderRow}>
+              <div className={styles.sectionHeader}>
+                <h2 id={worshipHeadingId} className={styles.sectionTitle}>
+                  Seu culto de domingo
+                </h2>
+                <p className={styles.sectionSubtitle}>
+                  Em qual culto você costuma estar? Evitamos escalar você nesse
+                  horário para que não perca o seu culto.
+                </p>
+              </div>
+
+              {worshipService !== savedWorshipService && (
+                <span className={styles.unsavedBadge}>
+                  Alterações não salvas
+                </span>
+              )}
+            </div>
+
+            <div
+              role="radiogroup"
+              aria-labelledby={worshipHeadingId}
+              className={styles.worshipOptions}
+            >
+              {WORSHIP_SERVICE_OPTIONS.map((option) => {
+                const isSelected = worshipService === option.value;
+                return (
+                  <label
+                    key={option.value}
+                    className={`${styles.worshipOption} ${
+                      isSelected ? styles.worshipOptionSelected : ""
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="worshipService"
+                      value={option.value}
+                      checked={isSelected}
+                      disabled={isSavingWeekly}
+                      className="visually-hidden"
+                      onChange={() => setWorshipService(option.value)}
+                    />
+                    <span className={styles.worshipOptionDay}>Domingo</span>
+                    <span className={styles.worshipOptionTime}>
+                      {option.label}
+                    </span>
+                    {isSelected && (
+                      <CheckIcon className={styles.worshipOptionCheck} />
+                    )}
+                  </label>
+                );
+              })}
             </div>
           </section>
 

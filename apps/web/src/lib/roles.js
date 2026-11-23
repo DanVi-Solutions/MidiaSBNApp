@@ -253,11 +253,8 @@ export function canAssignMemberToSchedule(actor, target) {
   if (!actor || !target) return false;
   const targetRole = resolveRoleCode(target);
   if (targetRole === ROLES.ADMINISTRATOR) return false;
-  if (
-    targetRole === ROLES.GENERAL_MANAGER &&
-    !isAtLeast(actor, ROLES.GENERAL_MANAGER)
-  ) {
-    return false;
+  if (targetRole === ROLES.GENERAL_MANAGER) {
+    return Boolean(actor.id && target.id && actor.id === target.id);
   }
   return true;
 }

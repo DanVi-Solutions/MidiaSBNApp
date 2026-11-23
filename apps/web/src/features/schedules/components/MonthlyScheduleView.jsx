@@ -34,14 +34,12 @@ import {
   declineAssignment,
   deleteSchedule,
   formatScheduleForUi,
-  getAvailableCredentials,
   getScheduleById,
   getScheduleWindow,
   listMyAssignments,
   listMyChangeRequests,
   listOpenSchedules,
   listSchedules,
-  replaceDeclinedAssignment,
   requestScheduleChange,
   signUpForSchedule,
   updateSchedule,
@@ -132,6 +130,18 @@ const ATTENDANCE_BADGE_TONE = {
 
 const DRAFT_BADGE = { tone: "confirmed", label: "Escalado" };
 
+const CHANGE_IN_PROGRESS = new Set(["REQUESTED", "REJECTED", "DECLINED"]);
+
+function attentionReasonOf(event, nowMs) {
+  if (!event.published || Date.parse(event.scheduleAt) <= nowMs) return "";
+  if (event.assignments.some((person) => CHANGE_IN_PROGRESS.has(person.changeStatus))) {
+    return "substituição em andamento";
+  }
+  if (event.selfSignup && event.freeSlots > 0) return "aguardando inscrições";
+  if (!event.selfSignup && event.assignedCount === 0) return "ninguém escalado";
+  return "";
+}
+
 function attendanceBadgeOf(person) {
   if (person.changeStatus === "REQUESTED") {
     return { tone: "pending", label: "Troca pendente" };
@@ -168,12 +178,7 @@ function describeHeroAttendance(schedule, nowMs) {
     case ATTENDANCE_PHASE.SUBSTITUTION_REQUESTED:
       return {
         target,
-        pill: {
-          tone: "amber",
-          label: schedule.credentialChange?.name
-            ? `Substituição solicitada (${schedule.credentialChange.name})`
-            : "Substituição solicitada",
-        },
+        pill: { tone: "amber", label: "Substituição solicitada" },
         hint: "Aguardando a resposta de quem você indicou.",
       };
     case ATTENDANCE_PHASE.DECLINED:
@@ -280,9 +285,6 @@ export function MonthlyScheduleView() {
   const confirmModalTitleId = useId();
 
   const absenceDialogRef = useRef(null);
-  const replaceDialogRef = useRef(null);
-  const replaceTitleId = useId();
-  const replaceSelectId = useId();
   const confirmDialogRef = useRef(null);
   const confirmCancelBtnRef = useRef(null);
 
@@ -304,11 +306,6 @@ export function MonthlyScheduleView() {
   );
 
   const [absenceTargetSchedule, setAbsenceTargetSchedule] = useState(null);
-  const [replaceTarget, setReplaceTarget] = useState(null);
-  const [replaceOptions, setReplaceOptions] = useState(null);
-  const [replaceChoiceId, setReplaceChoiceId] = useState("");
-  const [replaceError, setReplaceError] = useState("");
-  const [isReplacing, setIsReplacing] = useState(false);
   const [suggestedSubstituteId, setSuggestedSubstituteId] = useState("");
   const [absenceFormError, setAbsenceFormError] = useState("");
   const [isSubmittingAbsence, setIsSubmittingAbsence] = useState(false);
@@ -516,6 +513,33 @@ export function MonthlyScheduleView() {
 
   const pendingReceivedRequest = changeRequests.received[0] || null;
 
+  const rejectedRequest = useMemo(() => {
+    const rejected = (changeRequests.sent || []).find(
+      (request) =>
+        request?.changeStatus === "REJECTED" &&
+        Date.parse(request.schedule?.scheduleAt) > nowMs
+    );
+    if (!rejected) return null;
+
+    const { dateIso, time } = extractDateAndTimeInZone(
+      rejected.schedule.scheduleAt,
+      APP_TIME_ZONE
+    );
+    return {
+      substituteName: rejected.credentialChange?.name || "A pessoa indicada",
+      target: {
+        assignmentId: rejected.id,
+        scheduleId: rejected.schedule.id,
+        ministryId: rejected.schedule.department?.id || "",
+        title: rejected.schedule.name,
+        fullDateLabel: formatScheduleDateDisplay(dateIso).fullDateLabel,
+        time,
+        scheduleAt: rejected.schedule.scheduleAt,
+        changeStatus: "REJECTED",
+      },
+    };
+  }, [changeRequests.sent, nowMs]);
+
   const sentChangeByAssignmentId = useMemo(
     () =>
       new Map(
@@ -673,53 +697,6 @@ export function MonthlyScheduleView() {
       roleCode === ROLES.DEPARTMENT_MANAGER ||
       roleCode === ROLES.GENERAL_MANAGER;
     return isLeader && userDepartmentIds.includes(ministryId);
-  };
-
-  const openReplaceModal = async (eventItem, person) => {
-    const dialog = replaceDialogRef.current;
-    if (!dialog || dialog.open) return;
-
-    setReplaceTarget({ event: eventItem, person });
-    setReplaceOptions(null);
-    setReplaceChoiceId("");
-    setReplaceError("");
-    dialog.showModal();
-
-    const res = await getAvailableCredentials(eventItem.id);
-    if (!res.ok || !Array.isArray(res.data)) {
-      setReplaceOptions([]);
-      setReplaceError(res.error || "Não foi possível carregar as pessoas.");
-      return;
-    }
-    setReplaceOptions(res.data);
-  };
-
-  const handleReplaceSubmit = async (submitEvent) => {
-    submitEvent.preventDefault();
-    if (isReplacing || !replaceTarget || !replaceChoiceId) return;
-
-    setIsReplacing(true);
-    setReplaceError("");
-    const res = await replaceDeclinedAssignment(
-      replaceTarget.event.id,
-      replaceTarget.person.memberId,
-      replaceChoiceId
-    );
-    setIsReplacing(false);
-
-    if (!res.ok) {
-      setReplaceError(res.error || "Não foi possível fazer a substituição.");
-      return;
-    }
-
-    const chosen = replaceOptions?.find(
-      (option) => option.credential.id === replaceChoiceId
-    );
-    replaceDialogRef.current?.close();
-    await refreshSchedules();
-    toast.success(
-      `${chosen?.credential.name ?? "A nova pessoa"} assumiu o lugar de ${replaceTarget.person.name}.`
-    );
   };
 
   const handleOpenAbsenceModal = (targetSchedule) => {
@@ -1187,6 +1164,52 @@ export function MonthlyScheduleView() {
         </section>
       )}
 
+      {rejectedRequest && (
+        <section
+          className={styles.substitutionBanner}
+          aria-label="Substituição recusada"
+        >
+          <div className={styles.substitutionMain}>
+            <span className={styles.substitutionIconWrap} aria-hidden="true">
+              <SwapIcon />
+            </span>
+
+            <div className={styles.substitutionBody}>
+              <p className={styles.substitutionEyebrow}>AÇÃO NECESSÁRIA</p>
+              <h2 className={styles.substitutionTitle}>
+                {rejectedRequest.substituteName} recusou assumir sua vaga em{" "}
+                {rejectedRequest.target.title} (
+                {rejectedRequest.target.fullDateLabel},{" "}
+                {rejectedRequest.target.time})
+              </h2>
+            </div>
+          </div>
+
+          <div className={styles.bannerActions}>
+            <button
+              type="button"
+              className={`${styles.cardActionButton} ${styles.cardWithdrawButton} ${styles.heroActionButton}`}
+              onClick={() => handleOpenAbsenceModal(rejectedRequest.target)}
+            >
+              Indicar outra pessoa
+            </button>
+            <button
+              type="button"
+              className={styles.detailsButton}
+              onClick={() =>
+                openConfirmModal({
+                  type: "confirm-presence",
+                  attendance: rejectedRequest.target,
+                })
+              }
+            >
+              <CheckCircleIcon />
+              <span>Vou participar</span>
+            </button>
+          </div>
+        </section>
+      )}
+
       {nextUserSchedule && (
         <section className={styles.heroCard} aria-label="Sua próxima escala">
           <div className={styles.heroDatePanel}>
@@ -1425,6 +1448,7 @@ export function MonthlyScheduleView() {
                     };
                   })()
                 : null;
+            const attentionReason = attentionReasonOf(event, nowMs);
             const myAttendanceActions = myAttendance
               ? renderAttendanceActions(myAttendance, "card")
               : null;
@@ -1458,6 +1482,14 @@ export function MonthlyScheduleView() {
                     </div>
 
                     <div className={styles.eventTopBadges}>
+                      {attentionReason && (
+                        <span
+                          role="img"
+                          aria-label={`Precisa de atenção: ${attentionReason}`}
+                          title={attentionReason}
+                          className={styles.attentionIndicator}
+                        />
+                      )}
                       {event.selfSignup && (
                         <span className={styles.selfSignupBadge}>
                           Inscrição voluntária
@@ -1551,7 +1583,12 @@ export function MonthlyScheduleView() {
                                 <button
                                   type="button"
                                   className={styles.chipReplaceButton}
-                                  onClick={() => openReplaceModal(event, person)}
+                                  onClick={() =>
+                                    openWorkspaceDrawer("replace-declined", {
+                                      event,
+                                      person,
+                                    })
+                                  }
                                 >
                                   <SwapIcon />
                                   <span>Substituir</span>
@@ -1762,99 +1799,6 @@ export function MonthlyScheduleView() {
                 : suggestedSubstituteId
                   ? "Enviar pedido de substituição"
                   : "Avisar que não vou"}
-            </button>
-          </div>
-        </form>
-      </dialog>
-
-      <dialog
-        ref={replaceDialogRef}
-        closedby="any"
-        aria-labelledby={replaceTitleId}
-        className={styles.modalDialog}
-        onCancel={(event) => {
-          if (isReplacing) event.preventDefault();
-        }}
-        onClose={() => {
-          setReplaceTarget(null);
-          setReplaceOptions(null);
-          setReplaceChoiceId("");
-          setReplaceError("");
-        }}
-      >
-        <form className={styles.modalForm} noValidate onSubmit={handleReplaceSubmit}>
-          <h2 id={replaceTitleId} className={styles.modalTitle}>
-            Substituir {replaceTarget?.person.name}
-          </h2>
-          <p className={styles.modalSubtitle}>
-            {replaceTarget?.person.name} avisou que não vai participar de{" "}
-            <strong>
-              {replaceTarget?.event.title} ({replaceTarget?.event.fullDateLabel},{" "}
-              {replaceTarget?.event.time})
-            </strong>
-            . Escolha quem assume a vaga: a pessoa é avisada e precisa confirmar
-            presença.
-          </p>
-
-          <div className={styles.modalField}>
-            <div className={styles.fieldLabelRow}>
-              <label htmlFor={replaceSelectId} className={styles.modalLabel}>
-                Nova pessoa
-              </label>
-              <span className={styles.requiredTag}>Obrigatório</span>
-            </div>
-            {replaceOptions === null ? (
-              <p className={styles.recurringEmptyNote}>Carregando pessoas...</p>
-            ) : replaceOptions.length === 0 ? (
-              <p className={styles.recurringEmptyNote}>
-                Não há outras pessoas do ministério para colocar nesta escala.
-              </p>
-            ) : (
-              <select
-                id={replaceSelectId}
-                value={replaceChoiceId}
-                className={styles.modalSelect}
-                onChange={(event) => setReplaceChoiceId(event.currentTarget.value)}
-              >
-                <option value="">Selecione uma pessoa...</option>
-                {replaceOptions.map((option) => (
-                  <option key={option.credential.id} value={option.credential.id}>
-                    {option.credential.name}
-                    {option.available
-                      ? ""
-                      : option.isUnavailable
-                        ? " — ausência no horário"
-                        : " — sem disponibilidade no período"}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {replaceError && (
-            <div className={styles.formBannerError} role="alert">
-              <AlertCircleIcon className={styles.fieldErrorIcon} />
-              <span>{replaceError}</span>
-            </div>
-          )}
-
-          <div className={styles.modalActions}>
-            <button
-              type="button"
-              autoFocus
-              disabled={isReplacing}
-              className={styles.modalCancelButton}
-              onClick={() => replaceDialogRef.current?.close()}
-            >
-              Voltar
-            </button>
-            <button
-              type="submit"
-              disabled={isReplacing || !replaceChoiceId}
-              aria-busy={isReplacing}
-              className={styles.modalConfirmButton}
-            >
-              {isReplacing ? "Substituindo..." : "Colocar no lugar"}
             </button>
           </div>
         </form>

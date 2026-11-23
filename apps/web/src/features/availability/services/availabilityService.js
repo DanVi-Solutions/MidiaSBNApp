@@ -177,6 +177,17 @@ export function replaceMyWeeklyAvailability(days) {
   });
 }
 
+export function getMyWorshipService() {
+  return apiRequest("/availabilities/me/worship-service");
+}
+
+export function saveMyWorshipService(worshipService) {
+  return apiRequest("/availabilities/me/worship-service", {
+    method: "PUT",
+    body: { worshipService: worshipService || null },
+  });
+}
+
 export function listMyUnavailabilities({ from, to } = {}) {
   const params = new URLSearchParams();
   if (from) params.set("from", from);

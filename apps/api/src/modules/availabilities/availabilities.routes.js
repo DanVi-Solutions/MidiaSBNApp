@@ -2,7 +2,12 @@ import { createDocumentedRouter } from "../../shared/docs/documentedRouter.js";
 import { markdown } from "../../shared/docs/markdown.js";
 import { createAvailabilitiesController } from "./availabilities.controller.js";
 import * as res from "./availabilities.responses.js";
-import { credentialIdParams, departmentIdParams, replaceWeekBody } from "./availabilities.validation.js";
+import {
+  credentialIdParams,
+  departmentIdParams,
+  replaceWeekBody,
+  worshipServiceBody,
+} from "./availabilities.validation.js";
 
 const controller = createAvailabilitiesController();
 
@@ -31,6 +36,39 @@ r.get(
     responses: { 200: res.week },
   },
   controller.getMine,
+);
+
+r.get(
+  "/me/worship-service",
+  {
+    summary: "Meu horário de culto",
+    description: markdown(
+      "Retorna qual culto de domingo a pessoa logada frequenta. A distribuição automática evita escalar a pessoa " +
+        "nesse horário, e quem monta a escala vê um aviso quando a escala coincide com ele.",
+      "",
+      "**Quem pode:** qualquer pessoa com a conta ativa.",
+    ),
+    responses: { 200: res.worshipService },
+  },
+  controller.getMyWorshipService,
+);
+
+r.put(
+  "/me/worship-service",
+  {
+    summary: "Informar meu horário de culto",
+    description: markdown(
+      "Define o culto de domingo que a pessoa logada frequenta: 08:15 às 10:00, 10:30 às 12:00 ou 18:00 às 20:00.",
+      "",
+      "Uma escala de domingo coincide com o culto quando começa a partir de 1 hora antes do culto e antes de ele " +
+        "terminar.",
+      "",
+      "**Quem pode:** qualquer pessoa com a conta ativa, para si mesma.",
+    ),
+    body: worshipServiceBody,
+    responses: { 200: res.worshipService },
+  },
+  controller.setMyWorshipService,
 );
 
 r.get(

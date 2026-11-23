@@ -43,7 +43,12 @@ export const changeRequestsRepository = {
 
   findActiveMember(departmentId, credentialId) {
     return prisma.credential.findFirst({
-      where: { id: credentialId, status: "ACTIVE", departments: { some: { departmentId, pending: false } } },
+      where: {
+        id: credentialId,
+        status: "ACTIVE",
+        role: { notIn: ["ADMINISTRATOR", "GENERAL_MANAGER"] },
+        departments: { some: { departmentId, pending: false } },
+      },
       select: { id: true },
     });
   },

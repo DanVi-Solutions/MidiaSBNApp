@@ -14,6 +14,20 @@ export const availabilitiesRepository = {
     ]);
   },
 
+  async findWorshipService(credentialId) {
+    const credential = await prisma.credential.findUnique({ where: { id: credentialId }, select: { worshipService: true } });
+    return credential?.worshipService ?? null;
+  },
+
+  async setWorshipService(credentialId, worshipService) {
+    const credential = await prisma.credential.update({
+      where: { id: credentialId },
+      data: { worshipService },
+      select: { worshipService: true },
+    });
+    return credential.worshipService;
+  },
+
   listMembersOf(departmentId) {
     return prisma.credential.findMany({
       where: {

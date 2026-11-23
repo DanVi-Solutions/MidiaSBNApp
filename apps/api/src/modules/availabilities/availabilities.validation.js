@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { uuidParam } from "../../shared/http/schemas.js";
+import { WORSHIP_SERVICE_CODES } from "../../shared/time/worshipServices.js";
 import { WEEKDAYS } from "../../shared/time/zonedTime.js";
 
 const period = (description) => z.boolean().default(false).meta({ description });
@@ -17,6 +18,17 @@ export const replaceWeekBody = z.object({
     .max(7)
     .refine((days) => new Set(days.map((d) => d.weekday)).size === days.length, "Dia da semana repetido")
     .meta({ description: "Dias em que a pessoa está disponível. Dias omitidos ficam como indisponíveis." }),
+});
+
+export const worshipServiceBody = z.object({
+  worshipService: z
+    .enum(WORSHIP_SERVICE_CODES, "Horário de culto inválido")
+    .nullable()
+    .meta({
+      description:
+        "Culto de domingo que a pessoa frequenta: SUNDAY_0815 (08:15 às 10:00), SUNDAY_1030 (10:30 às 12:00) ou " +
+        "SUNDAY_1800 (18:00 às 20:00). `null` apaga a informação.",
+    }),
 });
 
 export const credentialIdParams = z.object({ credentialId: uuidParam("ID da credencial") });

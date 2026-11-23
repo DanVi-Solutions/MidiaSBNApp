@@ -5,7 +5,7 @@ export const WEEKDAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY",
 const NOON = 12;
 const EVENING = 18;
 
-const toZoned = (date) => Temporal.Instant.fromEpochMilliseconds(date.getTime()).toZonedDateTimeISO(env.APP_TIME_ZONE);
+export const toZoned = (date) => Temporal.Instant.fromEpochMilliseconds(date.getTime()).toZonedDateTimeISO(env.APP_TIME_ZONE);
 
 const weekdayOfZoned = (zoned) => WEEKDAYS[zoned.dayOfWeek % 7];
 

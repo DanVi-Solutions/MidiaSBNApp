@@ -10,6 +10,7 @@ import {
   CheckIcon,
   CloseIcon,
   PlusIcon,
+  PrayingHandsIcon,
   SwapIcon,
 } from "@/components/ui/icons";
 import { applyRecurringEvent } from "@/features/recurring-events/services/recurringEventsService";
@@ -49,6 +50,7 @@ import {
   getDepartmentIds,
   isAdmin,
 } from "@/lib/roles";
+import { worshipServiceLabel } from "@/lib/worshipServices";
 import styles from "./MonthlyScheduleView.module.css";
 
 function validateTitleValue(value) {
@@ -109,19 +111,39 @@ const CANDIDATES_DEBOUNCE = 300;
 const isUnavailableMember = (availability) =>
   Boolean(availability) && !availability.available;
 
+const missesWorship = (availability) => Boolean(availability?.worshipConflict);
+
+const needsAttention = (availability) =>
+  isUnavailableMember(availability) || missesWorship(availability);
+
 const availabilityRank = (availability) => {
-  if (!isUnavailableMember(availability)) return 0;
-  return availability.isUnavailable ? 2 : 1;
+  const unavailableRank = !isUnavailableMember(availability)
+    ? 0
+    : availability.isUnavailable
+      ? 2
+      : 1;
+  return unavailableRank * 2 + (missesWorship(availability) ? 1 : 0);
 };
 
-const unavailabilityReason = (availability) =>
-  availability.isUnavailable
-    ? "registrou ausência neste horário"
-    : "não marcou disponibilidade neste dia e período";
+const attentionReasons = (availability) => [
+  ...(isUnavailableMember(availability)
+    ? [
+        availability.isUnavailable
+          ? "registrou ausência neste horário"
+          : "não marcou disponibilidade neste dia e período",
+      ]
+    : []),
+  ...(missesWorship(availability)
+    ? [
+        `vai deixar de ir ao próprio culto (domingo, ${worshipServiceLabel(availability.worshipService)})`,
+      ]
+    : []),
+];
 
 const ASSIGNMENT_WARNING_LABELS = {
   NO_WEEKLY_AVAILABILITY: "sem disponibilidade semanal marcada",
   UNAVAILABLE: "com ausência registrada no horário",
+  WORSHIP_SERVICE: "no horário do culto da pessoa",
   OVER_CAPACITY: "acima da capacidade informada",
 };
 
@@ -541,7 +563,10 @@ export function ScheduleFormDrawer({
       if (
         !byId.has(credId) &&
         info?.credential &&
-        canAssignMemberToSchedule(currentUser, { role: candidateRole })
+        canAssignMemberToSchedule(currentUser, {
+          id: credId,
+          role: candidateRole,
+        })
       ) {
         byId.set(credId, {
           id: credId,
@@ -561,7 +586,10 @@ export function ScheduleFormDrawer({
           asg.roleCode || roleByMemberId.get(asg.memberId) || "";
         if (
           !byId.has(asg.memberId) &&
-          canAssignMemberToSchedule(currentUser, { role: assigneeRole })
+          canAssignMemberToSchedule(currentUser, {
+            id: asg.memberId,
+            role: assigneeRole,
+          })
         ) {
           byId.set(asg.memberId, {
             id: asg.memberId,
@@ -872,7 +900,7 @@ export function ScheduleFormDrawer({
           (member) =>
             selectedMemberIds.includes(member.id) &&
             !alreadyAssignedIds.has(member.id) &&
-            isUnavailableMember(member.availability)
+            needsAttention(member.availability)
         );
     if (unavailablePicks.length > 0 && !acknowledgedUnavailable) {
       setUnavailablePicksToConfirm(unavailablePicks);
@@ -942,6 +970,7 @@ export function ScheduleFormDrawer({
           (id) =>
             !currentIds.has(id) &&
             canAssignMemberToSchedule(currentUser, {
+              id,
               role: roleByMemberId.get(id),
             })
         );
@@ -949,6 +978,7 @@ export function ScheduleFormDrawer({
           (id) =>
             !targetIds.has(id) &&
             canAssignMemberToSchedule(currentUser, {
+              id,
               role: roleByMemberId.get(id),
             })
         );
@@ -1031,6 +1061,7 @@ export function ScheduleFormDrawer({
     let assignWarningError = "";
     const assignableSelectedIds = selectedMemberIds.filter((id) =>
       canAssignMemberToSchedule(currentUser, {
+        id,
         role: roleByMemberId.get(id),
       })
     );
@@ -1788,6 +1819,11 @@ export function ScheduleFormDrawer({
                                     className={styles.memberUnavailableIcon}
                                   />
                                 )}
+                                {missesWorship(member.availability) && (
+                                  <PrayingHandsIcon
+                                    className={styles.memberWorshipIcon}
+                                  />
+                                )}
                               </span>
                               <span className={styles.memberCardHandle}>
                                 {member.handle || "Primeiro acesso"}
@@ -1807,6 +1843,11 @@ export function ScheduleFormDrawer({
                                     : member.availability.isUnavailable
                                       ? "Ausência no horário"
                                       : "Sem disponibilidade"}
+                                </span>
+                              )}
+                              {missesWorship(member.availability) && (
+                                <span className={styles.memberWorshipTag}>
+                                  No horário do culto
                                 </span>
                               )}
                             </span>
@@ -1909,24 +1950,31 @@ export function ScheduleFormDrawer({
       >
         <div className={styles.modalForm}>
           <h2 id={unavailableDialogTitleId} className={styles.modalTitle}>
-            Escalar quem está indisponível?
+            Confirmar escalação?
           </h2>
           <p className={styles.modalSubtitle}>
-            Você escalou{" "}
-            {unavailablePicksToConfirm.length === 1
-              ? "um membro que informou estar indisponível"
-              : "membros que informaram estar indisponíveis"}{" "}
-            neste horário. Vale conversar com{" "}
+            {unavailablePicksToConfirm.some((member) =>
+              isUnavailableMember(member.availability)
+            ) && "Você escalou quem informou estar indisponível neste horário. "}
+            {unavailablePicksToConfirm.some((member) =>
+              missesWorship(member.availability)
+            ) &&
+              "Um dos voluntários escalados vai deixar de ir ao próprio horário de culto. "}
+            Vale conversar com{" "}
             {unavailablePicksToConfirm.length === 1 ? "essa pessoa" : "essas pessoas"}{" "}
             antes de manter a escala.
           </p>
           <ul className={styles.unavailablePickList}>
             {unavailablePicksToConfirm.map((member) => (
               <li key={member.id} className={styles.unavailablePickItem}>
-                <CalendarXIcon className={styles.memberUnavailableIcon} />
+                {isUnavailableMember(member.availability) ? (
+                  <CalendarXIcon className={styles.memberUnavailableIcon} />
+                ) : (
+                  <PrayingHandsIcon className={styles.memberWorshipIcon} />
+                )}
                 <span>
                   <strong>{member.name}</strong>{" "}
-                  {unavailabilityReason(member.availability)}
+                  {attentionReasons(member.availability).join(" e ")}
                 </span>
               </li>
             ))}

@@ -5,6 +5,7 @@ import { MinistryFormDrawer } from "@/features/ministries/components/MinistryFor
 import { ParticipantFormDrawer } from "@/features/participants/components/ParticipantFormDrawer";
 import { RecurringEventFormDrawer } from "@/features/recurring-events/components/RecurringEventFormDrawer";
 import { AutoAssignDrawer } from "@/features/schedules/components/AutoAssignDrawer";
+import { ReplaceDeclinedDrawer } from "@/features/schedules/components/ReplaceDeclinedDrawer";
 import { ScheduleFormDrawer } from "@/features/schedules/components/ScheduleFormDrawer";
 import { SubstitutionDrawer } from "@/features/schedules/components/SubstitutionDrawer";
 
@@ -67,6 +68,15 @@ export function WorkspaceRightDrawerHost({ activeDrawer, onCloseDrawer }) {
           mode={payload.mode}
           event={payload.event}
           scheduleWindow={payload.scheduleWindow}
+          onClose={handleClose}
+        />
+      );
+    case "replace-declined":
+      return (
+        <ReplaceDeclinedDrawer
+          key={key}
+          event={payload.event}
+          person={payload.person}
           onClose={handleClose}
         />
       );

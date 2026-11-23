@@ -14,6 +14,14 @@ export function createAvailabilitiesController(service = availabilitiesService) 
       res.json(await service.listDepartment(req.auth, req.validated.params.departmentId));
     },
 
+    async getMyWorshipService(req, res) {
+      res.json(await service.getMyWorshipService(req.auth));
+    },
+
+    async setMyWorshipService(req, res) {
+      res.json(await service.setMyWorshipService(req.auth, req.validated.body.worshipService));
+    },
+
     async replaceMine(req, res) {
       res.json(await service.replaceMine(req.auth, req.validated.body.days));
     },

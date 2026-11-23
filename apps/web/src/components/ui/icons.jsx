@@ -814,3 +814,26 @@ export function ShieldOffIcon({ className }) {
     </svg>
   );
 }
+
+export function PrayingHandsIcon({ className }) {
+  return (
+    <svg
+      className={className}
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 4c-1.1 0-2 .9-2 2v5.5l-4 4V20h3.5l2.5-2.5" />
+      <path d="M12 4c1.1 0 2 .9 2 2v5.5l4 4V20h-3.5L12 17.5" />
+      <path d="M12 4v13.5" />
+      <path d="M5 20h5" />
+      <path d="M14 20h5" />
+    </svg>
+  );
+}

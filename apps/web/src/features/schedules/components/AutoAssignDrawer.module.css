@@ -223,6 +223,23 @@
   font-weight: 600;
 }
 
+.worshipTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background-color: #f1eafb;
+  color: #6b3fa8;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.worshipIcon {
+  width: 13px;
+  height: 13px;
+}
+
 .resultEmpty {
   font-size: 0.8rem;
   color: var(--ink-muted);
