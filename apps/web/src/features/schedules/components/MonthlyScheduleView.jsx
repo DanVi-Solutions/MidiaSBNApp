@@ -12,6 +12,7 @@ import {
   AlertCircleIcon,
   AlertTriangleIcon,
   ArrowRightIcon,
+  CalendarDaysIcon,
   CalendarIcon,
   CalendarPlusIcon,
   CheckCircleIcon,
@@ -1723,6 +1724,17 @@ export function MonthlyScheduleView() {
                           {event.statusLabel}
                         </span>
                       )}
+
+                      {event.agendaEventId && (
+                        <span
+                          role="img"
+                          aria-label="Evento da Agenda Sobrenatural"
+                          title="Evento da Agenda Sobrenatural"
+                          className={styles.agendaSourceBadge}
+                        >
+                          <CalendarDaysIcon />
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -1867,16 +1879,18 @@ export function MonthlyScheduleView() {
                             <span>Editar</span>
                           </button>
 
-                          <button
-                            type="button"
-                            className={`${styles.cardActionButton} ${styles.cardDeleteButton}`}
-                            onClick={() =>
-                              openConfirmModal({ type: "delete", event })
-                            }
-                          >
-                            <TrashIcon />
-                            <span>Excluir</span>
-                          </button>
+                          {(!event.agendaEventId || isManagementOnly) && (
+                            <button
+                              type="button"
+                              className={`${styles.cardActionButton} ${styles.cardDeleteButton}`}
+                              onClick={() =>
+                                openConfirmModal({ type: "delete", event })
+                              }
+                            >
+                              <TrashIcon />
+                              <span>Excluir</span>
+                            </button>
+                          )}
                         </>
                       )}
                     </div>

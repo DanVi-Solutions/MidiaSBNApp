@@ -1,0 +1,712 @@
+.page {
+  --night: #16141d;
+  --night-deep: #0f0e15;
+  --panel: rgba(255, 255, 255, 0.055);
+  --panel-strong: rgba(255, 255, 255, 0.09);
+  --line: rgba(244, 241, 236, 0.12);
+  --linen: #f4f1ec;
+  --mist: #b5afc4;
+  --mist-dim: #8b8599;
+  --blue: #4f7cff;
+  --ember: #f4543a;
+  --rose: #ff5fa2;
+  --glow-gradient: linear-gradient(100deg, var(--blue) 0%, #8f6bff 30%, var(--ember) 62%, var(--rose) 100%);
+  --display: var(--font-agenda-display), var(--font-geist-sans), system-ui, sans-serif;
+  --topbar-height: 4.5rem;
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding-block-start: var(--topbar-height);
+  overflow-x: clip;
+  background-color: var(--night);
+  color: var(--linen);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: radial-gradient(120% 80% at 50% 0%, #1e1a2b 0%, var(--night) 55%, var(--night-deep) 100%);
+  pointer-events: none;
+}
+
+.glowBlue,
+.glowOrange,
+.glowPink {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform, opacity;
+}
+
+.glowBlue {
+  inset-block-start: -18vmax;
+  inset-inline-start: -14vmax;
+  width: 54vmax;
+  height: 54vmax;
+  background: radial-gradient(circle, var(--blue) 0%, #6a5cff 60%, transparent 72%);
+  opacity: 0.5;
+  animation: driftBlue 22s ease-in-out infinite alternate;
+}
+
+.glowOrange {
+  inset-block-start: 14vmax;
+  inset-inline-end: -18vmax;
+  width: 46vmax;
+  height: 46vmax;
+  background: radial-gradient(circle, var(--ember) 0%, #ff7a45 55%, transparent 72%);
+  opacity: 0.36;
+  animation: driftOrange 27s ease-in-out infinite alternate;
+}
+
+.glowPink {
+  inset-block-end: -24vmax;
+  inset-inline-start: 18vmax;
+  width: 50vmax;
+  height: 50vmax;
+  background: radial-gradient(circle, var(--rose) 0%, #c45cff 58%, transparent 72%);
+  opacity: 0.34;
+  animation: driftPink 31s ease-in-out infinite alternate;
+}
+
+@keyframes driftBlue {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(26vmax, 12vmax) scale(1.18);
+    opacity: 0.38;
+  }
+  100% {
+    transform: translate(8vmax, 30vmax) scale(0.95);
+    opacity: 0.52;
+  }
+}
+
+@keyframes driftOrange {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-24vmax, 14vmax) scale(0.88);
+    opacity: 0.44;
+  }
+  100% {
+    transform: translate(-10vmax, -16vmax) scale(1.12);
+    opacity: 0.3;
+  }
+}
+
+@keyframes driftPink {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-22vmax, -20vmax) scale(1.2);
+    opacity: 0.42;
+  }
+  100% {
+    transform: translate(16vmax, -8vmax) scale(0.92);
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glowBlue,
+  .glowOrange,
+  .glowPink {
+    animation-duration: 90s;
+  }
+}
+
+.topbarShell {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 20;
+  border-block-end: 1px solid var(--line);
+  background-color: rgba(22, 20, 29, 0.9);
+  backdrop-filter: blur(18px) saturate(1.3);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: min(1120px, 100%);
+  min-height: var(--topbar-height);
+  margin-inline: auto;
+  padding: 0.6rem 1rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  border-radius: 999px;
+  color: var(--linen);
+  text-decoration: none;
+}
+
+.brandMark {
+  width: 40px;
+  height: 40px;
+}
+
+.brandName {
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.accessButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0.55rem 1.15rem;
+  border: 1px solid rgba(244, 241, 236, 0.28);
+  border-radius: 999px;
+  background-color: rgba(244, 241, 236, 0.06);
+  color: var(--linen);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  backdrop-filter: blur(12px);
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: min(1120px, 100%);
+  margin-inline: auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-block: clamp(1.5rem, 6vw, 4rem) clamp(0.5rem, 2vw, 1.25rem);
+}
+
+.title {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--display);
+  font-size: clamp(3.1rem, 11vw, 7.5rem);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+}
+
+.titleLead {
+  color: var(--linen);
+}
+
+.titleGlow {
+  padding-block-end: 0.08em;
+  background: var(--glow-gradient);
+  background-clip: text;
+  color: transparent;
+}
+
+.lede {
+  max-width: 34rem;
+  font-size: clamp(1rem, 2.2vw, 1.15rem);
+  line-height: 1.55;
+  color: var(--mist);
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background-color: var(--panel);
+  backdrop-filter: blur(18px);
+}
+
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.searchIcon {
+  position: absolute;
+  inset-inline-start: 0.95rem;
+  color: var(--mist-dim);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 46px;
+  padding: 0.6rem 1rem 0.6rem 2.6rem;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background-color: rgba(0, 0, 0, 0.22);
+  color: var(--linen);
+  font: inherit;
+  font-size: max(1rem, 1em);
+}
+
+.searchInput::placeholder {
+  color: var(--mist-dim);
+}
+
+.toolbarActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}
+
+.monthSelect {
+  width: 100%;
+  min-height: 46px;
+  padding: 0.6rem 2.4rem 0.6rem 0.95rem;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background-color: rgba(0, 0, 0, 0.22);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23b5afc4' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 0.95rem center;
+  background-repeat: no-repeat;
+  color: var(--linen);
+  font: inherit;
+  font-size: max(1rem, 1em);
+  font-weight: 600;
+  appearance: none;
+  cursor: pointer;
+}
+
+.monthSelect option {
+  background-color: var(--night);
+  color: var(--linen);
+}
+
+.viewToggle {
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.25rem;
+  border-radius: 14px;
+  background-color: rgba(0, 0, 0, 0.22);
+}
+
+.viewButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--mist);
+  cursor: pointer;
+}
+
+.viewButton svg {
+  width: 19px;
+  height: 19px;
+}
+
+.viewButton[aria-pressed="true"] {
+  background-color: var(--linen);
+  color: var(--night);
+}
+
+.retryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 46px;
+  padding: 0.55rem 1.1rem;
+  border: 0;
+  border-radius: 14px;
+  background: var(--glow-gradient);
+  color: #fff;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.statePanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background-color: var(--panel);
+  color: var(--mist);
+  text-align: center;
+  backdrop-filter: blur(18px);
+}
+
+.calendarLayout {
+  display: grid;
+  gap: 1rem;
+}
+
+.calendarPanel,
+.dayPanel,
+.monthPanel {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background-color: var(--panel);
+  backdrop-filter: blur(18px);
+}
+
+.calendarPanel {
+  padding: 1.1rem;
+}
+
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-block-end: 1rem;
+}
+
+.calendarTitle {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.navButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--linen);
+  cursor: pointer;
+}
+
+.navButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.weekday {
+  padding-block: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--mist-dim);
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 54px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--linen);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dayPast {
+  color: var(--mist-dim);
+}
+
+.dayToday {
+  border-color: var(--ember);
+}
+
+.day[aria-pressed="true"] {
+  background-color: var(--linen);
+  color: var(--night);
+}
+
+.dots {
+  display: flex;
+  gap: 3px;
+  min-height: 6px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--glow-gradient);
+}
+
+.dayPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.1rem 1.25rem;
+}
+
+.dayTitle {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.dayEmpty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  color: var(--mist);
+  text-align: center;
+}
+
+.months {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.monthPanel {
+  padding: 1.1rem 1.25rem 0.5rem;
+}
+
+.monthTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-family: var(--display);
+  font-size: clamp(1.35rem, 3vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.monthCount {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--mist);
+}
+
+.eventList {
+  list-style: none;
+}
+
+.eventRow {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 1rem;
+  padding-block: 1rem;
+}
+
+.eventRow + .eventRow {
+  border-block-start: 1px solid var(--line);
+}
+
+.eventRowPast {
+  opacity: 0.55;
+}
+
+.eventDate {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.eventDay {
+  font-family: var(--display);
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.eventWeekday {
+  font-size: 0.78rem;
+  color: var(--mist);
+}
+
+.eventInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.eventName {
+  font-size: 1.12rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.eventWhen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  font-size: 0.9rem;
+  color: var(--mist);
+}
+
+.eventWhen > span:first-child {
+  font-weight: 700;
+  color: var(--linen);
+}
+
+.pastNote {
+  color: var(--mist-dim);
+}
+
+.eventDescription {
+  max-width: 60ch;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--mist);
+}
+
+.footer {
+  width: min(1120px, 100%);
+  margin-inline: auto;
+  padding: 1.5rem 1rem 6rem;
+  font-size: 0.82rem;
+  color: var(--mist-dim);
+}
+
+.accessButton:focus-visible,
+.brand:focus-visible,
+.searchInput:focus-visible,
+.monthSelect:focus-visible,
+.viewButton:focus-visible,
+.retryButton:focus-visible,
+.navButton:focus-visible,
+.day:focus-visible {
+  outline: 2px solid var(--linen);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .accessButton:hover {
+    border-color: var(--linen);
+    background-color: rgba(244, 241, 236, 0.12);
+  }
+
+  .day:not([aria-pressed="true"]):hover,
+  .viewButton:not([aria-pressed="true"]):hover,
+  .navButton:not(:disabled):hover {
+    background-color: var(--panel-strong);
+  }
+
+  .retryButton:hover,
+  .shareButton:hover {
+    filter: brightness(1.08);
+  }
+}
+
+@media (min-width: 760px) {
+  .toolbar {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .toolbarActions {
+    grid-template-columns: 210px auto;
+  }
+}
+
+@media (min-width: 960px) {
+  .calendarLayout {
+    grid-template-columns: minmax(340px, 440px) minmax(0, 1fr);
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 520px) {
+  .brandName {
+    display: none;
+  }
+
+  .toolbarActions {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .calendarPanel {
+    padding: 0.85rem;
+  }
+
+  .day {
+    min-height: 46px;
+  }
+
+  .eventRow {
+    grid-template-columns: 3.6rem minmax(0, 1fr);
+    gap: 0.8rem;
+  }
+
+  .eventDay {
+    font-size: 2rem;
+  }
+
+}
+
+.shareButton {
+  position: fixed;
+  inset-block-end: calc(1.25rem + env(safe-area-inset-bottom));
+  inset-inline-end: 1.25rem;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border: 0;
+  border-radius: 50%;
+  background-color: var(--blue);
+  color: #fff;
+  box-shadow:
+    0 14px 34px rgba(79, 124, 255, 0.38),
+    0 6px 16px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.shareButton:focus-visible {
+  outline: 2px solid var(--linen);
+  outline-offset: 3px;
+}
+
+.shareButton:active {
+  transform: scale(0.94);
+}

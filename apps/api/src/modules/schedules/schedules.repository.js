@@ -32,6 +32,7 @@ const scheduleSummarySelect = {
   selfSignup: true,
   volunteersNeeded: true,
   recurringEventId: true,
+  agendaEventId: true,
   department: { select: { id: true, name: true } },
   _count: { select: { credentials: true } },
 };

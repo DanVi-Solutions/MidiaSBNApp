@@ -77,6 +77,22 @@ export const messages = {
     scheduleId: null,
   }),
 
+  agendaEventCancelled: (schedule) => ({
+    type: "SCHEDULE_CANCELLED",
+    title: "Evento cancelado",
+    body: `O evento de ${scheduleLabel(schedule)} — ${when(schedule)} foi cancelado na Agenda Sobrenatural e você saiu da escala.`,
+    link: SCHEDULE_PAGE,
+    scheduleId: null,
+  }),
+
+  agendaEventMoved: (schedule, startsAt) => ({
+    type: "SCHEDULE_UNASSIGNED",
+    title: "Evento remarcado",
+    body: `O evento de ${scheduleLabel(schedule)} foi remarcado para ${formatMoment(startsAt)}. Você saiu da escala, que será montada de novo.`,
+    link: SCHEDULE_PAGE,
+    scheduleId: null,
+  }),
+
   scheduleReminder: (schedule, { confirmed }) =>
     aboutSchedule(
       "SCHEDULE_REMINDER",

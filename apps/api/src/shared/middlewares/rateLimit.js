@@ -16,4 +16,6 @@ function createLimiter(limit, message) {
 
 export const loginRateLimit = createLimiter(10, "Muitas tentativas de login. Tente novamente em alguns minutos.");
 
+export const publicReadRateLimit = createLimiter(300, "Muitas requisições. Tente novamente em alguns minutos.");
+
 export const tooManyAttemptsResponse = { description: "Muitas tentativas; aguarde alguns minutos" };

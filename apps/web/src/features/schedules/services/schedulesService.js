@@ -68,6 +68,7 @@ export function formatScheduleForUi(apiSchedule) {
     volunteersNeeded: apiSchedule.volunteersNeeded ?? null,
     assignedCount,
     recurringEventId: apiSchedule.recurringEventId ?? null,
+    agendaEventId: apiSchedule.agendaEventId ?? null,
     assignments,
     signedUp: Boolean(apiSchedule.signedUp),
     freeSlots:

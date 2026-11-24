@@ -412,7 +412,13 @@ r.delete(
   "/:id",
   {
     summary: "Excluir uma escala",
-    description: markdown("Remove a escala e todas as participações (inclusive pedidos de troca).", "", manageRule),
+    description: markdown(
+      "Remove a escala e todas as participações (inclusive pedidos de troca).",
+      "",
+      manageRule,
+      "",
+      "Escalas geradas pela Agenda Sobrenatural (`agendaEventId`) só podem ser apagadas pelo líder geral ou acima.",
+    ),
     params: idParams,
     responses: { 204: null },
   },

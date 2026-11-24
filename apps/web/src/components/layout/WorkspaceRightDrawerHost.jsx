@@ -1,5 +1,7 @@
 "use client";
 
+import { AgendaEventFormDrawer } from "@/features/agenda/components/AgendaEventFormDrawer";
+import { AgendaExportDrawer } from "@/features/agenda/components/AgendaExportDrawer";
 import { DemandDetailDrawer } from "@/features/demands/components/DemandDetailDrawer";
 import { DemandFormDrawer } from "@/features/demands/components/DemandFormDrawer";
 import { MinistryAssignLeaderDrawer } from "@/features/ministries/components/MinistryAssignLeaderDrawer";
@@ -18,6 +20,27 @@ export function WorkspaceRightDrawerHost({ activeDrawer, onCloseDrawer }) {
   const handleClose = () => onCloseDrawer?.(key);
 
   switch (type) {
+    case "agenda-export":
+      return (
+        <AgendaExportDrawer
+          key={key}
+          events={payload.events}
+          monthOptions={payload.monthOptions}
+          defaultMonth={payload.defaultMonth}
+          onClose={handleClose}
+        />
+      );
+    case "agenda-event-form":
+      return (
+        <AgendaEventFormDrawer
+          key={key}
+          mode={payload.mode}
+          event={payload.event}
+          window={payload.window}
+          onSaved={payload.onSaved}
+          onClose={handleClose}
+        />
+      );
     case "demand-detail":
       return (
         <DemandDetailDrawer

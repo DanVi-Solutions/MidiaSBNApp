@@ -3,102 +3,103 @@
 import { useSyncExternalStore } from "react";
 
 export const THEME_STORAGE_KEY = "midia_sbn_theme_v1";
-export const DEFAULT_THEME = "light";
 
+export const THEME_PREFERENCE = Object.freeze({
+  SYSTEM: "system",
+  LIGHT: "light",
+  DARK: "dark",
+});
+
+export const DEFAULT_THEME_PREFERENCE = THEME_PREFERENCE.SYSTEM;
+
+const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)";
 const listeners = new Set();
-let storageListenerAttached = false;
+let browserListenersAttached = false;
 
-export function normalizeTheme(value) {
-  return value === "dark" ? "dark" : DEFAULT_THEME;
+export function normalizePreference(value) {
+  return value === THEME_PREFERENCE.LIGHT || value === THEME_PREFERENCE.DARK ? value : THEME_PREFERENCE.SYSTEM;
 }
 
-export function getStoredTheme() {
-  if (typeof window === "undefined") {
-    return DEFAULT_THEME;
-  }
+function systemPrefersDark() {
+  return typeof window !== "undefined" && Boolean(window.matchMedia?.(DARK_SCHEME_QUERY).matches);
+}
 
+function resolveTheme(preference) {
+  if (preference === THEME_PREFERENCE.SYSTEM) return systemPrefersDark() ? "dark" : "light";
+  return preference;
+}
+
+export function getStoredPreference() {
+  if (typeof window === "undefined") return DEFAULT_THEME_PREFERENCE;
   try {
-    return normalizeTheme(window.localStorage.getItem(THEME_STORAGE_KEY));
+    return normalizePreference(window.localStorage.getItem(THEME_STORAGE_KEY));
   } catch {
-    return DEFAULT_THEME;
+    return DEFAULT_THEME_PREFERENCE;
   }
 }
 
 export function getAppliedTheme() {
-  if (typeof document === "undefined") {
-    return DEFAULT_THEME;
-  }
-
+  if (typeof document === "undefined") return "light";
   const attr = document.documentElement.dataset.theme;
-  if (attr === "light" || attr === "dark") {
-    return attr;
-  }
+  return attr === "dark" || attr === "light" ? attr : resolveTheme(getStoredPreference());
+}
 
-  return getStoredTheme();
+function applyStoredPreference() {
+  if (typeof document !== "undefined") {
+    document.documentElement.dataset.theme = resolveTheme(getStoredPreference());
+  }
+  listeners.forEach((listener) => listener());
 }
 
 function handleStorageChange(event) {
-  if (event.key !== THEME_STORAGE_KEY) {
-    return;
-  }
+  if (event.key === THEME_STORAGE_KEY) applyStoredPreference();
+}
 
-  const next = normalizeTheme(event.newValue);
-  if (typeof document !== "undefined") {
-    document.documentElement.dataset.theme = next;
-  }
-  listeners.forEach((listener) => listener());
+function handleSystemSchemeChange() {
+  if (getStoredPreference() === THEME_PREFERENCE.SYSTEM) applyStoredPreference();
 }
 
 function subscribe(listener) {
   listeners.add(listener);
 
-  if (typeof window !== "undefined" && !storageListenerAttached) {
+  if (typeof window !== "undefined" && !browserListenersAttached) {
     window.addEventListener("storage", handleStorageChange);
-    storageListenerAttached = true;
+    window.matchMedia?.(DARK_SCHEME_QUERY).addEventListener("change", handleSystemSchemeChange);
+    browserListenersAttached = true;
   }
 
   return () => {
     listeners.delete(listener);
-    if (
-      listeners.size === 0 &&
-      typeof window !== "undefined" &&
-      storageListenerAttached
-    ) {
+    if (listeners.size === 0 && typeof window !== "undefined" && browserListenersAttached) {
       window.removeEventListener("storage", handleStorageChange);
-      storageListenerAttached = false;
+      window.matchMedia?.(DARK_SCHEME_QUERY).removeEventListener("change", handleSystemSchemeChange);
+      browserListenersAttached = false;
     }
   };
 }
 
-export function setTheme(nextTheme) {
-  const normalized = normalizeTheme(nextTheme);
-
-  if (typeof document !== "undefined") {
-    document.documentElement.dataset.theme = normalized;
-  }
-
+export function setThemePreference(nextPreference) {
+  const preference = normalizePreference(nextPreference);
   if (typeof window !== "undefined") {
     try {
-      window.localStorage.setItem(THEME_STORAGE_KEY, normalized);
+      if (preference === THEME_PREFERENCE.SYSTEM) window.localStorage.removeItem(THEME_STORAGE_KEY);
+      else window.localStorage.setItem(THEME_STORAGE_KEY, preference);
     } catch {
       // Ignora falhas de storage em navegacao restrita.
     }
   }
-
-  listeners.forEach((listener) => listener());
-  return normalized;
+  applyStoredPreference();
+  return preference;
 }
 
 export function useTheme() {
-  const theme = useSyncExternalStore(
-    subscribe,
-    getAppliedTheme,
-    () => DEFAULT_THEME,
-  );
+  const preference = useSyncExternalStore(subscribe, getStoredPreference, () => DEFAULT_THEME_PREFERENCE);
+  const theme = useSyncExternalStore(subscribe, getAppliedTheme, () => "light");
 
   return {
+    preference,
     theme,
-    setTheme,
     isDark: theme === "dark",
+    setThemePreference,
   };
 }

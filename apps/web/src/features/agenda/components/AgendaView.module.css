@@ -1,0 +1,1024 @@
+.page {
+  composes: page from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.pageHeader {
+  composes: pageHeader from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.headerLead {
+  composes: headerLead from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.pageEyebrow {
+  composes: pageEyebrow from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.pageTitle {
+  composes: pageTitle from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.pageSubtitle {
+  composes: pageSubtitle from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.createButton {
+  composes: createButton from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.restrictedCard {
+  composes: restrictedCard from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.restrictedTitle {
+  composes: restrictedTitle from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.retryButton {
+  composes: retryButton from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.emptyState {
+  composes: emptyState from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.emptyIconBadge {
+  composes: emptyIconBadge from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.emptyTitle {
+  composes: emptyTitle from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.emptyDesc {
+  composes: emptyDesc from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.cardActions {
+  composes: cardActions from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.cardIconAction {
+  composes: cardIconAction from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.createDrawer {
+  composes: createDrawer from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.drawerHeader {
+  composes: drawerHeader from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.drawerEyebrow {
+  composes: drawerEyebrow from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.drawerTitle {
+  composes: drawerTitle from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.drawerCloseButton {
+  composes: drawerCloseButton from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.drawerForm {
+  composes: drawerForm from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.drawerBody {
+  composes: drawerBody from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.drawerFooter {
+  composes: drawerFooter from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.drawerCancelButton {
+  composes: drawerCancelButton from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.drawerSubmitButton {
+  composes: drawerSubmitButton from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.fieldGroup {
+  composes: fieldGroup from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.fieldLabelRow {
+  composes: fieldLabelRow from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.fieldLabel {
+  composes: fieldLabel from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.requiredTag {
+  composes: requiredTag from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.optionalTag {
+  composes: optionalTag from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.input {
+  composes: input from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.inputError {
+  composes: inputError from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.errorMsg {
+  composes: errorMsg from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.errorIcon {
+  composes: errorIcon from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.textarea {
+  composes: textarea from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.scopeFieldset {
+  composes: scopeFieldset from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.fieldsetLegendRow {
+  composes: fieldsetLegendRow from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.departmentCheckboxList {
+  composes: departmentCheckboxList from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.departmentOption {
+  composes: departmentOption from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.departmentOptionSelected {
+  composes: departmentOptionSelected from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.departmentCheckbox {
+  composes: departmentCheckbox from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.departmentOptionName {
+  composes: departmentOptionName from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.multiDeptHint {
+  composes: multiDeptHint from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.formBannerError {
+  composes: formBannerError from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.modalDialog {
+  composes: modalDialog from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.modalForm {
+  composes: modalForm from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.modalTitle {
+  composes: modalTitle from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.modalSubtitle {
+  composes: modalSubtitle from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.deleteModalLead {
+  composes: deleteModalLead from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.deleteModalBadge {
+  composes: deleteModalBadge from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.modalActions {
+  composes: modalActions from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.modalCancelButton {
+  composes: modalCancelButton from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.modalDangerButton {
+  composes: modalDangerButton from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.agendaCard {
+  composes: eventCard from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.agendaCardDraft {
+  composes: eventCardDraft from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.dateColumn {
+  composes: eventDateColumn from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.dateDay {
+  composes: eventDay from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.dateMonth {
+  composes: eventMonth from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.dateWeekday {
+  composes: eventWeekday from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.cardBody {
+  composes: eventBody from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.cardTopRow {
+  composes: eventTopRow from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.cardTitle {
+  composes: eventTitle from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.draftPill {
+  composes: statusPill statusPillDraft from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.statusDot {
+  composes: statusDot from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.publishButton {
+  composes: cardActionButton cardPublishButton from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.cardIconActionDanger {
+  composes: cardIconAction from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.searchWrap {
+  composes: searchWrap from "../../demands/components/DemandsView.module.css";
+}
+
+.searchIcon {
+  composes: searchIcon from "../../demands/components/DemandsView.module.css";
+}
+
+.searchInput {
+  composes: searchInput from "../../demands/components/DemandsView.module.css";
+}
+
+.filterSelect {
+  composes: filterSelect from "../../demands/components/DemandsView.module.css";
+}
+
+
+.select {
+  composes: select from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.scopeModeGrid {
+  composes: scopeModeGrid from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.scopeModeCard {
+  composes: scopeModeCard from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.scopeModeCardActive {
+  composes: scopeModeCardActive from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.scopeModeText {
+  composes: scopeModeText from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.scopeModeTitle {
+  composes: scopeModeTitle from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.scopeModeSub {
+  composes: scopeModeSub from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.scopeModeCheck {
+  composes: scopeModeCheck from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.exportButton {
+  composes: exportScheduleButton from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.drawerSubmitButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.drawerSubmitButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.exportSummary {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background-color: var(--surface-subtle);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--ink-secondary);
+}
+
+.exportSummary strong {
+  color: var(--ink-primary);
+}
+
+@media (max-width: 639px) {
+  .headerActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cardIconActionDanger:hover {
+    border-color: var(--status-error);
+    color: var(--status-error);
+  }
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-block-end: 0.85rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--border-filter);
+  border-radius: 14px;
+  background-color: var(--surface-card);
+}
+
+.toolbarFilters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.filterWrap {
+  min-width: 0;
+}
+
+.toolbar .searchWrap {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.toolbarFilters .filterSelect,
+.toolbarFilters .multiSelectButton {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  font-size: 0.86rem;
+}
+
+.multiSelect {
+  position: relative;
+  min-width: 0;
+}
+
+.multiSelectButton {
+  composes: filterSelect from "../../demands/components/DemandsView.module.css";
+}
+
+.multiSelectCaret {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--ink-secondary);
+}
+
+.multiSelectLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multiSelectPanel {
+  position: absolute;
+  inset-block-start: calc(100% + 0.35rem);
+  inset-inline-end: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: max(100%, 240px);
+  max-height: 300px;
+  padding: 0.35rem;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background-color: var(--surface-card);
+  box-shadow: var(--shadow-picker);
+}
+
+.multiSelectOption {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 40px;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  color: var(--ink-primary);
+  font-size: 0.86rem;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .multiSelectOption:hover {
+    background-color: var(--surface-workspace);
+  }
+}
+
+.multiSelectEmpty {
+  padding: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+}
+
+.multiSelectClear {
+  margin-block-start: 0.2rem;
+  padding: 0.5rem 0.6rem;
+  border: 0;
+  border-block-start: 1px solid var(--border-divider);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink-primary);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 650;
+  text-align: start;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.viewToggle {
+  display: inline-flex;
+  padding: 0.2rem;
+  border: 1px solid var(--border-input);
+  border-radius: 10px;
+  background-color: var(--surface-card);
+}
+
+.viewToggleButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-secondary);
+  cursor: pointer;
+}
+
+.viewToggleButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.viewToggleButton[aria-pressed="true"] {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
+}
+
+.viewToggleButton:focus-visible,
+.calendarDay:focus-visible,
+.calendarNavButton:focus-visible,
+.multiSelectButton:focus-visible {
+  outline: 2px solid var(--ink-primary);
+  outline-offset: 2px;
+}
+
+.windowHint {
+  margin-block-end: 1.25rem;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.months {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.monthSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.monthHeading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink-primary);
+}
+
+.monthCount {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.monthHeadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.viewSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.viewRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.calendarColumn {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.calendarColumn .calendar {
+  flex: 1;
+}
+
+.monthList {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.agendaCardPast {
+  opacity: 0.62;
+}
+
+.cardBadges {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  font-size: 0.84rem;
+  color: var(--ink-secondary);
+}
+
+.cardMetaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cardMetaItem svg {
+  flex-shrink: 0;
+  color: var(--ink-muted);
+}
+
+.cardDescription {
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--ink-secondary);
+}
+
+.cardFooterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.ministryList {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.ministryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.26rem 0.65rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background-color: var(--surface-subtle);
+  color: var(--ink-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ministryChipScheduled {
+  composes: ministryChip;
+  border-color: var(--accent-border-soft);
+  background-color: var(--accent-tint);
+  color: var(--accent-ink);
+}
+
+.ministryChip svg,
+.ministryChipScheduled svg {
+  width: 13px;
+  height: 13px;
+}
+
+.publishButton {
+  margin-inline-start: auto;
+}
+
+.publishButton:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.pastTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.24rem 0.62rem;
+  border-radius: 999px;
+  background-color: var(--surface-workspace);
+  color: var(--ink-muted);
+  font-size: 0.71rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.calendarSection {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.calendar {
+  padding: 1rem;
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  background-color: var(--surface-card);
+}
+
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-block-end: 0.85rem;
+}
+
+.calendarTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.calendarNavButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background-color: var(--surface-card);
+  color: var(--ink-primary);
+  cursor: pointer;
+}
+
+.calendarNavButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.calendarWeekday {
+  padding-block: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--ink-muted);
+}
+
+.calendarDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 52px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.calendarDayNumber {
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.calendarDayPast {
+  color: var(--ink-muted);
+}
+
+.calendarDayToday {
+  border-color: var(--accent);
+}
+
+.calendarDay[aria-pressed="true"] {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
+}
+
+.calendarDots {
+  display: flex;
+  gap: 3px;
+  min-height: 6px;
+}
+
+.calendarDot,
+.calendarDotDraft {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+}
+
+.calendarDot {
+  background-color: var(--accent);
+}
+
+.calendarDotDraft {
+  background-color: var(--ink-muted);
+}
+
+.calendarDay[aria-pressed="true"] .calendarDotDraft {
+  background-color: currentColor;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .calendarDay:not([aria-pressed="true"]):hover {
+    background-color: var(--surface-workspace);
+  }
+}
+
+.dayEvents {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  background-color: var(--surface-card);
+}
+
+.dayEmpty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  font-size: 0.86rem;
+  text-align: center;
+  color: var(--ink-muted);
+}
+
+
+.dateTimeRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr);
+  gap: 0.75rem;
+}
+
+.departmentOptionLocked {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.departmentLockedTag {
+  margin-inline-start: auto;
+  font-size: 0.7rem;
+  font-weight: 650;
+  color: var(--ink-muted);
+}
+
+.warningCallout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--status-amber-border);
+  border-radius: 12px;
+  background-color: var(--status-amber-bg);
+  color: var(--status-amber-ink-deep);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.warningCallout p + p {
+  margin-block-start: 0.35rem;
+}
+
+.warningCalloutIcon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--status-amber-accent);
+}
+
+@media (min-width: 900px) {
+  .toolbar {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .toolbar .searchWrap {
+    flex: 1 1 auto;
+  }
+
+  .toolbarFilters {
+    flex: 0 0 auto;
+    grid-template-columns: 190px 220px;
+  }
+
+  .calendarSection {
+    grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+}
+
+@media (max-width: 520px) {
+  .dateTimeRow {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar {
+    padding: 0.75rem;
+  }
+
+  .calendarDay {
+    min-height: 46px;
+  }
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.publicLinkWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.publicLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background-color: var(--surface-card);
+  color: var(--ink-secondary);
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.publicLink:focus-visible {
+  outline: 2px solid var(--ink-primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .publicLink:hover {
+    border-color: var(--ink-primary);
+    color: var(--ink-primary);
+  }
+}
+
+.publicHint {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: calc(100% + 12px);
+  z-index: 30;
+  width: max-content;
+  max-width: 300px;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  box-shadow: var(--shadow-popover);
+  transform: translateY(-50%);
+  pointer-events: none;
+  animation: publicHintLife 9s ease forwards;
+}
+
+.publicHint::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: -6px;
+  width: 12px;
+  height: 12px;
+  background-color: inherit;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+@keyframes publicHintLife {
+  0% {
+    opacity: 0;
+    translate: -6px 0;
+  }
+  6%,
+  88% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .publicHint {
+    animation: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .publicHint {
+    inset-block-start: calc(100% + 10px);
+    inset-inline-start: auto;
+    inset-inline-end: -8px;
+    max-width: min(280px, calc(100vw - 2rem));
+    transform: none;
+  }
+
+  .publicHint::before {
+    inset-block-start: -6px;
+    inset-inline-start: auto;
+    inset-inline-end: 20px;
+    transform: rotate(45deg);
+  }
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useState } from "react";
-import { BellIcon, CheckIcon, SendIcon } from "@/components/ui/icons";
+import { BellIcon, CheckIcon } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
   DEVICE_PUSH_STATE,
@@ -10,7 +10,6 @@ import {
   enableDevicePush,
   readDevicePushState,
 } from "@/features/notifications/lib/devicePush";
-import { sendTestPush } from "@/features/notifications/services/notificationsService";
 import styles from "./DevicePushCard.module.css";
 
 const STATE_TEXT = {
@@ -87,16 +86,6 @@ export function DevicePushCard() {
       else toast.error(result.error || "Não foi possível desativar agora.");
     });
 
-  const handleTest = () =>
-    runAction("test", async () => {
-      const result = await sendTestPush();
-      if (result.ok && result.data?.delivered > 0) {
-        toast.success("Notificação de teste enviada. Confira o seu dispositivo.");
-      } else {
-        toast.error(result.error || "O teste não chegou a este dispositivo.");
-      }
-    });
-
   const text = state ? STATE_TEXT[state] : null;
   const isBusy = Boolean(busyAction);
 
@@ -151,16 +140,6 @@ export function DevicePushCard() {
             </button>
           ) : (
             <>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                disabled={isBusy}
-                aria-busy={busyAction === "test"}
-                onClick={handleTest}
-              >
-                <SendIcon />
-                <span>{busyAction === "test" ? "Enviando..." : "Enviar teste"}</span>
-              </button>
               <button
                 type="button"
                 className={styles.secondaryButton}

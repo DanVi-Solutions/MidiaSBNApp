@@ -14,6 +14,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   AlertTriangleIcon,
   CalendarCheckIcon,
+  CalendarDaysIcon,
   CalendarIcon,
   ChartBarsIcon,
   ChevronDownIcon,
@@ -89,6 +90,11 @@ const NAV_ITEMS = [
     href: "/schedule",
     label: "Escala do mês",
     icon: CalendarIcon,
+  },
+  {
+    href: "/agenda",
+    label: "Agenda",
+    icon: CalendarDaysIcon,
   },
   {
     href: "/demands",

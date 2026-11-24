@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { env } from "./config/env.js";
+import { agendaRouter } from "./modules/agenda/agenda.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { availabilitiesRouter } from "./modules/availabilities/availabilities.routes.js";
 import { changeRequestsRouter } from "./modules/change-requests/change-requests.routes.js";
@@ -27,6 +28,7 @@ const modules = [
   availabilitiesRouter,
   unavailabilitiesRouter,
   recurringEventsRouter,
+  agendaRouter,
   schedulesRouter,
   demandsRouter,
   changeRequestsRouter,
