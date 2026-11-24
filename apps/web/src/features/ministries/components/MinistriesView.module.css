@@ -72,7 +72,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 390px));
+  grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr));
   column-gap: 1.25rem;
   row-gap: 1.25rem;
 }
