@@ -95,6 +95,9 @@ export function ReportsView() {
   const coverageTitleId = useId();
   const announceTimerRef = useRef(null);
   const memberPickerRef = useRef(null);
+  const hasLoadedRef = useRef(false);
+  const fetchSeqRef = useRef(0);
+  const lastDatasetJsonRef = useRef("");
 
   const roleCode = resolveRoleCode(currentUser);
   const userIsAdmin = isAdmin(currentUser);
@@ -191,22 +194,30 @@ export function ReportsView() {
 
   useEffect(() => {
     let active = true;
+    const seq = ++fetchSeqRef.current;
 
     fetchReportDataset({
       currentUser,
       departments,
     }).then((res) => {
-      if (!active) return;
+      if (!active || seq !== fetchSeqRef.current) return;
       setIsLoading(false);
       if (!res.ok) {
-        setLoadError(
-          res.error || "Não foi possível carregar os dados dos relatórios."
-        );
+        if (!hasLoadedRef.current) {
+          setLoadError(
+            res.error || "Não foi possível carregar os dados dos relatórios."
+          );
+        }
         return;
       }
+      hasLoadedRef.current = true;
       setLoadError("");
-      setDataset(res.data);
-      setMemberExtrasById({});
+      const nextJson = JSON.stringify(res.data);
+      if (nextJson !== lastDatasetJsonRef.current) {
+        lastDatasetJsonRef.current = nextJson;
+        setDataset(res.data);
+        setMemberExtrasById({});
+      }
     });
 
     return () => {
@@ -221,12 +232,14 @@ export function ReportsView() {
   ]);
 
   const handleRetry = () => {
+    const seq = ++fetchSeqRef.current;
     setIsLoading(true);
     setLoadError("");
     fetchReportDataset({
       currentUser,
       departments,
     }).then((res) => {
+      if (seq !== fetchSeqRef.current) return;
       setIsLoading(false);
       if (!res.ok) {
         setLoadError(
@@ -234,7 +247,9 @@ export function ReportsView() {
         );
         return;
       }
+      hasLoadedRef.current = true;
       setLoadError("");
+      lastDatasetJsonRef.current = JSON.stringify(res.data);
       setDataset(res.data);
       setMemberExtrasById({});
     });

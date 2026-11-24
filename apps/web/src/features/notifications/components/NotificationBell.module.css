@@ -134,7 +134,7 @@
   }
 
   .dismissButton:hover {
-    background-color: rgba(26, 26, 31, 0.06);
+    background-color: var(--surface-hover-alpha);
     color: var(--ink-primary);
   }
 }

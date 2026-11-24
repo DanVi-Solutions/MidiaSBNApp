@@ -40,6 +40,9 @@ export const PrivateWorkspaceContext = createContext({
   closeWorkspaceDrawer: () => {},
   schedulesVersion: 0,
   notifySchedulesChanged: () => {},
+  syncVersion: 0,
+  syncWorkspaceData: async () => {},
+  broadcastWorkspaceSync: () => {},
   openWorkspaceCodeModal: () => {},
 });
 

@@ -52,10 +52,10 @@
   gap: 0.48rem;
   min-height: 42px;
   padding: 0.55rem 1.15rem;
-  border: 1px solid var(--ink-primary);
+  border: 1px solid var(--btn-primary-border);
   border-radius: 10px;
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
   font-size: 0.86rem;
   font-weight: 600;
   cursor: pointer;
@@ -65,7 +65,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .saveButton:not(:disabled):hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -79,7 +79,7 @@
   flex-direction: column;
   gap: 1.2rem;
   padding: clamp(1.25rem, 2.5vw, 1.65rem);
-  border: 1px solid #e9e6e0;
+  border: 1px solid var(--border-card);
   border-radius: 16px;
   background-color: var(--surface-card);
 }
@@ -149,7 +149,7 @@
 
 .worshipOptionSelected {
   border-color: var(--ink-primary);
-  background-color: #fdf7f4;
+  background-color: var(--warm-tint);
 }
 
 .worshipOptionDay {
@@ -175,12 +175,12 @@
   padding: 2px;
   border-radius: 999px;
   background-color: var(--accent);
-  color: #1a1a1f;
+  color: var(--ink-on-accent);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .worshipOption:not(.worshipOptionSelected):hover {
-    border-color: #c7c2ba;
+    border-color: var(--border-hover-alt);
   }
 }
 
@@ -189,7 +189,7 @@
   overflow: auto;
   max-inline-size: 100%;
   container-type: inline-size;
-  border: 1px solid #efece7;
+  border: 1px solid var(--border-soft);
   border-radius: 12px;
   background-color: var(--surface-card);
 }
@@ -214,8 +214,8 @@
 
 .table thead th {
   padding: 0.82rem 1rem;
-  background-color: #f7f6f4;
-  border-block-end: 1px solid #efece7;
+  background-color: var(--surface-muted);
+  border-block-end: 1px solid var(--border-soft);
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--ink-muted);
@@ -230,7 +230,7 @@
 
 .table tbody tr:not(:last-child) th,
 .table tbody tr:not(:last-child) td {
-  border-block-end: 1px solid #f2f0ec;
+  border-block-end: 1px solid var(--border-row);
 }
 
 .dayHeaderCell {
@@ -275,7 +275,7 @@
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  border: 1.5px solid #dfdcd6;
+  border: 1.5px solid var(--border-checkbox);
   background-color: var(--surface-card);
   transition:
     background-color 0.14s ease,
@@ -284,19 +284,19 @@
 
 @media (hover: hover) and (pointer: fine) {
   .slotControl:hover .checkboxBox {
-    border-color: #b4afa6;
+    border-color: var(--ink-icon);
   }
 }
 
 .checkboxBoxAvailable {
-  border-color: #1a1a1f;
-  background-color: #1a1a1f;
+  border-color: var(--badge-dark-border);
+  background-color: var(--badge-dark-bg);
   color: var(--accent);
 }
 
 .checkboxBoxUnavailable {
-  border-color: #a84b4b;
-  background-color: #a84b4b;
+  border-color: var(--status-danger-solid-box);
+  background-color: var(--status-danger-solid-box);
   color: #ffffff;
 }
 
@@ -328,7 +328,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.45rem;
     padding: 0.85rem;
-    border-block-end: 1px solid #efece7;
+    border-block-end: 1px solid var(--border-soft);
   }
 
   .table tbody tr:last-child {
@@ -361,19 +361,19 @@
     justify-content: flex-start;
     width: 100%;
     padding: 0.42rem 0.72rem;
-    border: 1px solid #e9e6e0;
+    border: 1px solid var(--border-card);
     border-radius: 999px;
-    background-color: #fbfaf8;
+    background-color: var(--surface-subtle);
   }
 
   .slotControlAvailable {
-    border-color: #d6cab4;
-    background-color: #f6f0ed;
+    border-color: var(--warm-pill-border);
+    background-color: var(--warm-pill-bg);
   }
 
   .slotControlUnavailable {
-    border-color: #e4c4c4;
-    background-color: #fdf4f4;
+    border-color: var(--status-danger-border-row);
+    background-color: var(--status-danger-bg-row);
   }
 
   .slotMobileLabel {
@@ -408,9 +408,9 @@
   gap: 0.35rem;
   padding: 0.4rem 0.85rem;
   border-radius: 999px;
-  border: 1px solid #f0d7d7;
-  background-color: #fdf4f4;
-  color: #8f3a3a;
+  border: 1px solid var(--status-danger-border-pill);
+  background-color: var(--status-danger-bg-row);
+  color: var(--status-danger-ink-soft);
   font-size: 0.8rem;
 }
 
@@ -425,9 +425,9 @@
   align-self: flex-start;
   gap: 0.35rem;
   padding: 0.25rem;
-  border: 1px solid #e9e6e0;
+  border: 1px solid var(--border-card);
   border-radius: 11px;
-  background-color: #f7f6f4;
+  background-color: var(--surface-muted);
 }
 
 .modeOption {
@@ -456,7 +456,7 @@
   background-color: var(--surface-card);
   color: var(--ink-primary);
   font-weight: 650;
-  box-shadow: 0 1px 3px rgba(26, 26, 31, 0.08);
+  box-shadow: var(--shadow-segment);
 }
 
 .inputsRow {
@@ -507,7 +507,7 @@
   min-height: 44px;
   padding: 0.45rem 0.85rem;
   border-radius: 10px;
-  background-color: #f6f3ef;
+  background-color: var(--surface-preview);
   color: var(--ink-secondary);
   font-size: 0.82rem;
   font-weight: 600;
@@ -535,7 +535,7 @@
 @media (hover: hover) and (pointer: fine) {
   .addExceptionButton:not(:disabled):hover {
     background-color: var(--surface-workspace);
-    border-color: #d4cfc6;
+    border-color: var(--border-hover);
   }
 }
 
@@ -563,12 +563,13 @@
 }
 
 .requiredTag {
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--badge-dark-border);
+  background-color: var(--badge-dark-bg);
+  color: var(--badge-dark-ink);
 }
 
 .optionalTag {
-  background-color: #f0eeea;
+  background-color: var(--surface-chip-alt);
   color: var(--ink-muted);
 }
 
@@ -592,7 +593,7 @@
 }
 
 .reasonInput::placeholder {
-  color: #a09c96;
+  color: var(--ink-placeholder);
   font-size: 0.88rem;
 }
 
@@ -613,7 +614,7 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.7rem 0.95rem;
-  border: 1px solid #ded1ba;
+  border: 1px solid var(--warm-border-soft);
   border-radius: 10px;
   background-color: var(--accent-soft);
   color: var(--accent-ink);
@@ -630,7 +631,7 @@
   justify-content: center;
   min-height: 36px;
   padding: 0.35rem 0.85rem;
-  border: 1px solid rgba(26, 26, 31, 0.18);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -717,7 +718,7 @@
   padding: 0.4rem 0.9rem;
   border: 1px solid currentColor;
   border-radius: 8px;
-  background-color: rgba(255, 255, 255, 0.75);
+  background-color: var(--surface-glass);
   color: var(--ink-primary);
   font-size: 0.81rem;
   font-weight: 650;
@@ -741,7 +742,7 @@
   gap: 0.65rem;
   padding: 0.95rem 1.1rem;
   border-radius: 10px;
-  background-color: #f9f8f6;
+  background-color: var(--surface-subtle-alt);
   color: var(--ink-muted);
   font-size: 0.83rem;
 }
@@ -764,14 +765,14 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.75rem 0.95rem;
-  border: 1px solid #efece7;
+  border: 1px solid var(--border-soft);
   border-radius: 11px;
-  background-color: #fbfaf8;
+  background-color: var(--surface-subtle);
 }
 
 .exceptionItemEditing {
-  border-color: #d6a69e;
-  background-color: #f8f2ef;
+  border-color: var(--accent-border);
+  background-color: var(--accent-tint-warm);
 }
 
 .exceptionMain {
@@ -806,7 +807,7 @@
   align-items: center;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background-color: #f0eeea;
+  background-color: var(--surface-chip-alt);
   color: var(--ink-secondary);
   font-size: 0.72rem;
   font-weight: 600;
@@ -829,8 +830,8 @@
   align-items: center;
   padding: 0.25rem 0.68rem;
   border-radius: 999px;
-  background-color: #fdf2f2;
-  color: #9e3d3d;
+  background-color: var(--status-error-bg);
+  color: var(--status-danger-ink-muted);
   font-size: 0.75rem;
   font-weight: 650;
 }
@@ -854,13 +855,13 @@
 
 @media (hover: hover) and (pointer: fine) {
   .editExceptionButton:not(:disabled):hover {
-    background-color: #f0eeea;
+    background-color: var(--surface-chip-alt);
     color: var(--ink-primary);
   }
 
   .removeExceptionButton:not(:disabled):hover {
-    background-color: #fdf2f2;
-    color: #a93c3c;
+    background-color: var(--status-error-bg);
+    color: var(--status-danger-ink);
   }
 }
 
@@ -905,9 +906,9 @@
   justify-content: center;
   gap: 0.85rem;
   padding: 2rem 1.5rem;
-  border: 1px solid #efd5d5;
+  border: 1px solid var(--status-danger-border);
   border-radius: 16px;
-  background-color: #fdf6f6;
+  background-color: var(--status-danger-bg-error);
   color: var(--status-error);
   text-align: center;
 }
@@ -951,7 +952,7 @@
   justify-content: center;
   gap: 1rem;
   padding: 2.25rem 1.5rem;
-  border: 1px solid #e9e6e0;
+  border: 1px solid var(--border-card);
   border-radius: 16px;
   background-color: var(--surface-card);
   text-align: center;
@@ -985,9 +986,9 @@
 }
 
 .restrictedPrimaryLink {
-  border: 1px solid var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 .restrictedSecondaryLink {
@@ -998,11 +999,11 @@
 
 @media (hover: hover) and (pointer: fine) {
   .restrictedPrimaryLink:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 
   .restrictedSecondaryLink:hover {
-    background-color: #edeae5;
+    background-color: var(--border-soft-alt);
   }
 }
 

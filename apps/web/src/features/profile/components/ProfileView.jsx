@@ -11,11 +11,14 @@ import {
   CheckIcon,
   IdCardIcon,
   KeyIcon,
+  MoonIcon,
   RefreshCwIcon,
   ShieldCheckIcon,
+  SunIcon,
   TrashIcon,
   UserIcon,
 } from "@/components/ui/icons";
+import { useTheme } from "@/lib/theme";
 import {
   checkUsernameAvailabilityRequest,
   deleteAccountRequest,
@@ -71,13 +74,20 @@ function setupClosedByFallback(dialog) {
 export function ProfileView() {
   const router = useRouter();
   const toast = useToast();
-  const { currentUser, refreshCurrentUser, updateCurrentUser } =
-    usePrivateWorkspace();
+  const {
+    currentUser,
+    refreshCurrentUser,
+    refreshParticipants,
+    notifySchedulesChanged,
+    updateCurrentUser,
+  } = usePrivateWorkspace();
 
   const profileFormId = useId();
   const identHeadingId = useId();
   const accessHeadingId = useId();
+  const appearanceHeadingId = useId();
   const dangerHeadingId = useId();
+  const { theme, setTheme } = useTheme();
   const fullNameId = useId();
   const fullNameErrorId = useId();
   const usernameId = useId();
@@ -291,7 +301,11 @@ export function ProfileView() {
       username: cleanUsername,
       handle: `@${cleanUsername}`,
     });
-    await refreshCurrentUser();
+    await Promise.all([
+      refreshCurrentUser(),
+      refreshParticipants({ silent: true }),
+    ]);
+    notifySchedulesChanged();
 
     toast.success("Alterações de perfil salvas com sucesso.");
   };
@@ -625,6 +639,97 @@ export function ProfileView() {
                 </div>
               </div>
             </dl>
+          </section>
+
+          <section className={styles.card} aria-labelledby={appearanceHeadingId}>
+            <div className={styles.cardHeader}>
+              <div>
+                <p className={styles.cardEyebrow}>PREFERÊNCIAS</p>
+                <h2 id={appearanceHeadingId} className={styles.cardTitle}>
+                  Aparência
+                </h2>
+                <p className={styles.cardSubtitle}>
+                  Escolha o tema visual da plataforma. Sua preferência fica
+                  salva automaticamente neste navegador.
+                </p>
+              </div>
+              {theme === "dark" ? (
+                <MoonIcon className={styles.cardCornerIcon} />
+              ) : (
+                <SunIcon className={styles.cardCornerIcon} />
+              )}
+            </div>
+
+            <div
+              role="radiogroup"
+              aria-label="Tema da interface"
+              className={styles.themeOptionsGrid}
+            >
+              {[
+                {
+                  id: "light",
+                  label: "Modo claro",
+                  badge: "Padrão",
+                  description: "Fundo claro com alto contraste",
+                  Icon: SunIcon,
+                },
+                {
+                  id: "dark",
+                  label: "Modo escuro",
+                  badge: null,
+                  description: "Superfícies escuras no mesmo estilo visual",
+                  Icon: MoonIcon,
+                },
+              ].map(({ id: optionId, label, badge, description, Icon }) => {
+                const isSelected = theme === optionId;
+                return (
+                  <button
+                    key={optionId}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    className={`${styles.themeOption} ${
+                      isSelected ? styles.themeOptionActive : ""
+                    }`}
+                    onClick={() => {
+                      if (theme === optionId) {
+                        return;
+                      }
+                      setTheme(optionId);
+                      const msg =
+                        optionId === "dark"
+                          ? "Modo escuro ativado."
+                          : "Modo claro ativado.";
+                      announce(msg);
+                      toast.success(msg);
+                    }}
+                  >
+                    <span className={styles.themeOptionIcon} aria-hidden="true">
+                      <Icon />
+                    </span>
+                    <span className={styles.themeOptionBody}>
+                      <span className={styles.themeOptionTitleRow}>
+                        <span className={styles.themeOptionTitle}>{label}</span>
+                        {badge ? (
+                          <span className={styles.themeOptionTag}>{badge}</span>
+                        ) : null}
+                      </span>
+                      <span className={styles.themeOptionDesc}>
+                        {description}
+                      </span>
+                    </span>
+                    {isSelected ? (
+                      <span
+                        className={styles.themeOptionCheck}
+                        aria-hidden="true"
+                      >
+                        <CheckIcon />
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
           </section>
 
           {!isAdmin(currentUser) && <DevicePushCard />}

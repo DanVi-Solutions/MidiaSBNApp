@@ -241,12 +241,12 @@ export function canToggleStatus(actor, target) {
   if (resolveStatusCode(target) === CREDENTIAL_STATUS.PENDING) {
     return false;
   }
-  return isAtLeast(actor, ROLES.GENERAL_MANAGER) && canManage(actor, target);
+  return isAtLeast(actor, ROLES.DEPARTMENT_MANAGER) && canManage(actor, target);
 }
 
 export function canDeleteParticipant(actor, target) {
   if (!actor || !target || actor.id === target.id) return false;
-  return isAtLeast(actor, ROLES.GENERAL_MANAGER) && canManage(actor, target);
+  return isAtLeast(actor, ROLES.DEPARTMENT_MANAGER) && canManage(actor, target);
 }
 
 export function canAssignMemberToSchedule(actor, target) {

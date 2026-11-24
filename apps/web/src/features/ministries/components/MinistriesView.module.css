@@ -53,10 +53,10 @@
   gap: 0.48rem;
   min-height: 42px;
   padding: 0.55rem 1.15rem;
-  border: 1px solid var(--ink-primary);
+  border: 1px solid var(--btn-primary-border);
   border-radius: 10px;
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -66,7 +66,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .createButton:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -82,7 +82,7 @@
   display: grid;
   grid-template-rows: auto 1fr auto;
   background-color: var(--surface-card);
-  border: 1px solid #edebe7;
+  border: 1px solid var(--border-card-alt);
   border-radius: 16px;
   padding: 1.35rem 1.45rem 1.25rem;
   transition:
@@ -103,15 +103,15 @@
 }
 
 .cardActive {
-  border-color: #d7c7ab;
+  border-color: var(--warm-border-alt);
   box-shadow:
     0 0 0 1px rgba(244, 84, 58, 0.25),
-    0 4px 16px rgba(26, 26, 31, 0.03);
+    var(--shadow-card);
 }
 
 .cardHeader {
   padding-block-end: 1.35rem;
-  border-block-end: 1px solid #f2f0ec;
+  border-block-end: 1px solid var(--border-row);
 }
 
 .cardTopRow {
@@ -155,21 +155,21 @@
 @media (hover: hover) and (pointer: fine) {
   .cardIconAction:hover {
     background-color: var(--surface-workspace);
-    border-color: #e5e2dc;
+    border-color: var(--border-item);
     color: var(--ink-primary);
   }
 
   .cardIconActionDanger:hover {
-    background-color: #fdf2f2;
-    border-color: #efd5d5;
-    color: #a93c3c;
+    background-color: var(--status-error-bg);
+    border-color: var(--status-danger-border);
+    color: var(--status-danger-ink);
   }
 }
 
 .cardNumber {
   font-size: 0.78rem;
   font-weight: 500;
-  color: #a09c96;
+  color: var(--ink-placeholder);
   font-variant-numeric: tabular-nums;
 }
 
@@ -194,8 +194,8 @@
   gap: 0.35rem;
   padding: 0.28rem 0.68rem;
   border-radius: 999px;
-  border: 1px solid #ddd8d0;
-  background-color: #f6f4f0;
+  border: 1px solid var(--border-disabled);
+  background-color: var(--surface-pill-alt);
   color: var(--ink-secondary);
   font-size: 0.65rem;
   font-weight: 700;
@@ -295,7 +295,7 @@
   justify-content: center;
   gap: 0.42rem;
   padding-block: 1rem;
-  border-block-end: 1px solid #f2f0ec;
+  border-block-end: 1px solid var(--border-row);
 }
 
 .statRow {
@@ -339,7 +339,7 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background-color: #e9e5df;
+  background-color: var(--surface-icon-badge);
   color: var(--ink-primary);
   margin-block-end: 0.15rem;
 }
@@ -407,7 +407,7 @@
 }
 
 .managingLink {
-  border: 1px solid #e5e2dc;
+  border: 1px solid var(--border-item);
   background-color: var(--surface-card);
   color: var(--ink-primary);
 }
@@ -415,19 +415,19 @@
 @media (hover: hover) and (pointer: fine) {
   .managingLink:hover {
     background-color: var(--surface-workspace);
-    border-color: #d5d0c8;
+    border-color: var(--border-hover);
   }
 }
 
 .manageButton {
-  border: 1px solid var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .manageButton:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -471,6 +471,7 @@
   inset-block: 0;
   inset-inline-end: 0;
   inset-inline-start: auto;
+  box-sizing: border-box;
   width: min(560px, 100vw);
   height: 100dvh;
   max-width: none;
@@ -481,7 +482,8 @@
   border-inline-start: 1px solid var(--border-subtle);
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: -16px 0 48px rgba(26, 26, 31, 0.18);
+  box-shadow: var(--shadow-drawer);
+  overflow-x: hidden;
   opacity: 0;
   transition-property: opacity, transform, display, overlay;
   transition-duration: 300ms;
@@ -537,7 +539,7 @@
 }
 
 .createDrawer[open]:where(:not([data-closing]))::backdrop {
-  background-color: rgba(19, 19, 23, 0.45);
+  background-color: var(--backdrop-drawer);
 }
 
 @starting-style {
@@ -606,11 +608,14 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
   min-height: 0;
 }
 
 .drawerBody {
   flex: 1;
+  min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 1.35rem 1.5rem;
   display: flex;
@@ -653,7 +658,7 @@
 }
 
 .optionalTag {
-  background-color: #f2f0ec;
+  background-color: var(--surface-chip);
   color: var(--ink-muted);
 }
 
@@ -662,7 +667,7 @@
   width: 100%;
   min-height: 44px;
   padding: 0.6rem 0.88rem;
-  border: 1px solid #e2ded8;
+  border: 1px solid var(--border-input);
   border-radius: 11px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -675,7 +680,7 @@
 
 .input::placeholder,
 .textarea::placeholder {
-  color: #a09c96;
+  color: var(--ink-placeholder);
   font-size: 0.88rem;
 }
 
@@ -704,9 +709,9 @@
 }
 
 .managersFieldset {
-  border: 1px solid #eae7e1;
+  border: 1px solid var(--border-control);
   border-radius: 14px;
-  background-color: #fbfaf8;
+  background-color: var(--surface-subtle);
   margin: 0;
   padding: 1rem 1.05rem;
   display: flex;
@@ -729,9 +734,9 @@
 
 .infoNote {
   padding: 0.85rem 1rem;
-  border: 1px solid #e8e4dc;
+  border: 1px solid var(--border-control-alt);
   border-radius: 11px;
-  background-color: #f9f8f5;
+  background-color: var(--surface-subtle-warm);
   font-size: 0.83rem;
   line-height: 1.48;
   color: var(--ink-secondary);
@@ -753,7 +758,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 0.9rem;
-  border: 1px solid #efd5d5;
+  border: 1px solid var(--status-danger-border);
   border-radius: 10px;
   background-color: var(--status-error-bg);
   color: var(--status-error);
@@ -793,13 +798,13 @@
 .warningTitle {
   font-size: 0.9rem;
   font-weight: 700;
-  color: #6b4b13;
+  color: var(--status-amber-ink-deep);
 }
 
 .warningText {
   font-size: 0.82rem;
   line-height: 1.48;
-  color: #6b4b13;
+  color: var(--status-amber-ink-deep);
 }
 
 .warningActionBtn {
@@ -810,10 +815,10 @@
   align-self: flex-start;
   min-height: 40px;
   padding: 0.48rem 0.95rem;
-  border: 1px solid var(--ink-primary);
+  border: 1px solid var(--btn-primary-border);
   border-radius: 10px;
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
@@ -821,7 +826,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .warningActionBtn:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -852,9 +857,9 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.72rem 0.9rem;
-  border: 1px solid #eae7e1;
+  border: 1px solid var(--border-control);
   border-radius: 11px;
-  background-color: #fbfaf8;
+  background-color: var(--surface-subtle);
 }
 
 .managerIdentity {
@@ -862,26 +867,34 @@
   align-items: center;
   gap: 0.7rem;
   min-width: 0;
+  flex: 1;
+}
+
+.managerIdentityText {
+  min-width: 0;
+  flex: 1;
 }
 
 .managerName {
   font-size: 0.86rem;
   font-weight: 650;
   color: var(--ink-primary);
+  overflow-wrap: anywhere;
 }
 
 .managerMeta {
   font-size: 0.75rem;
   color: var(--ink-muted);
+  overflow-wrap: anywhere;
 }
 
 .unlinkButton {
   min-height: 34px;
   padding: 0.3rem 0.7rem;
-  border: 1px solid #e3b5b5;
+  border: 1px solid var(--status-danger-border-strong);
   border-radius: 8px;
   background-color: var(--surface-card);
-  color: #a93c3c;
+  color: var(--status-danger-ink);
   font-size: 0.76rem;
   font-weight: 600;
   cursor: pointer;
@@ -890,7 +903,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .unlinkButton:hover:not(:disabled) {
-    background-color: #fdf2f2;
+    background-color: var(--status-error-bg);
   }
 }
 
@@ -943,9 +956,9 @@
 }
 
 .drawerSubmitButton {
-  border: 1px solid var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -955,7 +968,7 @@
   }
 
   .drawerSubmitButton:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -1004,9 +1017,9 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  border: 1px solid #d9d5ce;
+  border: 1px solid var(--border-reset);
   border-radius: 999px;
-  background-color: #f6f4f0;
+  background-color: var(--surface-pill-alt);
   color: var(--ink-secondary);
   font-size: 0.76rem;
   font-weight: 750;
@@ -1027,15 +1040,15 @@
 
 @media (hover: hover) and (pointer: fine) {
   .helpTriggerButton:hover {
-    border-color: var(--ink-primary);
-    background-color: #1a1a1f;
+    border-color: var(--badge-dark-border);
+    background-color: var(--badge-dark-bg);
     color: var(--accent);
   }
 }
 
 .helpTriggerButton[aria-expanded="true"] {
-  border-color: var(--ink-primary);
-  background-color: #1a1a1f;
+  border-color: var(--badge-dark-border);
+  background-color: var(--badge-dark-bg);
   color: var(--accent);
 }
 
@@ -1052,7 +1065,7 @@
   border-radius: 14px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: 0 18px 42px rgba(19, 19, 23, 0.2);
+  box-shadow: var(--shadow-dropdown);
   overscroll-behavior: contain;
 }
 
@@ -1155,7 +1168,7 @@
   border-radius: 16px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: 0 24px 64px rgba(26, 26, 31, 0.22);
+  box-shadow: var(--shadow-modal);
   overflow: hidden;
   opacity: 0;
   transition-property: opacity, transform, display, overlay;
@@ -1208,7 +1221,7 @@
 }
 
 .confirmDialog[open]::backdrop {
-  background-color: rgba(19, 19, 23, 0.54);
+  background-color: var(--backdrop-modal);
 }
 
 @starting-style {
@@ -1235,7 +1248,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1.35rem 1.5rem 1.15rem;
-  border-block-end: 1px solid #edeae5;
+  border-block-end: 1px solid var(--border-soft-alt);
 }
 
 .confirmEyebrow {
@@ -1295,8 +1308,8 @@
 }
 
 .confirmCalloutDanger {
-  border-color: #efd5d5;
-  background-color: #fdf5f5;
+  border-color: var(--status-danger-border);
+  background-color: var(--status-danger-bg-soft);
 }
 
 .confirmBadge {
@@ -1310,8 +1323,8 @@
 }
 
 .confirmBadgeDanger {
-  background-color: #f8dddd;
-  color: #a93c3c;
+  background-color: var(--status-danger-badge);
+  color: var(--status-danger-ink);
 }
 
 .confirmCalloutTitle {
@@ -1331,7 +1344,7 @@
   margin-block-start: 0.55rem;
   font-size: 0.82rem;
   line-height: 1.45;
-  color: #8f3131;
+  color: var(--status-danger-ink-hint);
 }
 
 .confirmFooter {
@@ -1341,8 +1354,8 @@
   justify-content: flex-end;
   gap: 0.75rem;
   padding: 1rem 1.5rem 1.15rem;
-  border-block-start: 1px solid #edeae5;
-  background-color: #faf9f7;
+  border-block-start: 1px solid var(--border-soft-alt);
+  background-color: var(--surface-elevated);
 }
 
 .confirmCancelBtn,
@@ -1369,20 +1382,20 @@
 }
 
 .confirmDangerBtn {
-  border: 1px solid #a33b3b;
-  background-color: #a33b3b;
+  border: 1px solid var(--status-danger-solid-alt);
+  background-color: var(--status-danger-solid-alt);
   color: #ffffff;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .confirmCancelBtn:hover:not(:disabled) {
-    background-color: rgba(26, 26, 31, 0.06);
+    background-color: var(--surface-hover-alpha);
     color: var(--ink-primary);
   }
 
   .confirmDangerBtn:hover:not(:disabled) {
-    background-color: #8b2f2f;
-    border-color: #8b2f2f;
+    background-color: var(--status-danger-solid-hover);
+    border-color: var(--status-danger-solid-hover);
   }
 }
 
@@ -1398,6 +1411,9 @@
   border: 0;
   margin: 0;
   padding: 0;
+  min-inline-size: 0;
+  width: 100%;
+  max-inline-size: 100%;
   display: flex;
   flex-direction: column;
   gap: 0.72rem;
@@ -1405,6 +1421,7 @@
 
 .candidateFieldHeader {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
@@ -1435,7 +1452,7 @@
   width: 100%;
   min-height: 42px;
   padding: 0.52rem 2.4rem 0.52rem 2.5rem;
-  border: 1px solid #e2ded8;
+  border: 1px solid var(--border-input);
   border-radius: 11px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -1447,7 +1464,7 @@
 }
 
 .candidateSearchInput::placeholder {
-  color: #a09c96;
+  color: var(--ink-placeholder);
   font-size: 0.85rem;
 }
 
@@ -1487,7 +1504,7 @@
 .candidateScopePill {
   min-height: 32px;
   padding: 0.28rem 0.72rem;
-  border: 1px solid #e2ded8;
+  border: 1px solid var(--border-input);
   border-radius: 999px;
   background-color: var(--surface-card);
   color: var(--ink-secondary);
@@ -1502,27 +1519,30 @@
 
 @media (hover: hover) and (pointer: fine) {
   .candidateScopePill:hover:not(.candidateScopePillActive) {
-    border-color: #cac5bd;
-    background-color: #fbfaf8;
+    border-color: var(--border-strong);
+    background-color: var(--surface-subtle);
     color: var(--ink-primary);
   }
 }
 
 .candidateScopePillActive {
-  border-color: var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border-color: var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 .selectedCandidateBanner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.65rem 0.85rem;
   border: 1px solid var(--ink-primary);
   border-radius: 12px;
-  background-color: #f8f3ef;
+  background-color: var(--accent-tint);
 }
 
 .selectedCandidateInfo {
@@ -1534,7 +1554,8 @@
 }
 
 .selectedCandidateBanner .candidateCardAvatar {
-  background-color: var(--ink-primary);
+  border: 1px solid var(--badge-dark-border);
+  background-color: var(--badge-dark-bg);
   color: var(--accent);
 }
 
@@ -1543,15 +1564,14 @@
   color: var(--accent-ink);
   font-weight: 550;
   line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .selectedCandidateClear {
   flex-shrink: 0;
   padding: 0.28rem 0.65rem;
-  border: 1px solid #dbd4c7;
+  border: 1px solid var(--border-clear);
   border-radius: 8px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -1567,13 +1587,15 @@
 }
 
 .candidateListViewport {
+  min-width: 0;
+  max-width: 100%;
   max-height: min(340px, 44dvh);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0.65rem;
-  border: 1px solid #e7e4de;
+  border: 1px solid var(--border-control-muted);
   border-radius: 13px;
-  background-color: #fbfaf8;
+  background-color: var(--surface-subtle);
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
@@ -1581,10 +1603,12 @@
 
 .candidateListViewportError {
   border-color: var(--status-error);
-  background-color: #fff8f8;
+  background-color: var(--status-danger-bg-card);
 }
 
 .candidateGroup {
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -1616,6 +1640,8 @@
 .candidateGrid {
   display: grid;
   grid-template-columns: 1fr;
+  min-width: 0;
+  max-width: 100%;
   gap: 0.55rem;
 }
 
@@ -1630,9 +1656,11 @@
   display: flex;
   align-items: center;
   gap: 0.68rem;
+  min-width: 0;
+  max-width: 100%;
   min-height: 68px;
   padding: 0.6rem 0.78rem;
-  border: 1px solid #e6e3dd;
+  border: 1px solid var(--border-chip);
   border-radius: 12px;
   background-color: var(--surface-card);
   cursor: pointer;
@@ -1648,8 +1676,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   .candidateCard:hover {
-    border-color: #cac5bd;
-    background-color: #f9f8f5;
+    border-color: var(--border-strong);
+    background-color: var(--surface-subtle-warm);
   }
 }
 
@@ -1660,7 +1688,7 @@
 
 .candidateCardSelected {
   border-color: var(--ink-primary);
-  background-color: #f8f3ef;
+  background-color: var(--accent-tint);
 }
 
 .candidateCardAvatar {
@@ -1670,7 +1698,7 @@
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  background-color: #edeae5;
+  background-color: var(--border-soft-alt);
   color: var(--ink-primary);
   font-size: 0.74rem;
   font-weight: 700;
@@ -1678,7 +1706,8 @@
 }
 
 .candidateCardSelected .candidateCardAvatar {
-  background-color: var(--ink-primary);
+  border: 1px solid var(--badge-dark-border);
+  background-color: var(--badge-dark-bg);
   color: var(--accent);
 }
 
@@ -1727,7 +1756,7 @@
   height: 22px;
   border-radius: 999px;
   background-color: var(--accent);
-  color: var(--ink-primary);
+  color: var(--ink-on-accent);
   flex-shrink: 0;
 }
 
@@ -1747,7 +1776,7 @@
 .candidateLoadMoreBtn {
   min-height: 34px;
   padding: 0.35rem 0.8rem;
-  border: 1px solid #d9d5ce;
+  border: 1px solid var(--border-reset);
   border-radius: 9px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -1770,10 +1799,43 @@
   justify-content: space-between;
   gap: 0.6rem;
   padding-block-start: 0.45rem;
-  border-block-start: 1px solid #eae7e1;
+  border-block-start: 1px solid var(--border-control);
 }
 
 .candidateLoadMoreText {
   font-size: 0.75rem;
   color: var(--ink-muted);
+}
+
+@media (max-width: 480px) {
+  .drawerHeader {
+    padding: 1.1rem 1rem 0.95rem;
+  }
+
+  .drawerBody {
+    padding: 1rem;
+  }
+
+  .drawerFooter {
+    padding: 0.85rem 1rem 1rem;
+  }
+
+  .managerListItem {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .unlinkButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .selectedCandidateBanner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .selectedCandidateClear {
+    align-self: flex-end;
+  }
 }

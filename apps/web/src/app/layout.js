@@ -33,12 +33,18 @@ export const viewport = {
   themeColor: "#1a1a1f",
 };
 
+const THEME_INIT_SCRIPT = `(function(){try{var t=window.localStorage.getItem("midia_sbn_theme_v1");document.documentElement.dataset.theme=t==="dark"?"dark":"light";}catch(e){document.documentElement.dataset.theme="light";}})();`;
+
 export default function RootLayout({ children }) {
   return (
     <html
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body>
         <ToastProvider>{children}</ToastProvider>
       </body>

@@ -30,6 +30,7 @@ import {
   canEditParticipant,
   canListCredentials,
   canRegenerateCredentialNumber,
+  canSeeActualMemberStatus,
   canToggleStatus,
   canViewParticipant,
   CREDENTIAL_STATUS,
@@ -142,6 +143,8 @@ export function ParticipantsView() {
     updateParticipant,
     deleteParticipant,
     refreshDepartments,
+    notifySchedulesChanged,
+    broadcastWorkspaceSync,
     participantCreatePreset,
     setParticipantCreatePreset,
     knownCredentialNumbers,
@@ -174,9 +177,9 @@ export function ParticipantsView() {
   const roleCode = resolveRoleCode(currentUser);
   const isVolunteer = roleCode === ROLES.VOLUNTEER;
   const isGeneralManager = roleCode === ROLES.GENERAL_MANAGER;
+  const showStatusColumn = canSeeActualMemberStatus(currentUser);
   const canFilterByMinistry = isAdmin(currentUser) || isGeneralManager;
-  const canFilterByStatus =
-    canFilterByMinistry || roleCode === ROLES.DEPARTMENT_MANAGER;
+  const canFilterByStatus = showStatusColumn;
   const activeMinistryId =
     activeMinistry?.id && !activeMinistry.isGlobal ? activeMinistry.id : "";
 
@@ -230,9 +233,11 @@ export function ParticipantsView() {
       const displayStatus = getDisplayMemberStatus(currentUser, person);
       if (selectedStatus && displayStatus !== selectedStatus) return false;
 
-      const displayStatusLabel = (
-        STATUS_META[displayStatus] || STATUS_META[CREDENTIAL_STATUS.ACTIVE]
-      ).label;
+      const displayStatusLabel = showStatusColumn
+        ? (
+            STATUS_META[displayStatus] || STATUS_META[CREDENTIAL_STATUS.ACTIVE]
+          ).label
+        : "";
       return doesParticipantMatchQuery(person, query, displayStatusLabel);
     });
   }, [
@@ -241,6 +246,7 @@ export function ParticipantsView() {
     searchQuery,
     selectedMinistryId,
     selectedStatus,
+    showStatusColumn,
   ]);
 
   const clearFilters = () => {
@@ -413,6 +419,8 @@ export function ParticipantsView() {
         ...result.data,
         roleCode: result.data.role,
       });
+      await refreshParticipants({ silent: true });
+      broadcastWorkspaceSync();
 
       openWorkspaceCodeModal({
         variant: "temporary",
@@ -447,6 +455,11 @@ export function ParticipantsView() {
         ...result.data,
         roleCode: result.data.role,
       });
+      await Promise.all([
+        refreshParticipants({ silent: true }),
+        refreshDepartments(),
+      ]);
+      notifySchedulesChanged();
 
       if (actionType === "restore") {
         const recoveryCode = result.data.credentialNumber;
@@ -482,7 +495,11 @@ export function ParticipantsView() {
 
       confirmDialogRef.current?.close("done");
       deleteParticipant(target.id);
-      refreshDepartments();
+      await Promise.all([
+        refreshParticipants({ silent: true }),
+        refreshDepartments(),
+      ]);
+      notifySchedulesChanged();
       toast.success(`Participante "${target.name}" excluído definitivamente.`);
     }
   };
@@ -669,7 +686,7 @@ export function ParticipantsView() {
                 <th scope="col">PARTICIPANTE</th>
                 <th scope="col">MINISTÉRIO</th>
                 <th scope="col">PAPEL</th>
-                <th scope="col">STATUS</th>
+                {showStatusColumn && <th scope="col">STATUS</th>}
                 {hasAnyRowActions && (
                   <th scope="col" className={styles.actionsHeader}>
                     <span className="visually-hidden">Ações</span>
@@ -729,7 +746,7 @@ export function ParticipantsView() {
                           </span>
                           <span className={styles.memberHandle}>
                             {person.handle ||
-                              (isPending
+                              (showStatusColumn && isPending
                                 ? "Aguardando 1º acesso"
                                 : "Sem apelido")}
                           </span>
@@ -737,7 +754,7 @@ export function ParticipantsView() {
                       </div>
                     </th>
 
-                    <td>
+                    <td data-label="Ministério">
                       <div className={styles.ministriesCellWrap}>
                         {person.ministries.length > 0 ? (
                           <div className={styles.ministriesGroup}>
@@ -768,17 +785,26 @@ export function ParticipantsView() {
                       </div>
                     </td>
 
-                    <td className={styles.roleCell}>{person.role}</td>
-
-                    <td>
-                      <span className={`${styles.statusPill} ${statusPillClass}`}>
-                        <span className={styles.statusDot} aria-hidden="true" />
-                        {displayStatusLabel}
-                      </span>
+                    <td data-label="Papel" className={styles.roleCell}>
+                      {person.role}
                     </td>
 
+                    {showStatusColumn && (
+                      <td data-label="Status">
+                        <span
+                          className={`${styles.statusPill} ${statusPillClass}`}
+                        >
+                          <span
+                            className={styles.statusDot}
+                            aria-hidden="true"
+                          />
+                          {displayStatusLabel}
+                        </span>
+                      </td>
+                    )}
+
                     {hasAnyRowActions && (
-                      <td className={styles.actionsCell}>
+                      <td data-label="Ações" className={styles.actionsCell}>
                         <div className={styles.rowActions}>
                           {showCopyButton && (
                             <button

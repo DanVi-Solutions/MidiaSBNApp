@@ -98,6 +98,7 @@ async function performRefresh() {
   try {
     const response = await fetch(`${API_HOST}/auth/refresh`, {
       method: "POST",
+      cache: "no-store",
       headers: {
         "Content-Type": "application/json",
       },
@@ -165,6 +166,7 @@ export async function apiRequest(
   try {
     response = await fetch(`${API_HOST}${normalizedPath}`, {
       method,
+      cache: "no-store",
       headers,
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });

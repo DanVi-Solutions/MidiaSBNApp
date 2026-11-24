@@ -176,7 +176,7 @@
 
 .choiceSelected {
   border-color: var(--ink-primary);
-  background-color: #fdf7f4;
+  background-color: var(--warm-tint);
 }
 
 .choiceDay {
@@ -201,7 +201,7 @@
   padding: 3px;
   border-radius: 999px;
   background-color: var(--accent);
-  color: #1a1a1f;
+  color: var(--ink-on-accent);
   transform: translateY(-50%);
 }
 
@@ -256,9 +256,9 @@
 }
 
 .periodChipOn {
-  border-color: #1a1a1f;
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border-color: var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 .status {
@@ -323,7 +323,7 @@
 .primaryButton {
   border: 0;
   background-color: var(--accent);
-  color: #1a1a1f;
+  color: var(--ink-on-accent);
 }
 
 .primaryButton:disabled {
@@ -384,7 +384,7 @@
 
   .choice:not(.choiceSelected):hover,
   .periodChip:not(.periodChipOn):hover {
-    border-color: #c7c2ba;
+    border-color: var(--border-hover-alt);
   }
 }
 

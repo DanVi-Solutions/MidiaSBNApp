@@ -30,7 +30,8 @@ function validateMinistryName(value) {
 }
 
 export function MinistryFormDrawer({ mode = "create", ministry = null, onClose }) {
-  const { refreshDepartments, refreshParticipants } = usePrivateWorkspace();
+  const { refreshDepartments, refreshParticipants, notifySchedulesChanged } =
+    usePrivateWorkspace();
   const toast = useToast();
 
   const isEditingMinistry = mode === "edit" && Boolean(ministry);
@@ -169,7 +170,11 @@ export function MinistryFormDrawer({ mode = "create", ministry = null, onClose }
         return;
       }
 
-      await Promise.all([refreshDepartments(), refreshParticipants()]);
+      await Promise.all([
+        refreshDepartments(),
+        refreshParticipants({ silent: true }),
+      ]);
+      notifySchedulesChanged();
       await closeAnimatedRightDrawer(dialogRef.current);
       toast.success(`Ministério "${result.data.name}" atualizado com sucesso.`);
       return;
@@ -197,7 +202,11 @@ export function MinistryFormDrawer({ mode = "create", ministry = null, onClose }
       return;
     }
 
-    await refreshDepartments();
+    await Promise.all([
+      refreshDepartments(),
+      refreshParticipants({ silent: true }),
+    ]);
+    notifySchedulesChanged();
     await closeAnimatedRightDrawer(dialogRef.current);
     toast.success(`Ministério "${result.data.name}" criado com sucesso.`);
   };

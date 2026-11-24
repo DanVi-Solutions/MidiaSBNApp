@@ -53,10 +53,10 @@
   gap: 0.48rem;
   min-height: 42px;
   padding: 0.55rem 1.15rem;
-  border: 1px solid var(--ink-primary);
+  border: 1px solid var(--btn-primary-border);
   border-radius: 10px;
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -66,7 +66,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .addButton:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -75,7 +75,7 @@
   flex-direction: column;
   gap: 0.75rem;
   padding: 0.7rem 1rem;
-  border: 1px solid #e8e5df;
+  border: 1px solid var(--border-filter);
   border-radius: 14px;
   background-color: var(--surface-card);
 }
@@ -91,24 +91,51 @@
 
 .filterRightGroup {
   display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 0.9rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
 }
 
 .filterRightGroup .filterSelect {
-  flex: 1 1 0;
+  flex: 0 0 auto;
+  width: 100%;
   min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .filterRightGroup {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .filterRightGroup .filterSelect {
+    flex: 1 1 200px;
+    width: auto;
+    min-width: 0;
+  }
+
+  .countLabel {
+    align-self: center;
+    margin-inline-start: auto;
+  }
 }
 
 @media (min-width: 960px) {
   .filterRightGroup {
+    flex-wrap: nowrap;
     flex-shrink: 0;
+    gap: 0.9rem;
   }
 
   .filterRightGroup .filterSelect {
     flex: 0 0 auto;
     min-width: 224px;
+  }
+
+  .countLabel {
+    margin-inline-start: 0;
   }
 }
 
@@ -118,16 +145,22 @@
 }
 
 .filterSelect {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   min-height: 44px;
-  min-width: 224px;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.55rem 0.95rem;
-  border: 1px solid #e8e5df;
+  border: 1px solid var(--border-filter);
   border-radius: 10px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
   font: inherit;
   font-size: 0.87rem;
   font-weight: 550;
+  text-align: left;
   cursor: pointer;
 }
 
@@ -137,7 +170,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   background-color: var(--surface-card);
-  box-shadow: 0 12px 28px rgba(26, 26, 31, 0.1);
+  box-shadow: var(--shadow-picker);
 }
 
 .filterSelect::picker-icon {
@@ -166,7 +199,7 @@
   align-items: center;
   width: 100%;
   min-width: 0;
-  border: 1px solid #eae7e1;
+  border: 1px solid var(--border-control);
   border-radius: 10px;
   background-color: var(--surface-card);
   transition: border-color 0.16s ease;
@@ -197,11 +230,12 @@
 }
 
 .searchInput::placeholder {
-  color: #a09c96;
+  color: var(--ink-placeholder);
   font-size: 0.88rem;
 }
 
 .countLabel {
+  align-self: flex-end;
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--ink-muted);
@@ -213,7 +247,7 @@
   max-inline-size: 100%;
   max-block-size: min(560px, 75dvh);
   container-type: inline-size;
-  border: 1px solid #e9e6e0;
+  border: 1px solid var(--border-card);
   border-radius: 16px;
   background-color: var(--surface-card);
 }
@@ -228,10 +262,6 @@
   border-collapse: separate;
   border-spacing: 0;
   text-align: left;
-  --label-2: "Ministério";
-  --label-3: "Papel";
-  --label-4: "Status";
-  --label-5: "Ações";
 }
 
 .table thead {
@@ -242,8 +272,8 @@
 
 .table thead th {
   padding: 0.95rem 1.25rem;
-  background-color: #f9f8f6;
-  border-block-end: 1px solid #efece7;
+  background-color: var(--surface-subtle-alt);
+  border-block-end: 1px solid var(--border-soft);
   font-size: 0.68rem;
   font-weight: 650;
   letter-spacing: 0.1em;
@@ -254,7 +284,7 @@
 
 .table tbody tr:not(:last-child) th,
 .table tbody tr:not(:last-child) td {
-  border-block-end: 1px solid #f2f0ec;
+  border-block-end: 1px solid var(--border-row);
 }
 
 .table tbody th {
@@ -347,7 +377,7 @@
   align-items: center;
   padding: 0.25rem 0.65rem;
   border-radius: 7px;
-  background-color: #f3f1ee;
+  background-color: var(--surface-hover);
   color: var(--ink-primary);
   font-size: 0.77rem;
   font-weight: 550;
@@ -358,8 +388,9 @@
   align-items: center;
   width: fit-content;
   padding: 0.25rem 0.65rem;
+  border: 1px solid var(--badge-dark-border);
   border-radius: 7px;
-  background-color: #1a1a1f;
+  background-color: var(--badge-dark-bg);
   color: var(--accent);
   font-size: 0.75rem;
   font-weight: 650;
@@ -393,8 +424,8 @@
 }
 
 .statusPillRevoked {
-  background-color: #fde8e8;
-  color: #b92c25;
+  background-color: var(--status-danger-bg-pill);
+  color: var(--status-error);
 }
 
 .statusPillPending {
@@ -451,26 +482,26 @@
 @media (hover: hover) and (pointer: fine) {
   .iconActionButton:not(:disabled):hover {
     background-color: var(--surface-workspace);
-    border-color: #e5e2dc;
+    border-color: var(--border-item);
     color: var(--ink-primary);
   }
 
   .iconActionDanger:not(:disabled):hover {
-    background-color: #fdf2f2;
-    border-color: #efd5d5;
-    color: #a93c3c;
+    background-color: var(--status-error-bg);
+    border-color: var(--status-danger-border);
+    color: var(--status-danger-ink);
   }
 
   .iconActionRestore:not(:disabled):hover {
     background-color: var(--accent-soft);
-    border-color: #dca096;
+    border-color: var(--accent-border);
     color: var(--accent-ink);
   }
 }
 
 .iconActionCopied {
   background-color: var(--accent-soft);
-  border-color: #dca096;
+  border-color: var(--accent-border);
   color: var(--accent-ink);
 }
 
@@ -484,9 +515,9 @@
   align-items: center;
   gap: 0.85rem;
   padding: 0.9rem 1rem;
-  border: 1px solid #eae7e1;
+  border: 1px solid var(--border-control);
   border-radius: 12px;
-  background-color: #fbfaf8;
+  background-color: var(--surface-subtle);
 }
 
 .emptyCard {
@@ -496,7 +527,7 @@
   justify-content: center;
   gap: 0.85rem;
   padding: 2.25rem 1.5rem;
-  border: 1px solid #e9e6e0;
+  border: 1px solid var(--border-card);
   border-radius: 16px;
   background-color: var(--surface-card);
   text-align: center;
@@ -549,9 +580,9 @@
 
 .infoNote {
   padding: 0.85rem 1rem;
-  border: 1px solid #e8e4dc;
+  border: 1px solid var(--border-control-alt);
   border-radius: 11px;
-  background-color: #f9f8f5;
+  background-color: var(--surface-subtle-warm);
   font-size: 0.83rem;
   line-height: 1.48;
   color: var(--ink-secondary);
@@ -577,7 +608,7 @@
   gap: 0.65rem;
   min-height: 44px;
   padding: 0.55rem 0.85rem;
-  border: 1px solid #e2ded8;
+  border: 1px solid var(--border-input);
   border-radius: 10px;
   background-color: var(--surface-card);
   font-size: 0.88rem;
@@ -589,7 +620,7 @@
 .checkboxInput {
   width: 1.1rem;
   height: 1.1rem;
-  accent-color: #1a1a1f;
+  accent-color: var(--checkbox-accent);
   cursor: pointer;
 }
 
@@ -598,7 +629,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 0.9rem;
-  border: 1px solid #efd5d5;
+  border: 1px solid var(--status-danger-border);
   border-radius: 10px;
   background-color: var(--status-error-bg);
   color: var(--status-error);
@@ -622,7 +653,7 @@
   border-inline-start: 1px solid var(--border-subtle);
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: -16px 0 48px rgba(26, 26, 31, 0.18);
+  box-shadow: var(--shadow-drawer);
   opacity: 0;
   transition-property: opacity, transform, display, overlay;
   transition-duration: 300ms;
@@ -678,7 +709,7 @@
 }
 
 .createDrawer[open]:where(:not([data-closing]))::backdrop {
-  background-color: rgba(19, 19, 23, 0.45);
+  background-color: var(--backdrop-drawer);
 }
 
 @starting-style {
@@ -802,15 +833,15 @@
   padding: 0.16rem 0.5rem;
   border-radius: 999px;
   white-space: nowrap;
-  background-color: #f2f0ec;
+  background-color: var(--surface-chip);
   color: var(--ink-muted);
 }
 
 .readonlyScopeBox {
   padding: 0.8rem 0.95rem;
-  border: 1px solid #e8e4dc;
+  border: 1px solid var(--border-control-alt);
   border-radius: 11px;
-  background-color: #f9f8f5;
+  background-color: var(--surface-subtle-warm);
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -827,7 +858,7 @@
   width: 100%;
   min-height: 44px;
   padding: 0.6rem 0.88rem;
-  border: 1px solid #e2ded8;
+  border: 1px solid var(--border-input);
   border-radius: 11px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -839,7 +870,7 @@
 }
 
 .input::placeholder {
-  color: #a09c96;
+  color: var(--ink-placeholder);
   font-size: 0.88rem;
 }
 
@@ -863,7 +894,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   background-color: var(--surface-card);
-  box-shadow: 0 12px 28px rgba(26, 26, 31, 0.1);
+  box-shadow: var(--shadow-picker);
 }
 
 .select::picker-icon {
@@ -938,9 +969,9 @@
 }
 
 .drawerSubmitButton {
-  border: 1px solid var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -950,7 +981,7 @@
   }
 
   .drawerSubmitButton:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -963,7 +994,7 @@
   border-radius: 16px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: 0 24px 64px rgba(26, 26, 31, 0.22);
+  box-shadow: var(--shadow-modal);
   overflow: hidden;
   opacity: 0;
   transition-property: opacity, transform, display, overlay;
@@ -1016,7 +1047,7 @@
 }
 
 .confirmDialog[open]::backdrop {
-  background-color: rgba(19, 19, 23, 0.54);
+  background-color: var(--backdrop-modal);
 }
 
 @starting-style {
@@ -1043,7 +1074,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1.35rem 1.5rem 1.15rem;
-  border-block-end: 1px solid #edeae5;
+  border-block-end: 1px solid var(--border-soft-alt);
 }
 
 .confirmEyebrow {
@@ -1100,18 +1131,18 @@
 }
 
 .confirmCalloutDanger {
-  border-color: #efd5d5;
-  background-color: #fdf5f5;
+  border-color: var(--status-danger-border);
+  background-color: var(--status-danger-bg-soft);
 }
 
 .confirmCalloutWarning {
-  border-color: #e7cf9a;
-  background-color: #fffaf0;
+  border-color: var(--status-amber-border);
+  background-color: var(--status-amber-bg-soft);
 }
 
 .confirmCalloutSuccess {
-  border-color: #dca096;
-  background-color: #f8f3ef;
+  border-color: var(--accent-border);
+  background-color: var(--accent-tint);
 }
 
 .confirmBadge {
@@ -1125,12 +1156,12 @@
 }
 
 .confirmBadgeDanger {
-  background-color: #f8dddd;
-  color: #a93c3c;
+  background-color: var(--status-danger-badge);
+  color: var(--status-danger-ink);
 }
 
 .confirmBadgeWarning {
-  background-color: #ffe9bc;
+  background-color: var(--status-amber-badge-soft);
   color: var(--status-amber-ink);
 }
 
@@ -1159,8 +1190,8 @@
   justify-content: flex-end;
   gap: 0.75rem;
   padding: 1rem 1.5rem 1.15rem;
-  border-block-start: 1px solid #edeae5;
-  background-color: #faf9f7;
+  border-block-start: 1px solid var(--border-soft-alt);
+  background-color: var(--surface-elevated);
 }
 
 .confirmCancelBtn,
@@ -1187,30 +1218,30 @@
 }
 
 .confirmDangerBtn {
-  border: 1px solid #a33b3b;
-  background-color: #a33b3b;
+  border: 1px solid var(--status-danger-solid-alt);
+  background-color: var(--status-danger-solid-alt);
   color: #ffffff;
 }
 
 .confirmPrimaryBtn {
-  border: 1px solid var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .confirmCancelBtn:hover {
-    background-color: rgba(26, 26, 31, 0.06);
+    background-color: var(--surface-hover-alpha);
     color: var(--ink-primary);
   }
 
   .confirmDangerBtn:hover {
-    background-color: #8b2f2f;
-    border-color: #8b2f2f;
+    background-color: var(--status-danger-solid-hover);
+    border-color: var(--status-danger-solid-hover);
   }
 
   .confirmPrimaryBtn:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -1231,7 +1262,7 @@
 
   .table tbody tr {
     margin-block-end: 0.9rem;
-    border: 1px solid #e9e6e0;
+    border: 1px solid var(--border-card);
     border-radius: 14px;
     background-color: var(--surface-card);
     overflow: hidden;
@@ -1250,8 +1281,8 @@
     position: sticky;
     inset-block-start: 0;
     z-index: 2;
-    background-color: #f9f8f6;
-    border-block-end: 1px solid #efece7;
+    background-color: var(--surface-subtle-alt);
+    border-block-end: 1px solid var(--border-soft);
     padding: 0.9rem 1rem;
   }
 
@@ -1261,7 +1292,7 @@
     justify-content: space-between;
     gap: 0.75rem;
     padding: 0.72rem 1rem;
-    border-block-start: 1px solid #f4f2ee;
+    border-block-start: 1px solid var(--border-row-soft);
     white-space: normal;
     text-align: right;
   }
@@ -1280,20 +1311,8 @@
     flex-shrink: 0;
   }
 
-  .table tbody td:nth-child(2)::before {
-    content: var(--label-2);
-  }
-
-  .table tbody td:nth-child(3)::before {
-    content: var(--label-3);
-  }
-
-  .table tbody td:nth-child(4)::before {
-    content: var(--label-4);
-  }
-
-  .table tbody td:nth-child(5)::before {
-    content: var(--label-5);
+  .table tbody td[data-label]::before {
+    content: attr(data-label);
   }
 
   .table tbody td.actionsCell:not(:has(button)) {
@@ -1322,6 +1341,7 @@
   .drawerCloseButton,
   .input,
   .select,
+  .filterSelect,
   .drawerCancelButton,
   .drawerSubmitButton,
   .confirmCloseBtn,

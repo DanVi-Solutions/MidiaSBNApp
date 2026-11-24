@@ -54,6 +54,8 @@ export function ParticipantFormDrawer({
     updateParticipant,
     refreshParticipants,
     refreshDepartments,
+    refreshCurrentUser,
+    notifySchedulesChanged,
     rememberCredentialNumber,
     openWorkspaceCodeModal,
   } = usePrivateWorkspace();
@@ -364,7 +366,14 @@ export function ParticipantFormDrawer({
           ...result.data,
           roleCode: result.data.role,
         });
-        await Promise.all([refreshParticipants(), refreshDepartments()]);
+        await Promise.all([
+          refreshParticipants({ silent: true }),
+          refreshDepartments(),
+          target.id === currentUser.id
+            ? refreshCurrentUser()
+            : Promise.resolve(null),
+        ]);
+        notifySchedulesChanged();
         await closeAnimatedRightDrawer(dialogRef.current);
         toast.success(`Papel e ministério de "${target.name}" atualizados.`);
         return;
@@ -388,7 +397,14 @@ export function ParticipantFormDrawer({
           ...result.data,
           roleCode: result.data.role,
         });
-        await Promise.all([refreshParticipants(), refreshDepartments()]);
+        await Promise.all([
+          refreshParticipants({ silent: true }),
+          refreshDepartments(),
+          target.id === currentUser.id
+            ? refreshCurrentUser()
+            : Promise.resolve(null),
+        ]);
+        notifySchedulesChanged();
         await closeAnimatedRightDrawer(dialogRef.current);
         toast.success(`Ministérios de "${target.name}" atualizados.`);
         return;
@@ -417,7 +433,14 @@ export function ParticipantFormDrawer({
         return;
       }
 
-      await Promise.all([refreshParticipants(), refreshDepartments()]);
+      await Promise.all([
+        refreshParticipants({ silent: true }),
+        refreshDepartments(),
+        target.id === currentUser.id
+          ? refreshCurrentUser()
+          : Promise.resolve(null),
+      ]);
+      notifySchedulesChanged();
       await closeAnimatedRightDrawer(dialogRef.current);
 
       if (transferResult.data?.status === "PENDING") {
@@ -450,7 +473,11 @@ export function ParticipantFormDrawer({
     }
 
     addParticipant(created);
-    refreshDepartments();
+    await Promise.all([
+      refreshParticipants({ silent: true }),
+      refreshDepartments(),
+    ]);
+    notifySchedulesChanged();
     onCreated?.();
 
     await closeAnimatedRightDrawer(dialogRef.current);

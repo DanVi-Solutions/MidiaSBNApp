@@ -93,7 +93,7 @@ export function assertCanChangeRole(actor, target, role, departmentIds) {
 
 export function assertCanDelete(actor, target) {
   if (isSelf(actor, target)) return;
-  if (isAtLeast(actor.role, ROLES.GENERAL_MANAGER) && canManage(actor, target)) return;
+  if (isAtLeast(actor.role, ROLES.DEPARTMENT_MANAGER) && canManage(actor, target)) return;
   throw AppError.forbidden();
 }
 
@@ -117,7 +117,7 @@ export function assertCanChangeStatus(actor, target, status) {
   if (status === "INACTIVE" && isInactive) throw AppError.conflict("A credencial já está inativa");
   if (status === "ACTIVE" && !isInactive) throw AppError.conflict("Apenas credenciais inativas podem ser reativadas");
 
-  const isManager = isAtLeast(actor.role, ROLES.GENERAL_MANAGER) && canManage(actor, target);
+  const isManager = isAtLeast(actor.role, ROLES.DEPARTMENT_MANAGER) && canManage(actor, target);
   if (status === "INACTIVE" && (isSelf(actor, target) || isManager)) return;
   if (status === "ACTIVE" && isManager) return;
   throw AppError.forbidden();

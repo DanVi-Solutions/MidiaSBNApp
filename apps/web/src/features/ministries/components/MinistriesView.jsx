@@ -69,6 +69,7 @@ export function MinistriesView() {
     ministries,
     refreshDepartments,
     refreshParticipants,
+    notifySchedulesChanged,
     openWorkspaceDrawer,
   } = usePrivateWorkspace();
   const toast = useToast();
@@ -172,7 +173,11 @@ export function MinistriesView() {
     }
 
     deleteDialogRef.current?.close("confirm");
-    await Promise.all([refreshDepartments(), refreshParticipants()]);
+    await Promise.all([
+      refreshDepartments(),
+      refreshParticipants({ silent: true }),
+    ]);
+    notifySchedulesChanged();
     toast.success(`Ministério "${targetName}" excluído com sucesso.`);
   };
 

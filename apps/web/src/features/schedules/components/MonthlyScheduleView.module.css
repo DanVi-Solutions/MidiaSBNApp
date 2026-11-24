@@ -40,7 +40,10 @@
     width: 100%;
   }
 
-  .headerActions > :last-child {
+  .headerActions > .newScheduleButton,
+  .headerActions > .exportScheduleButton,
+  .headerActions > .publishAllButton:not(:has(+ .autoAssignButton)),
+  .headerActions > .autoAssignButton:first-child {
     grid-column: 1 / -1;
   }
 
@@ -50,6 +53,7 @@
   }
 }
 
+.exportScheduleButton,
 .publishAllButton,
 .autoAssignButton,
 .newScheduleButton {
@@ -71,17 +75,19 @@
 }
 
 .publishAllButton {
-  border: 1px solid #dacdb7;
+  border: 1px solid var(--warm-border);
   background-color: var(--surface-card);
   color: var(--ink-primary);
 }
 
+.exportScheduleButton,
 .autoAssignButton {
   border: 1px solid var(--border-subtle);
   background-color: var(--surface-card);
   color: var(--ink-primary);
 }
 
+.exportScheduleButton:disabled,
 .publishAllButton:disabled,
 .autoAssignButton:disabled {
   border-color: var(--border-subtle);
@@ -99,31 +105,32 @@
   padding-inline: 0.38rem;
   border-radius: 999px;
   background-color: var(--accent);
-  color: var(--ink-primary);
+  color: var(--ink-on-accent);
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 1;
 }
 
 .newScheduleButton {
-  border: 1px solid var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .publishAllButton:not(:disabled):hover {
     background-color: var(--accent-soft);
-    border-color: #d08f84;
+    border-color: var(--accent-border-strong);
   }
 
+  .exportScheduleButton:not(:disabled):hover,
   .autoAssignButton:not(:disabled):hover {
     background-color: var(--surface-workspace);
-    border-color: #c7c2ba;
+    border-color: var(--border-hover-alt);
   }
 
   .newScheduleButton:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -334,10 +341,10 @@
   gap: 0.45rem;
   min-height: 40px;
   padding: 0.52rem 1.05rem;
-  border: 1px solid var(--ink-primary);
+  border: 1px solid var(--btn-primary-border);
   border-radius: 10px;
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -347,7 +354,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .detailsButton:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -383,14 +390,14 @@
 }
 
 .acceptButton {
-  border: 1px solid var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .acceptButton:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -399,10 +406,10 @@
   display: grid;
   grid-template-columns: 1fr;
   background-color: var(--surface-card);
-  border: 1px solid #dacdb7;
+  border: 1px solid var(--warm-border);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 2px 14px rgba(26, 26, 31, 0.03);
+  box-shadow: var(--shadow-card);
 }
 
 @media (min-width: 720px) {
@@ -418,7 +425,7 @@
   justify-content: center;
   gap: 0.3rem;
   padding: 1.5rem 1rem;
-  background-color: #1b1b20;
+  background-color: var(--card-date-bg);
   color: #f4f1ec;
   position: relative;
 }
@@ -500,7 +507,7 @@
   font-weight: 650;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: #2f8ec7;
+  color: var(--status-info-kicker);
   margin-block-end: 0.2rem;
 }
 
@@ -546,8 +553,8 @@
 }
 
 .statusPillDraft {
-  background-color: #f2f0ec;
-  color: #605d57;
+  background-color: var(--surface-chip);
+  color: var(--ink-chip);
 }
 
 .heroFacts,
@@ -631,10 +638,10 @@
   gap: 0.45rem;
   min-height: 40px;
   padding: 0.5rem 1rem;
-  border: 1px solid var(--ink-primary);
+  border: 1px solid var(--btn-primary-border);
   border-radius: 10px;
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
   font: inherit;
   font-size: 0.84rem;
   font-weight: 650;
@@ -664,7 +671,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .heroPrimaryButton:hover:not(:disabled) {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -674,7 +681,7 @@
   flex-direction: column;
   gap: 0.75rem;
   padding: 0.65rem 0.9rem;
-  border: 1px solid #e8e5df;
+  border: 1px solid var(--border-filter);
   border-radius: 14px;
   background-color: var(--surface-card);
 }
@@ -693,7 +700,7 @@
   flex: 1;
   display: flex;
   align-items: center;
-  border: 1px solid #eae7e1;
+  border: 1px solid var(--border-control);
   border-radius: 10px;
   background-color: var(--surface-card);
   transition: border-color 0.16s ease;
@@ -724,7 +731,7 @@
 }
 
 .searchInput::placeholder {
-  color: #a09c96;
+  color: var(--ink-placeholder);
   font-size: 0.88rem;
 }
 
@@ -744,7 +751,7 @@
   min-height: 44px;
   min-width: 224px;
   padding: 0.55rem 0.95rem;
-  border: 1px solid #e8e5df;
+  border: 1px solid var(--border-filter);
   border-radius: 10px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -760,7 +767,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   background-color: var(--surface-card);
-  box-shadow: 0 12px 28px rgba(26, 26, 31, 0.1);
+  box-shadow: var(--shadow-picker);
 }
 
 .scopeSelect::picker-icon {
@@ -799,25 +806,25 @@
 .eventCard {
   display: grid;
   grid-template-columns: 1fr;
-  border: 1px solid #e9e6e0;
+  border: 1px solid var(--border-card);
   border-radius: 16px;
   background-color: var(--surface-card);
   overflow: hidden;
 }
 
 .eventCardAssigned {
-  border-color: #d9aba3;
-  background-color: #fbf5f2;
+  border-color: var(--warm-card-border);
+  background-color: var(--warm-card-bg);
   box-shadow: 0 2px 12px rgba(107, 30, 18, 0.05);
 }
 
 .eventCardDraft {
-  border: 1.5px dashed #c8c4bd;
-  background-color: #f6f5f2;
+  border: 1.5px dashed var(--border-draft);
+  background-color: var(--card-draft-bg);
 }
 
 .eventCardDraft .eventDateColumn {
-  background-color: #4c4c5b;
+  background-color: var(--card-date-bg-draft);
 }
 
 .eventCardDraft .eventMonth,
@@ -826,11 +833,11 @@
 }
 
 .eventCardDraft .assignmentChip {
-  background-color: #faf9f8;
+  background-color: var(--surface-elevated-alt);
 }
 
 .eventCardAssigned .eventDateColumn {
-  background-color: #1c1c22;
+  background-color: var(--card-date-bg-assigned);
 }
 
 .eventCardAssigned .eventMonth {
@@ -850,7 +857,7 @@
   justify-content: flex-start;
   gap: 0.55rem;
   padding: 0.9rem 1.25rem;
-  background-color: #1a1a1f;
+  background-color: var(--card-date-bg);
   color: #f4f1ec;
 }
 
@@ -925,7 +932,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 0.85rem;
-  border: 1px solid #ebe8e3;
+  border: 1px solid var(--border-list);
   border-radius: 12px;
   background-color: var(--surface-card);
 }
@@ -941,10 +948,10 @@
   margin-inline-start: auto;
   min-height: 32px;
   padding: 0.3rem 0.7rem;
-  border: 1px solid var(--ink-primary);
+  border: 1px solid var(--btn-primary-border);
   border-radius: 8px;
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
   font: inherit;
   font-size: 0.76rem;
   font-weight: 600;
@@ -963,7 +970,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .chipReplaceButton:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -1082,7 +1089,7 @@
   gap: 0.55rem;
   padding-block-start: 0.9rem;
   margin-block-start: 0.15rem;
-  border-block-start: 1px solid #f0ede8;
+  border-block-start: 1px solid var(--border-row-alt);
 }
 
 .cardActionButton {
@@ -1103,20 +1110,20 @@
 }
 
 .cardPublishedButton {
-  border: 1px solid #e2ded8;
-  background-color: #fbfaf8;
-  color: #5e5b56;
+  border: 1px solid var(--border-input);
+  background-color: var(--surface-subtle);
+  color: var(--ink-chip-alt);
   cursor: default;
 }
 
 .cardPublishButton {
-  border: 1px solid #dca096;
+  border: 1px solid var(--accent-border);
   background-color: var(--accent-soft);
   color: var(--accent-ink);
 }
 
 .cardEditButton {
-  border: 1px solid #dbd7d0;
+  border: 1px solid var(--border-disabled);
   background-color: var(--surface-card);
   color: var(--ink-primary);
 }
@@ -1124,43 +1131,43 @@
 .cardDeleteButton {
   border: 1px solid transparent;
   background-color: transparent;
-  color: #a93c3c;
+  color: var(--status-danger-ink);
 }
 
 .cardSignupButton {
-  border: 1px solid var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 .cardWithdrawButton {
-  border: 1px solid #e3b5b5;
+  border: 1px solid var(--status-danger-border-strong);
   background-color: var(--surface-card);
-  color: #a93c3c;
+  color: var(--status-danger-ink);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .cardPublishButton:hover {
-    background-color: #f7cbb8;
-    border-color: #cf8174;
+    background-color: var(--accent-tint-hover);
+    border-color: var(--accent-border-hover);
   }
 
   .cardEditButton:hover {
     background-color: var(--surface-workspace);
-    border-color: #c7c2ba;
+    border-color: var(--border-hover-alt);
   }
 
   .cardDeleteButton:hover {
-    background-color: #fdf2f2;
-    border-color: #efd5d5;
+    background-color: var(--status-error-bg);
+    border-color: var(--status-danger-border);
   }
 
   .cardSignupButton:hover:not(:disabled) {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 
   .cardWithdrawButton:hover:not(:disabled) {
-    background-color: #fdf2f2;
+    background-color: var(--status-error-bg);
   }
 }
 
@@ -1182,7 +1189,7 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background-color: #e9e5df;
+  background-color: var(--surface-icon-badge);
   color: var(--ink-primary);
   margin-block-end: 0.15rem;
 }
@@ -1205,7 +1212,7 @@
   min-height: 38px;
   margin-block-start: 0.25rem;
   padding: 0.48rem 1rem;
-  border: 1px solid #d9d5ce;
+  border: 1px solid var(--border-reset);
   border-radius: 10px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -1217,7 +1224,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .emptyResetBtn:hover {
-    background-color: #f2f0ec;
+    background-color: var(--surface-chip);
   }
 }
 
@@ -1230,7 +1237,7 @@
   border-radius: 16px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: 0 24px 60px rgba(26, 26, 31, 0.2);
+  box-shadow: var(--shadow-modal);
 }
 
 .modalDialog[open] {
@@ -1242,7 +1249,7 @@
 }
 
 .modalDialog::backdrop {
-  background: rgba(19, 19, 23, 0.56);
+  background: var(--backdrop-modal);
   overflow: hidden;
   overscroll-behavior: contain;
 }
@@ -1315,9 +1322,9 @@
 }
 
 .modalConfirmButton {
-  border: 1px solid var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 /* Animated Right-Side Substitution Drawer (<dialog>) */
@@ -1336,7 +1343,7 @@
   border-inline-start: 1px solid var(--border-subtle);
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: -16px 0 44px rgba(26, 26, 31, 0.16);
+  box-shadow: var(--shadow-drawer);
   opacity: 0;
   transition-property: opacity, transform, display, overlay;
   transition-duration: 300ms;
@@ -1392,7 +1399,7 @@
 }
 
 .substitutionDrawer[open]:where(:not([data-closing]))::backdrop {
-  background-color: rgba(19, 19, 23, 0.45);
+  background-color: var(--backdrop-drawer);
 }
 
 @starting-style {
@@ -1502,9 +1509,9 @@
 
 .drawerMetaItem {
   padding: 0.85rem 1rem;
-  border: 1px solid #efece7;
+  border: 1px solid var(--border-soft);
   border-radius: 12px;
-  background-color: #fbfaf8;
+  background-color: var(--surface-subtle);
 }
 
 .drawerMetaItem dt {
@@ -1554,7 +1561,7 @@
   border-inline-start: 1px solid var(--border-subtle);
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: -16px 0 48px rgba(26, 26, 31, 0.18);
+  box-shadow: var(--shadow-drawer);
   opacity: 0;
   transition-property: opacity, transform, display, overlay;
   transition-duration: 300ms;
@@ -1610,7 +1617,7 @@
 }
 
 .scheduleDrawer[open]:where(:not([data-closing]))::backdrop {
-  background-color: rgba(19, 19, 23, 0.45);
+  background-color: var(--backdrop-drawer);
 }
 
 @starting-style {
@@ -1673,7 +1680,7 @@
   gap: 0.35rem;
   padding: 0.3rem;
   border-radius: 12px;
-  background-color: #f3f0eb;
+  background-color: var(--surface-hover-warm);
 }
 
 .modeSegmentButton {
@@ -1686,7 +1693,7 @@
   border: 0;
   border-radius: 9px;
   background: transparent;
-  color: #706d67;
+  color: var(--ink-subtle);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
@@ -1699,14 +1706,14 @@
 .modeSegmentActive {
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: 0 1px 3px rgba(26, 26, 31, 0.08);
+  box-shadow: var(--shadow-segment);
 }
 
 .recurringEmptyNote {
   padding: 0.75rem 0.9rem;
   border: 1px dashed var(--border-subtle);
   border-radius: 10px;
-  background-color: #fbfaf8;
+  background-color: var(--surface-subtle);
   color: var(--ink-secondary);
   font-size: 0.82rem;
   line-height: 1.45;
@@ -1717,9 +1724,9 @@
   flex-direction: column;
   gap: 0.35rem;
   padding: 1rem 1.1rem;
-  border: 1px solid #e5dac8;
+  border: 1px solid var(--warm-border-light);
   border-radius: 12px;
-  background-color: #f8f3ef;
+  background-color: var(--accent-tint);
 }
 
 .recurringPreviewKicker {
@@ -1757,8 +1764,9 @@
   align-items: center;
   gap: 0.42rem;
   padding: 0.34rem 0.68rem;
+  border: 1px solid var(--badge-dark-border);
   border-radius: 8px;
-  background-color: #1a1a1f;
+  background-color: var(--badge-dark-bg);
   color: var(--accent);
   font-size: 0.74rem;
   font-weight: 650;
@@ -1810,7 +1818,7 @@
   width: 100%;
   min-height: 44px;
   padding: 0.6rem 0.88rem;
-  border: 1px solid #e2ded8;
+  border: 1px solid var(--border-input);
   border-radius: 11px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -1841,7 +1849,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   background-color: var(--surface-card);
-  box-shadow: 0 12px 28px rgba(26, 26, 31, 0.1);
+  box-shadow: var(--shadow-picker);
 }
 
 .drawerSelect::picker-icon {
@@ -1865,7 +1873,7 @@
 
 .drawerInput::placeholder,
 .drawerTextarea::placeholder {
-  color: #a09c96;
+  color: var(--ink-placeholder);
   font-size: 0.88rem;
 }
 
@@ -1921,7 +1929,7 @@
   gap: 0.72rem;
   min-height: 56px;
   padding: 0.65rem 0.85rem;
-  border: 1px solid #e6e3dd;
+  border: 1px solid var(--border-chip);
   border-radius: 12px;
   background-color: var(--surface-card);
   cursor: pointer;
@@ -1932,14 +1940,14 @@
 
 @media (hover: hover) and (pointer: fine) {
   .memberCard:hover {
-    border-color: #cac5bd;
-    background-color: #fbfaf8;
+    border-color: var(--border-strong);
+    background-color: var(--surface-subtle);
   }
 }
 
 .memberCardSelected {
   border-color: var(--ink-primary);
-  background-color: #f8f3ef;
+  background-color: var(--accent-tint);
 }
 
 .memberCardAvatar {
@@ -1949,7 +1957,7 @@
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  background-color: #edeae5;
+  background-color: var(--border-soft-alt);
   color: var(--ink-primary);
   font-size: 0.74rem;
   font-weight: 700;
@@ -1957,7 +1965,8 @@
 }
 
 .memberCardSelected .memberCardAvatar {
-  background-color: var(--ink-primary);
+  border: 1px solid var(--badge-dark-border);
+  background-color: var(--badge-dark-bg);
   color: var(--accent);
 }
 
@@ -1990,20 +1999,20 @@
   width: 15px;
   height: 15px;
   flex-shrink: 0;
-  color: #c0392b;
+  color: var(--status-error-strong);
 }
 
 .memberWorshipIcon {
   width: 15px;
   height: 15px;
   flex-shrink: 0;
-  color: #7c4dbd;
+  color: var(--status-worship-accent);
 }
 
 .memberWorshipTag {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #7c4dbd;
+  color: var(--status-worship-accent);
 }
 
 .unavailablePickItem .memberWorshipIcon {
@@ -2016,9 +2025,9 @@
   flex-direction: column;
   gap: 0.45rem;
   padding: 0.75rem 0.85rem;
-  border: 1px solid #f0c9c9;
+  border: 1px solid var(--status-danger-border-alt);
   border-radius: 10px;
-  background-color: #fff6f6;
+  background-color: var(--status-danger-bg-light);
 }
 
 .unavailablePickItem {
@@ -2055,7 +2064,7 @@
   height: 22px;
   border-radius: 999px;
   background-color: var(--accent);
-  color: var(--ink-primary);
+  color: var(--ink-on-accent);
   flex-shrink: 0;
 }
 
@@ -2095,9 +2104,9 @@
 }
 
 .drawerSubmitButton {
-  border: 1px solid var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 .drawerSubmitButton:disabled {
@@ -2112,7 +2121,7 @@
   }
 
   .drawerSubmitButton:not(:disabled):hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -2125,7 +2134,7 @@
   border-radius: 16px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: 0 24px 64px rgba(26, 26, 31, 0.22);
+  box-shadow: var(--shadow-modal);
   overflow: hidden;
   opacity: 0;
   transition-property: opacity, transform, display, overlay;
@@ -2178,7 +2187,7 @@
 }
 
 .confirmDialog[open]::backdrop {
-  background-color: rgba(19, 19, 23, 0.54);
+  background-color: var(--backdrop-modal);
 }
 
 @starting-style {
@@ -2205,7 +2214,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1.35rem 1.5rem 1.15rem;
-  border-block-end: 1px solid #edeae5;
+  border-block-end: 1px solid var(--border-soft-alt);
 }
 
 .confirmEyebrow {
@@ -2262,13 +2271,13 @@
 }
 
 .confirmCalloutDanger {
-  border-color: #efd5d5;
-  background-color: #fdf5f5;
+  border-color: var(--status-danger-border);
+  background-color: var(--status-danger-bg-soft);
 }
 
 .confirmCalloutWarning {
-  border-color: #e7cf9a;
-  background-color: #fffaf0;
+  border-color: var(--status-amber-border);
+  background-color: var(--status-amber-bg-soft);
 }
 
 .confirmBadge {
@@ -2282,12 +2291,12 @@
 }
 
 .confirmBadgeDanger {
-  background-color: #f8dddd;
-  color: #a93c3c;
+  background-color: var(--status-danger-badge);
+  color: var(--status-danger-ink);
 }
 
 .confirmBadgeWarning {
-  background-color: #ffe9bc;
+  background-color: var(--status-amber-badge-soft);
   color: var(--status-amber-ink);
 }
 
@@ -2311,8 +2320,8 @@
   justify-content: flex-end;
   gap: 0.75rem;
   padding: 1rem 1.5rem 1.15rem;
-  border-block-start: 1px solid #edeae5;
-  background-color: #faf9f7;
+  border-block-start: 1px solid var(--border-soft-alt);
+  background-color: var(--surface-elevated);
 }
 
 .confirmCancelBtn,
@@ -2339,30 +2348,30 @@
 }
 
 .confirmDangerBtn {
-  border: 1px solid #a33b3b;
-  background-color: #a33b3b;
+  border: 1px solid var(--status-danger-solid-alt);
+  background-color: var(--status-danger-solid-alt);
   color: #ffffff;
 }
 
 .confirmPrimaryBtn {
-  border: 1px solid var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .confirmCancelBtn:hover {
-    background-color: rgba(26, 26, 31, 0.06);
+    background-color: var(--surface-hover-alpha);
     color: var(--ink-primary);
   }
 
   .confirmDangerBtn:hover {
-    background-color: #8b2f2f;
-    border-color: #8b2f2f;
+    background-color: var(--status-danger-solid-hover);
+    border-color: var(--status-danger-solid-hover);
   }
 
   .confirmPrimaryBtn:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -2371,9 +2380,9 @@
   align-items: flex-start;
   gap: 0.65rem;
   padding: 0.82rem 1.05rem;
-  border: 1px solid #e6e1d8;
+  border: 1px solid var(--border-note);
   border-radius: 12px;
-  background-color: #f9f6f2;
+  background-color: var(--surface-note);
   color: var(--ink-secondary);
   font-size: 0.82rem;
   line-height: 1.45;
@@ -2394,9 +2403,9 @@
   align-items: flex-start;
   gap: 0.55rem;
   padding: 0.72rem 0.9rem;
-  border: 1px solid #e6e2da;
+  border: 1px solid var(--border-note-alt);
   border-radius: 11px;
-  background-color: #fbfaf7;
+  background-color: var(--surface-note-alt);
   color: var(--ink-secondary);
   font-size: 0.78rem;
   line-height: 1.42;
@@ -2420,9 +2429,9 @@
   display: inline-flex;
   align-items: center;
   padding: 0.24rem 0.62rem;
-  border: 1px solid #e3b8b1;
+  border: 1px solid var(--accent-border-soft);
   border-radius: 999px;
-  background-color: #f8f3ef;
+  background-color: var(--accent-tint);
   color: var(--accent-ink);
   font-size: 0.71rem;
   font-weight: 650;
@@ -2434,7 +2443,7 @@
   align-items: center;
   padding: 0.28rem 0.68rem;
   border-radius: 8px;
-  background-color: #f3f1ee;
+  background-color: var(--surface-hover);
   color: var(--ink-muted);
   font-size: 0.75rem;
   font-weight: 600;
@@ -2473,15 +2482,15 @@
 }
 
 .optionalTag {
-  background-color: #f2f0ec;
+  background-color: var(--surface-chip);
   color: var(--ink-muted);
 }
 
 .readonlyScopeBox {
   padding: 0.72rem 0.9rem;
-  border: 1px solid #e8e4dc;
+  border: 1px solid var(--border-control-alt);
   border-radius: 11px;
-  background-color: #f9f8f5;
+  background-color: var(--surface-subtle-warm);
 }
 
 .readonlyScopeValue {
@@ -2495,9 +2504,9 @@
   flex-direction: column;
   gap: 0.85rem;
   padding: 0.95rem 1rem;
-  border: 1px solid #e2ded8;
+  border: 1px solid var(--border-input);
   border-radius: 13px;
-  background-color: #fbfaf8;
+  background-color: var(--surface-subtle);
   transition:
     border-color 0.15s ease,
     background-color 0.15s ease;
@@ -2505,7 +2514,7 @@
 
 .switchCardActive {
   border-color: var(--ink-primary);
-  background-color: #f8f3ef;
+  background-color: var(--accent-tint);
 }
 
 .switchHeaderRow {
@@ -2544,9 +2553,9 @@
   height: 26px;
   margin: 0;
   padding: 2px;
-  border: 1px solid #c8c3bb;
+  border: 1px solid var(--switch-border-off);
   border-radius: 999px;
-  background-color: #e7e4de;
+  background-color: var(--switch-track-off);
   flex-shrink: 0;
   cursor: pointer;
   transition:
@@ -2565,12 +2574,12 @@
 }
 
 .switchInput:checked {
-  border-color: #1a1a1f;
-  background-color: #1a1a1f;
+  border-color: var(--switch-track-on);
+  background-color: var(--switch-track-on);
 }
 
 .switchInput:checked::before {
-  background-color: var(--accent);
+  background-color: var(--switch-knob-on);
   transform: translateX(20px);
 }
 
@@ -2586,7 +2595,7 @@
   flex-direction: column;
   gap: 0.4rem;
   padding-block-start: 0.75rem;
-  border-block-start: 1px solid #e5dbc9;
+  border-block-start: 1px solid var(--warm-border-divider);
 }
 
 .memberAvailabilityTag {
@@ -2601,11 +2610,11 @@
 }
 
 .memberAvailabilityWarn {
-  color: #8b6318;
+  color: var(--status-amber-ink-warm);
 }
 
 .memberAvailabilityDanger {
-  color: #a93c3c;
+  color: var(--status-danger-ink);
 }
 
 .formBannerError {
@@ -2613,7 +2622,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 0.9rem;
-  border: 1px solid #efd5d5;
+  border: 1px solid var(--status-danger-border);
   border-radius: 10px;
   background-color: var(--status-error-bg);
   color: var(--status-error);
@@ -2638,6 +2647,7 @@
   cursor: progress;
 }
 
+.exportScheduleButton:focus-visible,
 .publishAllButton:focus-visible,
 .newScheduleButton:focus-visible,
 .autoAssignButton:focus-visible,
@@ -2670,7 +2680,9 @@
 }
 
 @media (pointer: coarse) {
+  .exportScheduleButton,
   .publishAllButton,
+  .autoAssignButton,
   .newScheduleButton,
   .cardActionButton,
   .detailsButton,

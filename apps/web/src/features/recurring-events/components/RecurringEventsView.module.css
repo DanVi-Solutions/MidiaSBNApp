@@ -52,10 +52,10 @@
   gap: 0.48rem;
   min-height: 42px;
   padding: 0.55rem 1.15rem;
-  border: 1px solid var(--ink-primary);
+  border: 1px solid var(--btn-primary-border);
   border-radius: 10px;
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -65,7 +65,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .createButton:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -81,7 +81,7 @@
   display: grid;
   grid-template-rows: 1fr auto;
   padding: 1.3rem 1.35rem 1.15rem;
-  border: 1px solid #e9e6e0;
+  border: 1px solid var(--border-card);
   border-radius: 16px;
   background-color: var(--surface-card);
 }
@@ -125,8 +125,9 @@
   justify-content: center;
   width: 38px;
   height: 38px;
+  border: 1px solid var(--badge-dark-border);
   border-radius: 10px;
-  background-color: #1a1a1f;
+  background-color: var(--badge-dark-bg);
   color: var(--accent);
   flex-shrink: 0;
 }
@@ -152,8 +153,8 @@
 }
 
 .ministryScopeBadge {
-  background-color: #eef4f9;
-  color: #216792;
+  background-color: var(--status-info-badge-bg);
+  color: var(--status-info-badge-ink);
 }
 
 .cardActions {
@@ -183,14 +184,14 @@
 @media (hover: hover) and (pointer: fine) {
   .cardIconAction:hover {
     background-color: var(--surface-workspace);
-    border-color: #e5e2dc;
+    border-color: var(--border-item);
     color: var(--ink-primary);
   }
 
   .cardIconActionDanger:hover {
-    background-color: #fdf2f2;
-    border-color: #efd5d5;
-    color: #a93c3c;
+    background-color: var(--status-error-bg);
+    border-color: var(--status-danger-border);
+    color: var(--status-danger-ink);
   }
 }
 
@@ -214,7 +215,7 @@
   flex-direction: column;
   gap: 0.9rem;
   padding-block-start: 0.95rem;
-  border-block-start: 1px solid #f2f0ec;
+  border-block-start: 1px solid var(--border-row);
 }
 
 .cardFooterMetaRow {
@@ -230,7 +231,7 @@
   align-items: center;
   justify-content: flex-end;
   padding-block-start: 0.75rem;
-  border-block-start: 1px dashed #e9e6e0;
+  border-block-start: 1px dashed var(--border-card);
 }
 
 .promoteButton {
@@ -241,9 +242,9 @@
   width: 100%;
   min-height: 38px;
   padding: 0.45rem 0.85rem;
-  border: 1px solid #dca096;
+  border: 1px solid var(--accent-border);
   border-radius: 9px;
-  background-color: #f8f3ef;
+  background-color: var(--accent-tint);
   color: var(--accent-ink);
   font-size: 0.8rem;
   font-weight: 650;
@@ -256,7 +257,7 @@
 @media (hover: hover) and (pointer: fine) {
   .promoteButton:hover {
     background-color: var(--accent-soft);
-    border-color: #c77a6d;
+    border-color: var(--accent-border-hover);
   }
 }
 
@@ -305,9 +306,9 @@
   display: inline-flex;
   align-items: center;
   padding: 0.18rem 0.5rem;
-  border: 1px solid #e5e2dc;
+  border: 1px solid var(--border-item);
   border-radius: 7px;
-  background-color: #f8f7f4;
+  background-color: var(--surface-schedule-light);
   color: var(--ink-primary);
   font-size: 0.77rem;
   font-weight: 650;
@@ -321,7 +322,7 @@
   justify-content: center;
   gap: 1rem;
   padding: 2.25rem 1.5rem;
-  border: 1px solid #e9e6e0;
+  border: 1px solid var(--border-card);
   border-radius: 16px;
   background-color: var(--surface-card);
   text-align: center;
@@ -348,10 +349,10 @@
   justify-content: center;
   min-height: 42px;
   padding: 0.55rem 1.15rem;
-  border: 1px solid var(--ink-primary);
+  border: 1px solid var(--btn-primary-border);
   border-radius: 10px;
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
   font-size: 0.86rem;
   font-weight: 600;
   cursor: pointer;
@@ -361,7 +362,7 @@
 @media (hover: hover) and (pointer: fine) {
   .restrictedPrimaryLink:hover,
   .retryButton:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -383,7 +384,7 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background-color: #e9e5df;
+  background-color: var(--surface-icon-badge);
   color: var(--ink-primary);
   margin-block-end: 0.15rem;
 }
@@ -418,7 +419,7 @@
   border-inline-start: 1px solid var(--border-subtle);
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: -16px 0 48px rgba(26, 26, 31, 0.18);
+  box-shadow: var(--shadow-drawer);
   opacity: 0;
   transition-property: opacity, transform, display, overlay;
   transition-duration: 300ms;
@@ -474,7 +475,7 @@
 }
 
 .createDrawer[open]:where(:not([data-closing]))::backdrop {
-  background-color: rgba(19, 19, 23, 0.45);
+  background-color: var(--backdrop-drawer);
 }
 
 @starting-style {
@@ -590,9 +591,9 @@
 }
 
 .drawerSubmitButton {
-  border: 1px solid var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -602,7 +603,7 @@
   }
 
   .drawerSubmitButton:hover:not(:disabled) {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 
@@ -641,7 +642,7 @@
 }
 
 .optionalTag {
-  background-color: #f2f0ec;
+  background-color: var(--surface-chip);
   color: var(--ink-muted);
 }
 
@@ -651,7 +652,7 @@
   width: 100%;
   min-height: 44px;
   padding: 0.6rem 0.88rem;
-  border: 1px solid #e2ded8;
+  border: 1px solid var(--border-input);
   border-radius: 11px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -664,7 +665,7 @@
 
 .input::placeholder,
 .textarea::placeholder {
-  color: #a09c96;
+  color: var(--ink-placeholder);
   font-size: 0.88rem;
 }
 
@@ -694,7 +695,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   background-color: var(--surface-card);
-  box-shadow: 0 12px 28px rgba(26, 26, 31, 0.1);
+  box-shadow: var(--shadow-picker);
 }
 
 .select::picker-icon {
@@ -740,9 +741,9 @@
 }
 
 .timesCard {
-  border: 1px solid #eae7e1;
+  border: 1px solid var(--border-control);
   border-radius: 13px;
-  background-color: #fbfaf8;
+  background-color: var(--surface-subtle);
   padding: 0.95rem 1rem;
   display: flex;
   flex-direction: column;
@@ -775,7 +776,7 @@
   gap: 0.6rem;
   min-height: 54px;
   padding: 0.65rem 0.85rem;
-  border: 1px solid #e2ded8;
+  border: 1px solid var(--border-input);
   border-radius: 11px;
   background-color: var(--surface-card);
   cursor: pointer;
@@ -786,8 +787,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   .scopeModeCard:hover {
-    border-color: #cac5bd;
-    background-color: #fbfaf8;
+    border-color: var(--border-strong);
+    background-color: var(--surface-subtle);
   }
 }
 
@@ -798,7 +799,7 @@
 
 .scopeModeCardActive {
   border-color: var(--ink-primary);
-  background-color: #f8f3ef;
+  background-color: var(--accent-tint);
 }
 
 .scopeModeText {
@@ -828,7 +829,7 @@
   height: 22px;
   border-radius: 999px;
   background-color: var(--accent);
-  color: var(--ink-primary);
+  color: var(--ink-on-accent);
   flex-shrink: 0;
 }
 
@@ -873,14 +874,14 @@
   grid-template-columns: 1fr;
   gap: 0.45rem;
   padding: 0.5rem;
-  border: 1px solid #e7e4de;
+  border: 1px solid var(--border-control-muted);
   border-radius: 12px;
-  background-color: #fbfaf8;
+  background-color: var(--surface-subtle);
 }
 
 .departmentCheckboxListError {
   border-color: var(--status-error);
-  background-color: #fff8f8;
+  background-color: var(--status-danger-bg-card);
 }
 
 .departmentOption {
@@ -889,7 +890,7 @@
   gap: 0.65rem;
   min-height: 42px;
   padding: 0.5rem 0.8rem;
-  border: 1px solid #e2ded8;
+  border: 1px solid var(--border-input);
   border-radius: 10px;
   background-color: var(--surface-card);
   cursor: pointer;
@@ -900,19 +901,19 @@
 
 @media (hover: hover) and (pointer: fine) {
   .departmentOption:hover {
-    border-color: #cac5bd;
+    border-color: var(--border-strong);
   }
 }
 
 .departmentOptionSelected {
   border-color: var(--ink-primary);
-  background-color: #f8f3ef;
+  background-color: var(--accent-tint);
 }
 
 .departmentCheckbox {
   width: 1.08rem;
   height: 1.08rem;
-  accent-color: #1a1a1f;
+  accent-color: var(--checkbox-accent);
   flex-shrink: 0;
   cursor: pointer;
 }
@@ -984,7 +985,7 @@
   justify-content: center;
   width: 36px;
   height: 44px;
-  border: 1px solid #e2ded8;
+  border: 1px solid var(--border-input);
   border-radius: 10px;
   background-color: var(--surface-card);
   color: var(--ink-secondary);
@@ -998,9 +999,9 @@
 
 @media (hover: hover) and (pointer: fine) {
   .removeTimeButton:hover:not(:disabled) {
-    background-color: #fdf2f2;
-    border-color: #efd5d5;
-    color: #a93c3c;
+    background-color: var(--status-error-bg);
+    border-color: var(--status-danger-border);
+    color: var(--status-danger-ink);
   }
 }
 
@@ -1012,7 +1013,7 @@
   align-self: flex-start;
   min-height: 36px;
   padding: 0.4rem 0.85rem;
-  border: 1px dashed #cdc8c0;
+  border: 1px dashed var(--border-dashed);
   border-radius: 9px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
@@ -1038,9 +1039,9 @@
 
 .readonlyScopeBox {
   padding: 0.8rem 0.95rem;
-  border: 1px solid #e8e4dc;
+  border: 1px solid var(--border-control-alt);
   border-radius: 11px;
-  background-color: #f9f8f5;
+  background-color: var(--surface-subtle-warm);
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -1081,7 +1082,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 0.9rem;
-  border: 1px solid #efd5d5;
+  border: 1px solid var(--status-danger-border);
   border-radius: 10px;
   background-color: var(--status-error-bg);
   color: var(--status-error);
@@ -1098,7 +1099,7 @@
   border-radius: 16px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
-  box-shadow: 0 24px 60px rgba(26, 26, 31, 0.22);
+  box-shadow: var(--shadow-modal);
 }
 
 .modalDialog[open] {
@@ -1110,7 +1111,7 @@
 }
 
 .modalDialog::backdrop {
-  background: rgba(19, 19, 23, 0.56);
+  background: var(--backdrop-modal);
   overflow: hidden;
   overscroll-behavior: contain;
 }
@@ -1152,8 +1153,8 @@
 }
 
 .deleteModalBadge {
-  background-color: #fdf2f2;
-  color: #b23d3d;
+  background-color: var(--status-error-bg);
+  color: var(--status-danger-ink);
 }
 
 .promoteModalBadge {
@@ -1188,15 +1189,15 @@
 }
 
 .modalDangerButton {
-  border: 1px solid #b23d3d;
-  background-color: #b23d3d;
+  border: 1px solid var(--status-danger-solid);
+  background-color: var(--status-danger-solid);
   color: #ffffff;
 }
 
 .modalPrimaryButton {
-  border: 1px solid var(--ink-primary);
-  background-color: #1a1a1f;
-  color: #f4f1ec;
+  border: 1px solid var(--btn-primary-border);
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1205,12 +1206,12 @@
   }
 
   .modalDangerButton:hover:not(:disabled) {
-    background-color: #932e2e;
-    border-color: #932e2e;
+    background-color: var(--status-danger-solid-hover-alt);
+    border-color: var(--status-danger-solid-hover-alt);
   }
 
   .modalPrimaryButton:hover:not(:disabled) {
-    background-color: var(--accent-hover);
+    background-color: var(--btn-primary-hover);
   }
 }
 

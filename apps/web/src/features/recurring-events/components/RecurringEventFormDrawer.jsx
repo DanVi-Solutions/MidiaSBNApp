@@ -61,8 +61,12 @@ export function RecurringEventFormDrawer({
   event = null,
   onClose,
 }) {
-  const { currentUser, departments, refreshRecurringEvents } =
-    usePrivateWorkspace();
+  const {
+    currentUser,
+    departments,
+    refreshRecurringEvents,
+    broadcastWorkspaceSync,
+  } = usePrivateWorkspace();
   const toast = useToast();
 
   const isEditing = mode === "edit" && Boolean(event);
@@ -324,7 +328,8 @@ export function RecurringEventFormDrawer({
         return;
       }
 
-      await refreshRecurringEvents();
+      await refreshRecurringEvents({ silent: true });
+      broadcastWorkspaceSync();
       await closeAnimatedRightDrawer(dialogRef.current);
       toast.success(`Evento recorrente "${result.data.name}" atualizado.`);
       return;
@@ -348,7 +353,8 @@ export function RecurringEventFormDrawer({
       return;
     }
 
-    await refreshRecurringEvents();
+    await refreshRecurringEvents({ silent: true });
+    broadcastWorkspaceSync();
     await closeAnimatedRightDrawer(dialogRef.current);
     toast.success(`Evento recorrente "${result.data.name}" cadastrado.`);
   };

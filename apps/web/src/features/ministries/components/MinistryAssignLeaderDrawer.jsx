@@ -52,6 +52,8 @@ export function MinistryAssignLeaderDrawer({ ministryId, onClose }) {
     participants,
     refreshParticipants,
     refreshDepartments,
+    refreshCurrentUser,
+    notifySchedulesChanged,
     openWorkspaceDrawer,
   } = usePrivateWorkspace();
   const toast = useToast();
@@ -343,7 +345,12 @@ export function MinistryAssignLeaderDrawer({ ministryId, onClose }) {
       return;
     }
 
-    await Promise.all([refreshParticipants(), refreshDepartments()]);
+    await Promise.all([
+      refreshParticipants({ silent: true }),
+      refreshDepartments(),
+      refreshCurrentUser(),
+    ]);
+    notifySchedulesChanged();
     await closeAnimatedRightDrawer(dialogRef.current);
     toast.success(
       `${candidate.name} definido(a) como Líder Geral de "${assignTarget.name}".`
@@ -376,7 +383,12 @@ export function MinistryAssignLeaderDrawer({ ministryId, onClose }) {
       return;
     }
 
-    await Promise.all([refreshParticipants(), refreshDepartments()]);
+    await Promise.all([
+      refreshParticipants({ silent: true }),
+      refreshDepartments(),
+      refreshCurrentUser(),
+    ]);
+    notifySchedulesChanged();
     toast.success(
       hasOtherDepartments
         ? `${manager.name} desvinculado(a) de "${assignTarget.name}".`
@@ -612,7 +624,7 @@ export function MinistryAssignLeaderDrawer({ ministryId, onClose }) {
                         <span className={styles.avatarChip} aria-hidden="true">
                           {manager.initials}
                         </span>
-                        <div>
+                        <div className={styles.managerIdentityText}>
                           <p className={styles.managerName}>{manager.name}</p>
                           <p className={styles.managerMeta}>
                             {manager.handle || "Primeiro acesso pendente"}

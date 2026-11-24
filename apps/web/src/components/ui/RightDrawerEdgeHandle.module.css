@@ -29,10 +29,10 @@
   min-width: 34px;
   min-height: 68px;
   padding: 0.65rem 0.4rem 0.65rem 0.5rem;
-  border: 1px solid #303039;
+  border: 1px solid var(--edge-handle-border);
   border-inline-end: 0;
   border-radius: 14px 0 0 14px;
-  background-color: #1a1a1f;
+  background-color: var(--edge-handle-bg);
   color: #f4f1ec;
   box-shadow: -8px 4px 24px rgba(19, 19, 23, 0.24);
   cursor: pointer;
@@ -46,7 +46,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .edgeHandle:hover {
-    background-color: #26262d;
+    background-color: var(--edge-handle-hover);
     padding-inline-start: 0.72rem;
     box-shadow: -10px 6px 28px rgba(19, 19, 23, 0.32);
   }

@@ -23,6 +23,22 @@
   z-index: 9999;
 }
 
+@media (max-width: 767px) {
+  .toastViewport {
+    inset-block-start: auto;
+    inset-block-end: calc(1rem + env(safe-area-inset-bottom, 0px));
+    inset-inline: 1rem;
+    margin-inline: auto;
+    inline-size: fit-content;
+    max-inline-size: min(26rem, calc(100vw - 2rem));
+  }
+
+  .toastViewport:is(:popover-open, .\:popover-open),
+  .toastViewportFallbackOpen {
+    align-items: center;
+  }
+}
+
 @media (min-width: 768px) {
   .toastViewportBottomLeft {
     inset-inline-start: 1.35rem;

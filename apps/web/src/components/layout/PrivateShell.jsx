@@ -110,6 +110,9 @@ const NAV_ITEMS = [
 ];
 
 const ACTIVE_MINISTRY_STORAGE_KEY = "midia_sbn_active_ministry_v1";
+const WORKSPACE_SYNC_CHANNEL = "midia_sbn_workspace_sync_v1";
+const WORKSPACE_POLL_INTERVAL_MS = 20 * 1000;
+const WORKSPACE_SYNC_THROTTLE_MS = 2000;
 
 function readSavedActiveMinistryId(userId) {
   if (typeof window === "undefined" || !userId) return "";
@@ -289,10 +292,29 @@ export function PrivateShell({ children }) {
   const profilePopoverRef = useRef(null);
   const drawerKeyRef = useRef(0);
 
+  const authStatusRef = useRef("loading");
+  const currentUserRef = useRef(CURRENT_USER);
+  const departmentsRef = useRef([]);
+  const participantsRef = useRef([]);
+  const recurringEventsRef = useRef([]);
+  const syncInFlightRef = useRef(null);
+  const lastSyncAtRef = useRef(0);
+  const lastPathnameRef = useRef(null);
+  const broadcastChannelRef = useRef(null);
+  const meReqIdRef = useRef(0);
+  const deptReqIdRef = useRef(0);
+  const partReqIdRef = useRef(0);
+  const recReqIdRef = useRef(0);
+  const meJsonRef = useRef("");
+  const deptJsonRef = useRef("");
+  const partJsonRef = useRef("");
+  const recJsonRef = useRef("");
+
   const [authStatus, setAuthStatus] = useState("loading");
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
   const [activeRightDrawer, setActiveRightDrawer] = useState(null);
   const [schedulesVersion, setSchedulesVersion] = useState(0);
+  const [syncVersion, setSyncVersion] = useState(0);
   const [workspaceCodeModal, setWorkspaceCodeModal] = useState(null);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   const [activeMinistry, setActiveMinistry] = useState(ACTIVE_MINISTRY);
@@ -307,6 +329,26 @@ export function PrivateShell({ children }) {
   const [isLoadingRecurringEvents, setIsLoadingRecurringEvents] = useState(false);
   const [recurringEventsError, setRecurringEventsError] = useState("");
 
+  useEffect(() => {
+    authStatusRef.current = authStatus;
+  }, [authStatus]);
+
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
+
+  useEffect(() => {
+    departmentsRef.current = departments;
+  }, [departments]);
+
+  useEffect(() => {
+    participantsRef.current = participants;
+  }, [participants]);
+
+  useEffect(() => {
+    recurringEventsRef.current = recurringEvents;
+  }, [recurringEvents]);
+
   const isAuthenticated = authStatus === "authenticated";
   const notificationCenter = useNotificationCenter({ enabled: isAuthenticated });
 
@@ -316,77 +358,173 @@ export function PrivateShell({ children }) {
   }, []);
 
   const refreshDepartments = useCallback(async () => {
+    const reqId = ++deptReqIdRef.current;
     const result = await listDepartments();
+    if (reqId !== deptReqIdRef.current) return departmentsRef.current;
     if (result.ok && Array.isArray(result.data)) {
-      setDepartments(result.data);
+      const rawJson = JSON.stringify(result.data);
+      if (rawJson !== deptJsonRef.current) {
+        deptJsonRef.current = rawJson;
+        departmentsRef.current = result.data;
+        setDepartments(result.data);
+      }
       return result.data;
     }
-    return [];
+    return departmentsRef.current;
   }, []);
 
-  const refreshParticipants = useCallback(async (userOverride) => {
-    const actor = userOverride || currentUser;
-    if (!canListCredentials(actor)) {
-      setParticipants([]);
-      setParticipantsError("");
+  const refreshParticipants = useCallback(
+    async (userOverrideOrOptions, maybeOptions) => {
+      const isOptionsObj =
+        userOverrideOrOptions &&
+        typeof userOverrideOrOptions === "object" &&
+        ("silent" in userOverrideOrOptions ||
+          Object.keys(userOverrideOrOptions).length === 0) &&
+        !("role" in userOverrideOrOptions) &&
+        !("roleCode" in userOverrideOrOptions) &&
+        !("id" in userOverrideOrOptions);
+      const userOverride = isOptionsObj ? undefined : userOverrideOrOptions;
+      const options = isOptionsObj
+        ? userOverrideOrOptions
+        : maybeOptions || {};
+      const silent = Boolean(options.silent);
+
+      const actor = userOverride || currentUserRef.current;
+      if (!canListCredentials(actor)) {
+        partJsonRef.current = "";
+        participantsRef.current = [];
+        setParticipants([]);
+        setParticipantsError("");
+        setIsLoadingParticipants(false);
+        return [];
+      }
+
+      const reqId = ++partReqIdRef.current;
+      const hasLoaded = participantsRef.current.length > 0;
+      if (!silent && !hasLoaded) {
+        setIsLoadingParticipants(true);
+      }
+      if (!silent) {
+        setParticipantsError("");
+      }
+
+      const result = await listCredentials();
+      if (reqId !== partReqIdRef.current) return participantsRef.current;
       setIsLoadingParticipants(false);
-      return [];
-    }
 
-    setIsLoadingParticipants(true);
-    setParticipantsError("");
-    const result = await listCredentials();
-    setIsLoadingParticipants(false);
+      if (result.ok && Array.isArray(result.data)) {
+        const rawJson = JSON.stringify(result.data);
+        if (rawJson !== partJsonRef.current) {
+          partJsonRef.current = rawJson;
+          const mapped = result.data.map(formatCredentialForUi).filter(Boolean);
+          participantsRef.current = mapped;
+          setParticipants(mapped);
+          setParticipantsError("");
+          return mapped;
+        }
+        setParticipantsError("");
+        return participantsRef.current;
+      }
 
-    if (result.ok && Array.isArray(result.data)) {
-      const mapped = result.data.map(formatCredentialForUi).filter(Boolean);
-      setParticipants(mapped);
-      return mapped;
-    }
+      if (!silent && !hasLoaded) {
+        setParticipantsError(
+          result.error || "Não foi possível carregar os participantes."
+        );
+      }
+      return participantsRef.current;
+    },
+    []
+  );
 
-    setParticipantsError(
-      result.error || "Não foi possível carregar os participantes."
-    );
-    return [];
-  }, [currentUser]);
+  const refreshRecurringEvents = useCallback(
+    async (userOverrideOrOptions, maybeOptions) => {
+      const isOptionsObj =
+        userOverrideOrOptions &&
+        typeof userOverrideOrOptions === "object" &&
+        ("silent" in userOverrideOrOptions ||
+          Object.keys(userOverrideOrOptions).length === 0) &&
+        !("role" in userOverrideOrOptions) &&
+        !("roleCode" in userOverrideOrOptions) &&
+        !("id" in userOverrideOrOptions);
+      const userOverride = isOptionsObj ? undefined : userOverrideOrOptions;
+      const options = isOptionsObj
+        ? userOverrideOrOptions
+        : maybeOptions || {};
+      const silent = Boolean(options.silent);
 
-  const refreshRecurringEvents = useCallback(async (userOverride) => {
-    const actor = userOverride || currentUser;
-    if (!canSeeRecurringEvents(actor)) {
-      setRecurringEvents([]);
-      setRecurringEventsError("");
+      const actor = userOverride || currentUserRef.current;
+      if (!canSeeRecurringEvents(actor)) {
+        recJsonRef.current = "";
+        recurringEventsRef.current = [];
+        setRecurringEvents([]);
+        setRecurringEventsError("");
+        setIsLoadingRecurringEvents(false);
+        return [];
+      }
+
+      const reqId = ++recReqIdRef.current;
+      const hasLoaded = recurringEventsRef.current.length > 0;
+      if (!silent && !hasLoaded) {
+        setIsLoadingRecurringEvents(true);
+      }
+      if (!silent) {
+        setRecurringEventsError("");
+      }
+
+      const result = await listRecurringEvents();
+      if (reqId !== recReqIdRef.current) return recurringEventsRef.current;
       setIsLoadingRecurringEvents(false);
-      return [];
-    }
 
-    setIsLoadingRecurringEvents(true);
-    setRecurringEventsError("");
-    const result = await listRecurringEvents();
-    setIsLoadingRecurringEvents(false);
+      if (result.ok && Array.isArray(result.data)) {
+        const rawJson = JSON.stringify(result.data);
+        if (rawJson !== recJsonRef.current) {
+          recJsonRef.current = rawJson;
+          const mapped = result.data
+            .map(formatRecurringEventForUi)
+            .filter(Boolean);
+          recurringEventsRef.current = mapped;
+          setRecurringEvents(mapped);
+          setRecurringEventsError("");
+          return mapped;
+        }
+        setRecurringEventsError("");
+        return recurringEventsRef.current;
+      }
 
-    if (result.ok && Array.isArray(result.data)) {
-      const mapped = result.data.map(formatRecurringEventForUi).filter(Boolean);
-      setRecurringEvents(mapped);
-      return mapped;
-    }
-
-    setRecurringEventsError(
-      result.error || "Não foi possível carregar os eventos recorrentes."
-    );
-    return [];
-  }, [currentUser]);
+      if (!silent && !hasLoaded) {
+        setRecurringEventsError(
+          result.error || "Não foi possível carregar os eventos recorrentes."
+        );
+      }
+      return recurringEventsRef.current;
+    },
+    []
+  );
 
   const refreshCurrentUser = useCallback(async () => {
+    const reqId = ++meReqIdRef.current;
     const meResult = await fetchMyCredential();
+    if (reqId !== meReqIdRef.current) return null;
     if (!meResult.ok || !meResult.data) {
       return null;
     }
+    if (meResult.data.status !== CREDENTIAL_STATUS.ACTIVE) {
+      clearSavedActiveMinistryId();
+      clearStoredSession();
+      authStatusRef.current = "redirecting";
+      setAuthStatus("redirecting");
+      router.replace("/");
+      return null;
+    }
+    const rawJson = JSON.stringify(meResult.data);
     const formatted = formatCredentialForUi(meResult.data);
-    if (formatted) {
+    if (rawJson !== meJsonRef.current && formatted) {
+      meJsonRef.current = rawJson;
+      currentUserRef.current = formatted;
       setCurrentUser(formatted);
     }
-    return formatted;
-  }, []);
+    return formatted || currentUserRef.current;
+  }, [router]);
 
   useEffect(() => {
     let active = true;
@@ -415,6 +553,8 @@ export function PrivateShell({ children }) {
       }
 
       const formattedUser = formatCredentialForUi(meResult.data);
+      meJsonRef.current = JSON.stringify(meResult.data);
+      currentUserRef.current = formattedUser;
       setCurrentUser(formattedUser);
 
       const canList = canListCredentials(formattedUser);
@@ -433,14 +573,22 @@ export function PrivateShell({ children }) {
 
       const loadedDepts =
         deptRes.ok && Array.isArray(deptRes.data) ? deptRes.data : [];
+      deptJsonRef.current =
+        deptRes.ok && Array.isArray(deptRes.data)
+          ? JSON.stringify(deptRes.data)
+          : "";
+      departmentsRef.current = loadedDepts;
       setDepartments(loadedDepts);
 
       if (canList) {
         setIsLoadingParticipants(false);
         if (credsRes.ok && Array.isArray(credsRes.data)) {
-          setParticipants(
-            credsRes.data.map(formatCredentialForUi).filter(Boolean)
-          );
+          partJsonRef.current = JSON.stringify(credsRes.data);
+          const mappedParticipants = credsRes.data
+            .map(formatCredentialForUi)
+            .filter(Boolean);
+          participantsRef.current = mappedParticipants;
+          setParticipants(mappedParticipants);
           setParticipantsError("");
         } else {
           setParticipantsError(
@@ -452,9 +600,12 @@ export function PrivateShell({ children }) {
       if (canSeeRec) {
         setIsLoadingRecurringEvents(false);
         if (recRes.ok && Array.isArray(recRes.data)) {
-          setRecurringEvents(
-            recRes.data.map(formatRecurringEventForUi).filter(Boolean)
-          );
+          recJsonRef.current = JSON.stringify(recRes.data);
+          const mappedRecurring = recRes.data
+            .map(formatRecurringEventForUi)
+            .filter(Boolean);
+          recurringEventsRef.current = mappedRecurring;
+          setRecurringEvents(mappedRecurring);
           setRecurringEventsError("");
         } else {
           setRecurringEventsError(
@@ -496,6 +647,8 @@ export function PrivateShell({ children }) {
         }
       }
 
+      lastSyncAtRef.current = Date.now();
+      authStatusRef.current = "authenticated";
       setAuthStatus("authenticated");
     }
 
@@ -564,12 +717,14 @@ export function PrivateShell({ children }) {
 
   const addMinistry = useCallback((item) => {
     if (!item?.id) return;
+    deptJsonRef.current = "";
     setDepartments((prev) => [...prev, item]);
   }, []);
 
   const addParticipant = useCallback((item) => {
     const formatted = item?.roleCode ? item : formatCredentialForUi(item);
     if (!formatted) return;
+    partJsonRef.current = "";
     if (item?.credentialNumber) {
       rememberCredentialNumber(formatted.id, item.credentialNumber);
     }
@@ -584,6 +739,7 @@ export function PrivateShell({ children }) {
 
   const updateParticipant = useCallback(
     (id, patch) => {
+      partJsonRef.current = "";
       if (patch?.credentialNumber) {
         rememberCredentialNumber(id, patch.credentialNumber);
       }
@@ -618,6 +774,7 @@ export function PrivateShell({ children }) {
   );
 
   const deleteParticipant = useCallback((id) => {
+    partJsonRef.current = "";
     setParticipants((prev) => prev.filter((item) => item.id !== id));
     setKnownCredentialNumbers((prev) => {
       if (!prev[id]) return prev;
@@ -632,14 +789,17 @@ export function PrivateShell({ children }) {
       ? item
       : formatRecurringEventForUi(item);
     if (!formatted) return;
+    recJsonRef.current = "";
     setRecurringEvents((prev) => [...prev, formatted]);
   }, []);
 
   const deleteRecurringEvent = useCallback((id) => {
+    recJsonRef.current = "";
     setRecurringEvents((prev) => prev.filter((entry) => entry.id !== id));
   }, []);
 
   const updateCurrentUser = useCallback((patch) => {
+    meJsonRef.current = "";
     setCurrentUser((prev) => {
       const nextName = patch.name ?? prev.name;
       const cleanUsername =
@@ -657,6 +817,228 @@ export function PrivateShell({ children }) {
       };
     });
   }, []);
+
+  const resolvedActiveMinistry = useMemo(() => {
+    if (authStatus !== "authenticated") {
+      return activeMinistry;
+    }
+
+    if (isAdmin(currentUser)) {
+      return {
+        id: "admin-global",
+        code: "AD",
+        name: "Todos os ministérios",
+        isGlobal: true,
+      };
+    }
+
+    const userDepts = Array.isArray(currentUser.departments)
+      ? currentUser.departments
+      : [];
+    const pool =
+      userDepts.length > 0
+        ? userDepts.map(
+            (uDept) =>
+              departments.find((dept) => dept.id === uDept.id) || uDept
+          )
+        : departments;
+
+    if (pool.length === 0) {
+      return activeMinistry;
+    }
+
+    const matched =
+      (!activeMinistry?.isGlobal &&
+        pool.find((dept) => dept.id === activeMinistry?.id)) ||
+      pool[0];
+
+    if (!matched) {
+      return activeMinistry;
+    }
+
+    return {
+      id: matched.id,
+      code: computeMinistryCode(matched.name),
+      name: matched.name,
+      isGlobal: false,
+    };
+  }, [activeMinistry, authStatus, currentUser, departments]);
+
+  useEffect(() => {
+    if (
+      authStatus === "authenticated" &&
+      currentUser?.id &&
+      !resolvedActiveMinistry?.isGlobal &&
+      resolvedActiveMinistry?.id
+    ) {
+      saveActiveMinistryId(currentUser.id, resolvedActiveMinistry.id);
+    }
+  }, [
+    authStatus,
+    currentUser?.id,
+    resolvedActiveMinistry?.id,
+    resolvedActiveMinistry?.isGlobal,
+  ]);
+
+  const broadcastWorkspaceSync = useCallback(() => {
+    if (
+      typeof window === "undefined" ||
+      typeof BroadcastChannel === "undefined"
+    ) {
+      return;
+    }
+    try {
+      const channel =
+        broadcastChannelRef.current ||
+        new BroadcastChannel(WORKSPACE_SYNC_CHANNEL);
+      broadcastChannelRef.current = channel;
+      channel.postMessage({
+        type: "workspace-mutated",
+        at: Date.now(),
+      });
+    } catch {
+      // Ignore BroadcastChannel errors
+    }
+  }, []);
+
+  const syncWorkspaceData = useCallback(
+    async ({ includeSchedules = false, force = false } = {}) => {
+      if (authStatusRef.current !== "authenticated") return;
+      const now = Date.now();
+      if (!force && now - lastSyncAtRef.current < WORKSPACE_SYNC_THROTTLE_MS) {
+        if (includeSchedules) {
+          setSchedulesVersion((prev) => prev + 1);
+          setSyncVersion((prev) => prev + 1);
+        }
+        return;
+      }
+
+      if (syncInFlightRef.current && !force) {
+        await syncInFlightRef.current;
+        if (includeSchedules) {
+          setSchedulesVersion((prev) => prev + 1);
+          setSyncVersion((prev) => prev + 1);
+        }
+        return;
+      }
+
+      const runSync = (async () => {
+        lastSyncAtRef.current = Date.now();
+        const updatedUser = await refreshCurrentUser();
+        const actor = updatedUser || currentUserRef.current;
+        if (!actor?.id || authStatusRef.current !== "authenticated") return;
+
+        await Promise.all([
+          refreshDepartments(),
+          canListCredentials(actor)
+            ? refreshParticipants(actor, { silent: true })
+            : Promise.resolve([]),
+          canSeeRecurringEvents(actor)
+            ? refreshRecurringEvents(actor, { silent: true })
+            : Promise.resolve([]),
+        ]);
+
+        lastSyncAtRef.current = Date.now();
+        if (includeSchedules) {
+          setSchedulesVersion((prev) => prev + 1);
+        }
+        setSyncVersion((prev) => prev + 1);
+      })().finally(() => {
+        if (syncInFlightRef.current === runSync) {
+          syncInFlightRef.current = null;
+        }
+      });
+
+      syncInFlightRef.current = runSync;
+      await runSync;
+    },
+    [
+      refreshCurrentUser,
+      refreshDepartments,
+      refreshParticipants,
+      refreshRecurringEvents,
+    ]
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      lastPathnameRef.current = null;
+      return undefined;
+    }
+
+    if (lastPathnameRef.current === null) {
+      lastPathnameRef.current = pathname;
+      return undefined;
+    }
+
+    if (lastPathnameRef.current === pathname) {
+      return undefined;
+    }
+
+    lastPathnameRef.current = pathname;
+    const timer = window.setTimeout(() => {
+      syncWorkspaceData({ force: true });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isAuthenticated, pathname, syncWorkspaceData]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+
+    let channel = null;
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        channel = new BroadcastChannel(WORKSPACE_SYNC_CHANNEL);
+        broadcastChannelRef.current = channel;
+        channel.onmessage = (event) => {
+          if (event.data?.type === "workspace-mutated") {
+            syncWorkspaceData({ includeSchedules: true, force: true });
+          }
+        };
+      } catch {
+        channel = null;
+      }
+    }
+
+    const handleVisibleOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        syncWorkspaceData({ includeSchedules: true });
+      }
+    };
+
+    const handleOnline = () => {
+      syncWorkspaceData({ includeSchedules: true, force: true });
+    };
+
+    const pollTimer = window.setInterval(() => {
+      if (
+        document.visibilityState === "visible" &&
+        navigator.onLine !== false
+      ) {
+        syncWorkspaceData({ includeSchedules: true });
+      }
+    }, WORKSPACE_POLL_INTERVAL_MS);
+
+    document.addEventListener("visibilitychange", handleVisibleOrFocus);
+    window.addEventListener("focus", handleVisibleOrFocus);
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      window.clearInterval(pollTimer);
+      document.removeEventListener("visibilitychange", handleVisibleOrFocus);
+      window.removeEventListener("focus", handleVisibleOrFocus);
+      window.removeEventListener("online", handleOnline);
+      if (channel) {
+        channel.close();
+        if (broadcastChannelRef.current === channel) {
+          broadcastChannelRef.current = null;
+        }
+      }
+    };
+  }, [isAuthenticated, syncWorkspaceData]);
 
   const currentUserIsAdmin = isAdmin(currentUser);
   const deviceUserId = currentUser?.id || "";
@@ -676,15 +1058,19 @@ export function PrivateShell({ children }) {
     setIsWelcomeOpen(false);
   }, []);
 
-  const openWorkspaceDrawer = useCallback((type, payload = {}) => {
-    if (!type) return;
-    drawerKeyRef.current += 1;
-    setActiveRightDrawer({
-      type,
-      key: drawerKeyRef.current,
-      payload,
-    });
-  }, []);
+  const openWorkspaceDrawer = useCallback(
+    (type, payload = {}) => {
+      if (!type) return;
+      drawerKeyRef.current += 1;
+      setActiveRightDrawer({
+        type,
+        key: drawerKeyRef.current,
+        payload,
+      });
+      syncWorkspaceData();
+    },
+    [syncWorkspaceData]
+  );
 
   const closeWorkspaceDrawer = useCallback((instanceKey) => {
     setActiveRightDrawer((prev) => {
@@ -696,7 +1082,9 @@ export function PrivateShell({ children }) {
 
   const notifySchedulesChanged = useCallback(() => {
     setSchedulesVersion((prev) => prev + 1);
-  }, []);
+    setSyncVersion((prev) => prev + 1);
+    broadcastWorkspaceSync();
+  }, [broadcastWorkspaceSync]);
 
   const openWorkspaceCodeModal = useCallback((modalState) => {
     setWorkspaceCodeModal(modalState || null);
@@ -849,7 +1237,7 @@ export function PrivateShell({ children }) {
         unreadCount: notificationCenter.unreadCount,
         markNotificationRead: notificationCenter.markRead,
         markAllNotificationsRead: notificationCenter.markAllRead,
-        activeMinistry,
+        activeMinistry: resolvedActiveMinistry,
         setActiveMinistry: selectActiveMinistry,
         ministries,
         departments,
@@ -879,6 +1267,9 @@ export function PrivateShell({ children }) {
         closeWorkspaceDrawer,
         schedulesVersion,
         notifySchedulesChanged,
+        syncVersion,
+        syncWorkspaceData,
+        broadcastWorkspaceSync,
         openWorkspaceCodeModal,
       }}
     >
@@ -887,7 +1278,7 @@ export function PrivateShell({ children }) {
           <SidebarContent
             navItems={visibleNavItems}
             pathname={pathname}
-            activeMinistry={activeMinistry}
+            activeMinistry={resolvedActiveMinistry}
           />
         </aside>
 
@@ -905,7 +1296,7 @@ export function PrivateShell({ children }) {
               <SidebarContent
                 navItems={visibleNavItems}
                 pathname={pathname}
-                activeMinistry={activeMinistry}
+                activeMinistry={resolvedActiveMinistry}
                 onNavigate={closeDrawer}
                 closeButton={
                   <button
@@ -942,7 +1333,14 @@ export function PrivateShell({ children }) {
                   alt="Mídia Sobrenatural"
                   width={684}
                   height={302}
-                  className={styles.mobileBrandLogo}
+                  className={`${styles.mobileBrandLogo} ${styles.mobileBrandLogoLight}`}
+                />
+                <Image
+                  src="/brand/logo-midia-light.png"
+                  alt="Mídia Sobrenatural"
+                  width={684}
+                  height={302}
+                  className={`${styles.mobileBrandLogo} ${styles.mobileBrandLogoDark}`}
                 />
               </Link>
             </div>

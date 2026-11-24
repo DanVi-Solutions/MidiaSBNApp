@@ -125,7 +125,8 @@ async function fetchAvailabilityData() {
 }
 
 export function AvailabilityView() {
-  const { currentUser } = usePrivateWorkspace();
+  const { currentUser, syncVersion, notifySchedulesChanged } =
+    usePrivateWorkspace();
   const toast = useToast();
   const isAvailabilityRestricted = isAtLeast(currentUser, ROLES.GENERAL_MANAGER);
 
@@ -143,6 +144,14 @@ export function AvailabilityView() {
   const rangeStartRef = useRef(null);
   const rangeEndRef = useRef(null);
   const announceTimerRef = useRef(null);
+  const hasLoadedRef = useRef(false);
+  const fetchSeqRef = useRef(0);
+  const hasUnsavedWeeklyRef = useRef(false);
+  const hasUnsavedWorshipRef = useRef(false);
+  const isSavingWeeklyRef = useRef(false);
+  const isEditingExceptionRef = useRef(false);
+  const isSubmittingExceptionRef = useRef(false);
+  const deletingExceptionIdRef = useRef("");
 
   const [todayIso] = useState(() => getTodayIsoInZone());
   const [isLoading, setIsLoading] = useState(() => !isAvailabilityRestricted);
@@ -177,6 +186,7 @@ export function AvailabilityView() {
   }, []);
 
   const applyLoadedData = useCallback((result) => {
+    hasLoadedRef.current = true;
     setLoadError("");
     setWeeklyAvailability(result.mappedWeek);
     setSavedWeeklySnapshot(
@@ -191,9 +201,10 @@ export function AvailabilityView() {
   useEffect(() => {
     if (isAvailabilityRestricted) return undefined;
     let active = true;
+    const seq = ++fetchSeqRef.current;
 
     fetchAvailabilityData().then((result) => {
-      if (!active) return;
+      if (!active || seq !== fetchSeqRef.current) return;
 
       if (!result.ok) {
         setLoadError(result.error);
@@ -209,6 +220,45 @@ export function AvailabilityView() {
     };
   }, [isAvailabilityRestricted, applyLoadedData]);
 
+  useEffect(() => {
+    if (
+      isAvailabilityRestricted ||
+      syncVersion === 0 ||
+      !hasLoadedRef.current
+    ) {
+      return undefined;
+    }
+
+    let active = true;
+    const seq = ++fetchSeqRef.current;
+
+    fetchAvailabilityData().then((result) => {
+      if (!active || seq !== fetchSeqRef.current || !result.ok) return;
+
+      if (!hasUnsavedWeeklyRef.current && !isSavingWeeklyRef.current) {
+        setWeeklyAvailability(result.mappedWeek);
+        setSavedWeeklySnapshot(
+          JSON.stringify(mapUiWeekToApiDays(result.mappedWeek))
+        );
+      }
+      if (!hasUnsavedWorshipRef.current && !isSavingWeeklyRef.current) {
+        setWorshipService(result.worshipService);
+        setSavedWorshipService(result.worshipService);
+      }
+      if (
+        !isEditingExceptionRef.current &&
+        !isSubmittingExceptionRef.current &&
+        !deletingExceptionIdRef.current
+      ) {
+        setExceptions(result.mappedExceptions);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [isAvailabilityRestricted, syncVersion]);
+
   const announce = (message) => {
     if (announceTimerRef.current !== null) {
       window.clearTimeout(announceTimerRef.current);
@@ -223,10 +273,12 @@ export function AvailabilityView() {
 
   const handleRetryLoad = async () => {
     if (isAvailabilityRestricted) return;
+    const seq = ++fetchSeqRef.current;
     setIsLoading(true);
     setLoadError("");
 
     const result = await fetchAvailabilityData();
+    if (seq !== fetchSeqRef.current) return;
     if (!result.ok) {
       setLoadError(result.error);
       setIsLoading(false);
@@ -243,6 +295,32 @@ export function AvailabilityView() {
       savedWeeklySnapshot
     );
   }, [weeklyAvailability, savedWeeklySnapshot]);
+
+  const hasUnsavedWorshipChanges = worshipService !== savedWorshipService;
+
+  useEffect(() => {
+    hasUnsavedWeeklyRef.current = hasUnsavedWeeklyChanges;
+  }, [hasUnsavedWeeklyChanges]);
+
+  useEffect(() => {
+    hasUnsavedWorshipRef.current = hasUnsavedWorshipChanges;
+  }, [hasUnsavedWorshipChanges]);
+
+  useEffect(() => {
+    isSavingWeeklyRef.current = isSavingWeekly;
+  }, [isSavingWeekly]);
+
+  useEffect(() => {
+    isEditingExceptionRef.current = Boolean(editingException);
+  }, [editingException]);
+
+  useEffect(() => {
+    isSubmittingExceptionRef.current = isSubmittingException;
+  }, [isSubmittingException]);
+
+  useEffect(() => {
+    deletingExceptionIdRef.current = deletingExceptionId;
+  }, [deletingExceptionId]);
 
   const rangePreviewDays = useMemo(() => {
     if (exceptionMode !== "range" || !rangeStart || !rangeEnd) return null;
@@ -452,6 +530,7 @@ export function AvailabilityView() {
 
       resetExceptionForm();
       applySavedConflictNotice(result.data);
+      notifySchedulesChanged();
       const okMsg = "Indisponibilidade atualizada com sucesso.";
       announce(okMsg);
       toast.success(okMsg);
@@ -496,6 +575,7 @@ export function AvailabilityView() {
     setRangeEnd("");
     setReason("");
     applySavedConflictNotice(result.data);
+    notifySchedulesChanged();
 
     const successMsg =
       savedMode === "single"
@@ -527,6 +607,7 @@ export function AvailabilityView() {
     if (conflictNotice?.unavailabilityId === item.id) {
       setConflictNotice(null);
     }
+    notifySchedulesChanged();
 
     const label = formatExceptionDisplay(item);
     const okMsg = `Exceção removida: ${label}.`;
@@ -568,6 +649,7 @@ export function AvailabilityView() {
     const mappedWeek = mapApiWeekToUi(result.data);
     setWeeklyAvailability(mappedWeek);
     setSavedWeeklySnapshot(JSON.stringify(mapUiWeekToApiDays(mappedWeek)));
+    notifySchedulesChanged();
     const okMsg = "Disponibilidade salva com sucesso.";
     announce(okMsg);
     toast.success(okMsg);

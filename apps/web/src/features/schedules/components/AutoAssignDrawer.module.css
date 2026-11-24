@@ -72,8 +72,8 @@
 }
 
 .scheduleRowSelected {
-  border-color: #d08f84;
-  background-color: #fdf7f4;
+  border-color: var(--accent-border-strong);
+  background-color: var(--warm-tint);
 }
 
 .scheduleMain {
@@ -89,7 +89,7 @@
   width: 18px;
   height: 18px;
   margin-block-start: 0.15rem;
-  accent-color: #1a1a1f;
+  accent-color: var(--checkbox-accent);
   flex-shrink: 0;
   cursor: pointer;
 }
@@ -114,8 +114,8 @@
 .draftTag {
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
-  background-color: #f2f0ec;
-  color: #605d57;
+  background-color: var(--surface-chip);
+  color: var(--ink-chip);
   font-size: 0.68rem;
   font-weight: 650;
 }
@@ -229,8 +229,8 @@
   gap: 0.25rem;
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
-  background-color: #f1eafb;
-  color: #6b3fa8;
+  background-color: var(--status-worship-bg);
+  color: var(--status-worship-ink);
   font-size: 0.7rem;
   font-weight: 600;
 }
@@ -269,10 +269,10 @@
 
 @media (hover: hover) and (pointer: fine) {
   .textButton:hover {
-    background-color: rgba(26, 26, 31, 0.06);
+    background-color: var(--surface-hover-alpha);
   }
 
   .scheduleRow:not(.scheduleRowSelected):hover {
-    border-color: #c7c2ba;
+    border-color: var(--border-hover-alt);
   }
 }

@@ -70,6 +70,7 @@ export function RecurringEventsView() {
     isLoadingRecurringEvents,
     recurringEventsError,
     refreshRecurringEvents,
+    broadcastWorkspaceSync,
     openWorkspaceDrawer,
   } = usePrivateWorkspace();
   const toast = useToast();
@@ -195,7 +196,8 @@ export function RecurringEventsView() {
     }
 
     deleteDialogRef.current?.close("confirm");
-    await refreshRecurringEvents();
+    await refreshRecurringEvents({ silent: true });
+    broadcastWorkspaceSync();
     toast.success(`Evento recorrente "${targetName}" excluído.`);
   };
 
@@ -249,7 +251,8 @@ export function RecurringEventsView() {
     }
 
     promoteDialogRef.current?.close("confirm");
-    await refreshRecurringEvents();
+    await refreshRecurringEvents({ silent: true });
+    broadcastWorkspaceSync();
     toast.success(
       `Evento recorrente "${targetName}" promovido para todos os ministérios.`
     );

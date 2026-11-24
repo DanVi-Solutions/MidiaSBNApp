@@ -17,6 +17,7 @@ import {
   CheckCircleIcon,
   ClockIcon,
   CloseIcon,
+  DownloadIcon,
   InfoCircleIcon,
   PencilIcon,
   SearchIcon,
@@ -57,6 +58,10 @@ import {
   getStartOfCurrentMonthIsoInZone,
   isScheduleAtInsideWindow,
 } from "@/features/schedules/utils/scheduleDates";
+import {
+  buildMonthlyExportPayload,
+  exportMonthlySchedulePng,
+} from "@/features/schedules/utils/exportSchedulePng";
 import {
   canManageAnySchedule,
   canManageScheduleOf,
@@ -254,6 +259,7 @@ export function MonthlyScheduleView() {
     currentUser,
     openWorkspaceDrawer,
     schedulesVersion,
+    broadcastWorkspaceSync,
   } = usePrivateWorkspace();
   const toast = useToast();
 
@@ -273,6 +279,7 @@ export function MonthlyScheduleView() {
     () => canManageAnySchedule(currentUser, departments),
     [currentUser, departments]
   );
+  const canExportSchedule = isAtLeast(currentUser, ROLES.SCHEDULER_MANAGER);
   const activeMinistryId =
     activeMinistry?.id && !activeMinistry.isGlobal
       ? activeMinistry.id
@@ -287,6 +294,9 @@ export function MonthlyScheduleView() {
   const absenceDialogRef = useRef(null);
   const confirmDialogRef = useRef(null);
   const confirmCancelBtnRef = useRef(null);
+  const hasLoadedSchedulesRef = useRef(false);
+  const fetchSeqRef = useRef(0);
+  const lastScheduleSnapshotRef = useRef("");
 
   const [scheduleWindow, setScheduleWindow] = useState(null);
   const [referenceNowMs, setReferenceNowMs] = useState(0);
@@ -316,6 +326,7 @@ export function MonthlyScheduleView() {
   const [confirmModal, setConfirmModal] = useState(null);
   const [confirmError, setConfirmError] = useState("");
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
+  const [isExportingSchedule, setIsExportingSchedule] = useState(false);
 
   const fetchAllScheduleState = useCallback(async () => {
     const startOfMonthIso = getStartOfCurrentMonthIsoInZone(APP_TIME_ZONE);
@@ -394,46 +405,80 @@ export function MonthlyScheduleView() {
     };
   }, [isManagementOnly]);
 
-  const refreshSchedules = useCallback(async () => {
-    setSchedulesLoadError("");
-    const result = await fetchAllScheduleState();
-    setIsLoadingSchedules(false);
+  const refreshSchedules = useCallback(
+    async ({ silent = false } = {}) => {
+      const seq = ++fetchSeqRef.current;
+      if (!silent || !hasLoadedSchedulesRef.current) {
+        setSchedulesLoadError("");
+      }
+      const result = await fetchAllScheduleState();
+      if (seq !== fetchSeqRef.current) return false;
+      setIsLoadingSchedules(false);
 
-    if (!result.ok) {
-      setSchedulesLoadError(result.error);
-      return false;
-    }
+      if (!result.ok) {
+        if (!silent || !hasLoadedSchedulesRef.current) {
+          setSchedulesLoadError(result.error);
+        }
+        return false;
+      }
 
-    if (result.windowData) {
-      setScheduleWindow(result.windowData);
-    }
-    setReferenceNowMs(result.fetchedAtMs);
-    setEvents(result.events);
-    setMyAssignments(result.myAssignments);
-    setChangeRequests(result.changeRequests);
-    return true;
-  }, [fetchAllScheduleState]);
+      hasLoadedSchedulesRef.current = true;
+      setSchedulesLoadError("");
+      const snapshotJson = JSON.stringify({
+        windowData: result.windowData,
+        events: result.events,
+        myAssignments: result.myAssignments,
+        changeRequests: result.changeRequests,
+      });
+      setReferenceNowMs(result.fetchedAtMs);
+      if (snapshotJson !== lastScheduleSnapshotRef.current) {
+        lastScheduleSnapshotRef.current = snapshotJson;
+        if (result.windowData) {
+          setScheduleWindow(result.windowData);
+        }
+        setEvents(result.events);
+        setMyAssignments(result.myAssignments);
+        setChangeRequests(result.changeRequests);
+      }
+      return true;
+    },
+    [fetchAllScheduleState]
+  );
 
   useEffect(() => {
     let active = true;
+    const seq = ++fetchSeqRef.current;
 
     async function initSchedules() {
       const result = await fetchAllScheduleState();
-      if (!active) return;
+      if (!active || seq !== fetchSeqRef.current) return;
 
       setIsLoadingSchedules(false);
       if (!result.ok) {
-        setSchedulesLoadError(result.error);
+        if (!hasLoadedSchedulesRef.current) {
+          setSchedulesLoadError(result.error);
+        }
         return;
       }
 
-      if (result.windowData) {
-        setScheduleWindow(result.windowData);
-      }
+      hasLoadedSchedulesRef.current = true;
+      setSchedulesLoadError("");
+      const snapshotJson = JSON.stringify({
+        windowData: result.windowData,
+        events: result.events,
+        myAssignments: result.myAssignments,
+        changeRequests: result.changeRequests,
+      });
       setReferenceNowMs(result.fetchedAtMs);
-      setEvents(result.events);
-      setMyAssignments(result.myAssignments);
-      setChangeRequests(result.changeRequests);
+      if (snapshotJson !== lastScheduleSnapshotRef.current) {
+        lastScheduleSnapshotRef.current = snapshotJson;
+        if (result.windowData) {
+          setScheduleWindow(result.windowData);
+        }
+        setEvents(result.events);
+        setMyAssignments(result.myAssignments);
+        setChangeRequests(result.changeRequests);
+      }
     }
 
     initSchedules();
@@ -769,6 +814,7 @@ export function MonthlyScheduleView() {
     );
     absenceDialogRef.current?.close("confirm");
     await refreshSchedules();
+    broadcastWorkspaceSync();
     toast.success(
       chosen
         ? `Pedido enviado para ${chosen.name}.`
@@ -791,6 +837,7 @@ export function MonthlyScheduleView() {
     }
 
     await refreshSchedules();
+    broadcastWorkspaceSync();
     toast.success(
       fullDateLabel
         ? `Participação mantida na escala de ${fullDateLabel}.`
@@ -967,6 +1014,7 @@ export function MonthlyScheduleView() {
 
       confirmDialogRef.current?.close("confirm");
       await refreshSchedules();
+      broadcastWorkspaceSync();
       toast.success(`Presença confirmada em "${target.title}".`);
       return;
     }
@@ -983,6 +1031,7 @@ export function MonthlyScheduleView() {
 
       confirmDialogRef.current?.close("confirm");
       await refreshSchedules();
+      broadcastWorkspaceSync();
       toast.success(`Inscrição feita em "${target.title}". Sua presença já está confirmada.`);
       return;
     }
@@ -999,6 +1048,7 @@ export function MonthlyScheduleView() {
 
       confirmDialogRef.current?.close("confirm");
       await refreshSchedules();
+      broadcastWorkspaceSync();
       toast.success(`Check-in feito em "${target.title}".`);
       return;
     }
@@ -1015,6 +1065,7 @@ export function MonthlyScheduleView() {
 
       confirmDialogRef.current?.close("confirm");
       await refreshSchedules();
+      broadcastWorkspaceSync();
       toast.success(`Escala "${targetName}" excluída definitivamente.`);
       return;
     }
@@ -1033,6 +1084,7 @@ export function MonthlyScheduleView() {
 
       confirmDialogRef.current?.close("confirm");
       await refreshSchedules();
+      broadcastWorkspaceSync();
       toast.success(`Escala "${targetName}" publicada para a equipe.`);
       return;
     }
@@ -1048,6 +1100,7 @@ export function MonthlyScheduleView() {
 
       if (publishedCount > 0) {
         await refreshSchedules();
+        broadcastWorkspaceSync();
       }
 
       if (failed.length > 0) {
@@ -1081,6 +1134,97 @@ export function MonthlyScheduleView() {
     setScopeFilter(defaultScopeFilter);
   };
 
+  const resolveExportScopeTitle = () => {
+    const findMinistryNameById = (id) =>
+      departments.find((dept) => dept.id === id)?.name ||
+      userManagedDepartments.find((dept) => dept.id === id)?.name ||
+      "";
+
+    const publishedFiltered = filteredEvents.filter((ev) => Boolean(ev.published));
+    const uniqueExportMinistries = [
+      ...new Set(publishedFiltered.map((ev) => ev.ministryName).filter(Boolean)),
+    ];
+
+    if (isGeneralManager) {
+      return (
+        activeMinistry?.name ||
+        findMinistryNameById(activeMinistryId) ||
+        uniqueExportMinistries[0] ||
+        "Ministério"
+      );
+    }
+
+    if (scopeFilter.startsWith("dept:")) {
+      const deptId = scopeFilter.slice(5);
+      return findMinistryNameById(deptId) || uniqueExportMinistries[0] || "Ministério";
+    }
+
+    if (scopeFilter === "my-ministry") {
+      return (
+        (!activeMinistry?.isGlobal && activeMinistry?.name) ||
+        findMinistryNameById(activeMinistryId) ||
+        uniqueExportMinistries[0] ||
+        "Meu Ministério"
+      );
+    }
+
+    if (scopeFilter === "my-scales") {
+      if (!activeMinistry?.isGlobal && activeMinistry?.name) {
+        return `${activeMinistry.name} (Minhas escalas)`;
+      }
+      return "Minhas Escalas";
+    }
+
+    if (scopeFilter === "open-signup") {
+      if (uniqueExportMinistries.length === 1) {
+        return `${uniqueExportMinistries[0]} (Vagas abertas)`;
+      }
+      if (!activeMinistry?.isGlobal && activeMinistry?.name) {
+        return `${activeMinistry.name} (Vagas abertas)`;
+      }
+      return "Vagas Abertas";
+    }
+
+    if (uniqueExportMinistries.length === 1) {
+      return uniqueExportMinistries[0];
+    }
+
+    return userIsAdmin ? "Todos os Ministérios" : "Escala Geral";
+  };
+
+  const handleExportMonthlySchedule = async () => {
+    if (isExportingSchedule) return;
+
+    const payload = buildMonthlyExportPayload({
+      events: filteredEvents,
+      scopeTitle: resolveExportScopeTitle(),
+      filterHint: searchQuery.trim(),
+    });
+
+    if (payload.totalSchedules === 0) {
+      toast.error(
+        "Não há escalas publicadas no filtro atual entre hoje e o fim deste mês para exportar."
+      );
+      return;
+    }
+
+    setIsExportingSchedule(true);
+    try {
+      await exportMonthlySchedulePng(payload);
+      toast.success(
+        `Escala exportada (${payload.totalSchedules} ${
+          payload.totalSchedules === 1 ? "escala" : "escalas"
+        }).`
+      );
+    } catch (error) {
+      toast.error(
+        error?.message || "Não foi possível exportar a imagem da escala."
+      );
+    } finally {
+      setIsExportingSchedule(false);
+    }
+  };
+
   return (
     <div className={styles.page}>
       <header className={styles.pageHeader}>
@@ -1093,54 +1237,69 @@ export function MonthlyScheduleView() {
           </p>
         </div>
 
-        {canManageAny && (
+        {(canManageAny || canExportSchedule) && (
           <div className={styles.headerActions}>
-            <button
-              type="button"
-              disabled={draftEvents.length === 0}
-              className={styles.publishAllButton}
-              onClick={() =>
-                openConfirmModal({
-                  type: "publish-all",
-                  count: draftEvents.length,
-                })
-              }
-            >
-              <SendIcon />
-              <span>
-                {draftEvents.length > 0
-                  ? "Publicar pendentes"
-                  : "Tudo publicado"}
-              </span>
-              {draftEvents.length > 0 && (
+            {canManageAny && draftEvents.length > 0 && (
+              <button
+                type="button"
+                className={styles.publishAllButton}
+                onClick={() =>
+                  openConfirmModal({
+                    type: "publish-all",
+                    count: draftEvents.length,
+                  })
+                }
+              >
+                <SendIcon />
+                <span>Publicar pendentes</span>
                 <span className={styles.publishAllCount}>
                   {draftEvents.length}
                 </span>
-              )}
-            </button>
+              </button>
+            )}
 
-            <button
-              type="button"
-              disabled={autoAssignableSchedules.length === 0}
-              className={styles.autoAssignButton}
-              onClick={() =>
-                openWorkspaceDrawer("auto-assign", {
-                  schedules: autoAssignableSchedules,
-                })
-              }
-            >
-              <UsersIcon />
-              <span>Distribuição automática</span>
-            </button>
+            {canManageAny && autoAssignableSchedules.length > 0 && (
+              <button
+                type="button"
+                className={styles.autoAssignButton}
+                onClick={() =>
+                  openWorkspaceDrawer("auto-assign", {
+                    schedules: autoAssignableSchedules,
+                  })
+                }
+              >
+                <UsersIcon />
+                <span>Distribuição automática</span>
+              </button>
+            )}
 
-            <button
-              type="button"
-              className={styles.newScheduleButton}
-              onClick={openCreateScheduleDrawer}
-            >
-              <CalendarPlusIcon />
-              <span>Nova escala</span>
-            </button>
+            {canManageAny && (
+              <button
+                type="button"
+                className={styles.newScheduleButton}
+                onClick={openCreateScheduleDrawer}
+              >
+                <CalendarPlusIcon />
+                <span>Nova escala</span>
+              </button>
+            )}
+
+            {canExportSchedule && (
+              <button
+                type="button"
+                disabled={isLoadingSchedules || isExportingSchedule}
+                aria-busy={isExportingSchedule}
+                className={styles.exportScheduleButton}
+                onClick={handleExportMonthlySchedule}
+              >
+                <DownloadIcon />
+                <span>
+                  {isExportingSchedule
+                    ? "Exportando..."
+                    : "Exportar escala do mês"}
+                </span>
+              </button>
+            )}
           </div>
         )}
       </header>
