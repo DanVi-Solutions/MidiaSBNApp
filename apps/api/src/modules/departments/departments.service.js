@@ -52,7 +52,7 @@ export function createDepartmentsService({
       const seesActualStatus = isAtLeast(auth.role, ROLES.DEPARTMENT_MANAGER);
       const members = await credentials.list({
         departmentIds: [id],
-        excludeRoles: isAdmin(auth) ? null : [ROLES.ADMINISTRATOR],
+        excludeRoles: isAdmin(auth) ? [ROLES.DEVELOPER] : [ROLES.DEVELOPER, ROLES.ADMINISTRATOR],
         statuses: seesActualStatus ? null : ["ACTIVE", "RECOVERING"],
       });
       return members.map((item) => {
@@ -88,7 +88,9 @@ export function createDepartmentsService({
         await repository.delete(id);
       } catch (error) {
         if (isPrismaError(error, "P2003")) {
-          throw AppError.conflict("O ministério possui escalas e não pode ser excluído, para preservar o histórico.");
+          throw AppError.conflict(
+            "O ministério possui escalas ou demandas e não pode ser excluído, para preservar o histórico.",
+          );
         }
         throw error;
       }

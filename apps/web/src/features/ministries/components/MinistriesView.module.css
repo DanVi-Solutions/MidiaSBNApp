@@ -742,6 +742,102 @@
   color: var(--ink-secondary);
 }
 
+.switchCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--border-input);
+  border-radius: 13px;
+  background-color: var(--surface-subtle);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.switchCardActive {
+  border-color: var(--ink-primary);
+  background-color: var(--accent-tint);
+}
+
+.switchHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.switchLead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.switchTitle {
+  font-size: 0.86rem;
+  font-weight: 650;
+  color: var(--ink-primary);
+  cursor: pointer;
+}
+
+.switchHint {
+  font-size: 0.77rem;
+  line-height: 1.42;
+  color: var(--ink-secondary);
+}
+
+.switchInput {
+  appearance: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 46px;
+  height: 26px;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid var(--switch-border-off);
+  border-radius: 999px;
+  background-color: var(--switch-track-off);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.switchInput::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(26, 26, 31, 0.25);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.switchInput:checked {
+  border-color: var(--switch-track-on);
+  background-color: var(--switch-track-on);
+}
+
+.switchInput:checked::before {
+  background-color: var(--switch-knob-on);
+  transform: translateX(20px);
+}
+
+.switchInput:focus-visible {
+  outline: 2px solid var(--ink-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switchInput,
+  .switchInput::before {
+    transition: none;
+  }
+}
+
 .inlineLinkButton {
   border: 0;
   background: transparent;

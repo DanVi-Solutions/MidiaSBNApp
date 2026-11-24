@@ -54,6 +54,7 @@ const DOC_INFO = {
     "- `409` — conflito com o estado atual (ex.: username em uso).",
     "- `422` — dados inválidos; `details` lista cada campo com problema.",
     "- `429` — muitas tentativas; aguarde alguns minutos.",
+    "- `503` — serviço temporariamente indisponível (ex.: sistema em modo de manutenção).",
   ),
 };
 

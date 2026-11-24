@@ -12,14 +12,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  AlertTriangleIcon,
   CalendarCheckIcon,
   CalendarIcon,
   ChartBarsIcon,
   ChevronDownIcon,
+  ClipboardListIcon,
   CloseIcon,
   LayersIcon,
   LogOutIcon,
   MenuIcon,
+  SettingsIcon,
   SwapIcon,
   UserIcon,
   UsersIcon,
@@ -56,7 +59,11 @@ import {
   formatRecurringEventForUi,
   listRecurringEvents,
 } from "@/features/recurring-events/services/recurringEventsService";
-import { subscribeUnauthorized } from "@/lib/apiClient";
+import { fetchSystemConfig } from "@/features/settings/services/systemService";
+import {
+  subscribeMaintenance,
+  subscribeUnauthorized,
+} from "@/lib/apiClient";
 import { dismissHiddenModalDialogs } from "@/lib/rightDrawer";
 import {
   canListCredentials,
@@ -67,6 +74,7 @@ import {
   formatCredentialForUi,
   isAdmin,
   isAtLeast,
+  isDeveloper,
   ROLES,
 } from "@/lib/roles";
 import {
@@ -81,6 +89,11 @@ const NAV_ITEMS = [
     href: "/schedule",
     label: "Escala do mês",
     icon: CalendarIcon,
+  },
+  {
+    href: "/demands",
+    label: "Demandas",
+    icon: ClipboardListIcon,
   },
   {
     href: "/participants",
@@ -170,6 +183,7 @@ function mapDepartmentToMinistryUi(dept, index, allParticipants = []) {
     code: computeMinistryCode(dept.name),
     name: dept.name,
     description: dept.description || "",
+    hasDemands: Boolean(dept.hasDemands),
     participantCount:
       typeof dept.membersCount === "number"
         ? dept.membersCount
@@ -314,6 +328,7 @@ export function PrivateShell({ children }) {
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
   const [activeRightDrawer, setActiveRightDrawer] = useState(null);
   const [schedulesVersion, setSchedulesVersion] = useState(0);
+  const [demandsVersion, setDemandsVersion] = useState(0);
   const [syncVersion, setSyncVersion] = useState(0);
   const [workspaceCodeModal, setWorkspaceCodeModal] = useState(null);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
@@ -328,6 +343,7 @@ export function PrivateShell({ children }) {
   const [recurringEvents, setRecurringEvents] = useState([]);
   const [isLoadingRecurringEvents, setIsLoadingRecurringEvents] = useState(false);
   const [recurringEventsError, setRecurringEventsError] = useState("");
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   useEffect(() => {
     authStatusRef.current = authStatus;
@@ -416,7 +432,9 @@ export function PrivateShell({ children }) {
         const rawJson = JSON.stringify(result.data);
         if (rawJson !== partJsonRef.current) {
           partJsonRef.current = rawJson;
-          const mapped = result.data.map(formatCredentialForUi).filter(Boolean);
+          const mapped = result.data
+            .map(formatCredentialForUi)
+            .filter((item) => item && !isDeveloper(item));
           participantsRef.current = mapped;
           setParticipants(mapped);
           setParticipantsError("");
@@ -559,17 +577,23 @@ export function PrivateShell({ children }) {
 
       const canList = canListCredentials(formattedUser);
       const canSeeRec = canSeeRecurringEvents(formattedUser);
+      const devUser = isDeveloper(formattedUser);
       setIsLoadingParticipants(canList);
       setIsLoadingRecurringEvents(canSeeRec);
 
-      const [deptRes, credsRes, recRes] = await Promise.all([
+      const [deptRes, credsRes, recRes, sysConfigRes] = await Promise.all([
         listDepartments(),
         canList ? listCredentials() : Promise.resolve({ ok: true, data: [] }),
         canSeeRec
           ? listRecurringEvents()
           : Promise.resolve({ ok: true, data: [] }),
+        devUser ? fetchSystemConfig() : Promise.resolve(null),
       ]);
       if (!active) return;
+
+      if (devUser && sysConfigRes?.ok && sysConfigRes.data) {
+        setMaintenanceMode(Boolean(sysConfigRes.data.maintenanceMode));
+      }
 
       const loadedDepts =
         deptRes.ok && Array.isArray(deptRes.data) ? deptRes.data : [];
@@ -586,7 +610,7 @@ export function PrivateShell({ children }) {
           partJsonRef.current = JSON.stringify(credsRes.data);
           const mappedParticipants = credsRes.data
             .map(formatCredentialForUi)
-            .filter(Boolean);
+            .filter((item) => item && !isDeveloper(item));
           participantsRef.current = mappedParticipants;
           setParticipants(mappedParticipants);
           setParticipantsError("");
@@ -616,9 +640,10 @@ export function PrivateShell({ children }) {
 
       if (isAdmin(formattedUser)) {
         setActiveMinistry({
-          id: "admin-global",
-          code: "AD",
+          id: devUser ? "developer-global" : "admin-global",
+          code: devUser ? "DV" : "AD",
           name: "Todos os ministérios",
+          hasDemands: loadedDepts.some((dept) => Boolean(dept?.hasDemands)),
           isGlobal: true,
         });
       } else {
@@ -628,18 +653,22 @@ export function PrivateShell({ children }) {
           const initialDept =
             userDepts.find((dept) => dept.id === savedMinistryId) ||
             userDepts[0];
+          const fullDept =
+            loadedDepts.find((dept) => dept.id === initialDept.id) || initialDept;
           setActiveMinistry({
-            id: initialDept.id,
-            code: computeMinistryCode(initialDept.name),
-            name: initialDept.name,
+            id: fullDept.id,
+            code: computeMinistryCode(fullDept.name),
+            name: fullDept.name,
+            hasDemands: Boolean(fullDept.hasDemands),
             isGlobal: false,
           });
-          saveActiveMinistryId(formattedUser.id, initialDept.id);
+          saveActiveMinistryId(formattedUser.id, fullDept.id);
         } else if (loadedDepts.length > 0) {
           setActiveMinistry({
             id: loadedDepts[0].id,
             code: computeMinistryCode(loadedDepts[0].name),
             name: loadedDepts[0].name,
+            hasDemands: Boolean(loadedDepts[0].hasDemands),
             isGlobal: false,
           });
         } else {
@@ -659,6 +688,14 @@ export function PrivateShell({ children }) {
       clearSavedActiveMinistryId();
       setAuthStatus("redirecting");
       toast.error(reason || "Sessão encerrada. Faça login novamente.");
+      router.replace("/");
+    });
+
+    const unsubMaintenance = subscribeMaintenance((reason) => {
+      if (!active) return;
+      clearSavedActiveMinistryId();
+      setAuthStatus("redirecting");
+      toast.error(reason || "O sistema entrou em modo de manutenção.");
       router.replace("/");
     });
 
@@ -686,6 +723,7 @@ export function PrivateShell({ children }) {
     return () => {
       active = false;
       unsubUnauthorized();
+      unsubMaintenance();
       unsubSession();
     };
   }, [router, toast]);
@@ -696,23 +734,6 @@ export function PrivateShell({ children }) {
         mapDepartmentToMinistryUi(dept, index, participants)
       ),
     [departments, participants]
-  );
-
-  const visibleNavItems = useMemo(
-    () =>
-      NAV_ITEMS.filter((item) => {
-        if (item.href === "/participants") {
-          return canListCredentials(currentUser);
-        }
-        if (item.href === "/recurring-events") {
-          return canSeeRecurringEvents(currentUser);
-        }
-        if (item.href === "/availability") {
-          return !isAtLeast(currentUser, ROLES.GENERAL_MANAGER);
-        }
-        return true;
-      }),
-    [currentUser]
   );
 
   const addMinistry = useCallback((item) => {
@@ -824,10 +845,12 @@ export function PrivateShell({ children }) {
     }
 
     if (isAdmin(currentUser)) {
+      const dev = isDeveloper(currentUser);
       return {
-        id: "admin-global",
-        code: "AD",
+        id: dev ? "developer-global" : "admin-global",
+        code: dev ? "DV" : "AD",
         name: "Todos os ministérios",
+        hasDemands: departments.some((dept) => Boolean(dept?.hasDemands)),
         isGlobal: true,
       };
     }
@@ -860,9 +883,32 @@ export function PrivateShell({ children }) {
       id: matched.id,
       code: computeMinistryCode(matched.name),
       name: matched.name,
+      hasDemands: Boolean(matched.hasDemands),
       isGlobal: false,
     };
   }, [activeMinistry, authStatus, currentUser, departments]);
+
+  const visibleNavItems = useMemo(
+    () =>
+      NAV_ITEMS.filter((item) => {
+        if (item.href === "/demands") {
+          return (
+            isAdmin(currentUser) || Boolean(resolvedActiveMinistry?.hasDemands)
+          );
+        }
+        if (item.href === "/participants") {
+          return canListCredentials(currentUser);
+        }
+        if (item.href === "/recurring-events") {
+          return canSeeRecurringEvents(currentUser);
+        }
+        if (item.href === "/availability") {
+          return !isAtLeast(currentUser, ROLES.GENERAL_MANAGER);
+        }
+        return true;
+      }),
+    [currentUser, resolvedActiveMinistry?.hasDemands]
+  );
 
   useEffect(() => {
     if (
@@ -928,7 +974,8 @@ export function PrivateShell({ children }) {
         const actor = updatedUser || currentUserRef.current;
         if (!actor?.id || authStatusRef.current !== "authenticated") return;
 
-        await Promise.all([
+        const devActor = isDeveloper(actor);
+        const [, , , sysRes] = await Promise.all([
           refreshDepartments(),
           canListCredentials(actor)
             ? refreshParticipants(actor, { silent: true })
@@ -936,7 +983,11 @@ export function PrivateShell({ children }) {
           canSeeRecurringEvents(actor)
             ? refreshRecurringEvents(actor, { silent: true })
             : Promise.resolve([]),
+          devActor ? fetchSystemConfig() : Promise.resolve(null),
         ]);
+        if (devActor && sysRes?.ok && sysRes.data) {
+          setMaintenanceMode(Boolean(sysRes.data.maintenanceMode));
+        }
 
         lastSyncAtRef.current = Date.now();
         if (includeSchedules) {
@@ -1082,6 +1133,12 @@ export function PrivateShell({ children }) {
 
   const notifySchedulesChanged = useCallback(() => {
     setSchedulesVersion((prev) => prev + 1);
+    setSyncVersion((prev) => prev + 1);
+    broadcastWorkspaceSync();
+  }, [broadcastWorkspaceSync]);
+
+  const notifyDemandsChanged = useCallback(() => {
+    setDemandsVersion((prev) => prev + 1);
     setSyncVersion((prev) => prev + 1);
     broadcastWorkspaceSync();
   }, [broadcastWorkspaceSync]);
@@ -1267,10 +1324,14 @@ export function PrivateShell({ children }) {
         closeWorkspaceDrawer,
         schedulesVersion,
         notifySchedulesChanged,
+        demandsVersion,
+        notifyDemandsChanged,
         syncVersion,
         syncWorkspaceData,
         broadcastWorkspaceSync,
         openWorkspaceCodeModal,
+        maintenanceMode,
+        setMaintenanceMode,
       }}
     >
       <div className={styles.workspace}>
@@ -1387,7 +1448,9 @@ export function PrivateShell({ children }) {
                     <p className={styles.profileSummaryMeta}>
                       {currentUser.ministries?.length > 0
                         ? currentUser.ministries.join(", ")
-                        : "Administração Geral"}
+                        : isDeveloper(currentUser)
+                          ? "Acesso Global"
+                          : "Administração Geral"}
                     </p>
                   </div>
                 </div>
@@ -1401,6 +1464,16 @@ export function PrivateShell({ children }) {
                     <UserIcon />
                     <span>Meu perfil</span>
                   </Link>
+                  {isDeveloper(currentUser) && (
+                    <Link
+                      href="/settings"
+                      className={styles.profileMenuItem}
+                      onClick={() => profilePopoverRef.current?.hidePopover?.()}
+                    >
+                      <SettingsIcon />
+                      <span>Configurações</span>
+                    </Link>
+                  )}
                 </div>
 
                 <div className={styles.profileMenuDivider} aria-hidden="true" />
@@ -1418,6 +1491,25 @@ export function PrivateShell({ children }) {
               </div>
             </div>
           </header>
+
+          {isDeveloper(currentUser) && maintenanceMode && (
+            <div className={styles.maintenanceNotice} role="status">
+              <div className={styles.maintenanceNoticeInner}>
+                <span className={styles.maintenanceNoticeIcon} aria-hidden="true">
+                  <AlertTriangleIcon />
+                </span>
+                <p className={styles.maintenanceNoticeText}>
+                  <strong>Modo de manutenção ativo.</strong> O login e o acesso
+                  estão bloqueados para todos os demais usuários.
+                </p>
+                {pathname !== "/settings" && (
+                  <Link href="/settings" className={styles.maintenanceNoticeLink}>
+                    Gerenciar em Configurações
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
 
           <main className={styles.content}>{children}</main>
         </div>

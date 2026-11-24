@@ -20,14 +20,14 @@ import { distribute, randomSeed, seededRandom } from "./schedules.distribution.j
 import { schedulesRepository } from "./schedules.repository.js";
 
 
-const NEVER_DISTRIBUTED_ROLES = [ROLES.ADMINISTRATOR, ROLES.GENERAL_MANAGER];
+const NEVER_DISTRIBUTED_ROLES = [ROLES.DEVELOPER, ROLES.ADMINISTRATOR, ROLES.GENERAL_MANAGER];
 
 const isSelectableBy = (auth) => (credential) =>
-  credential.role !== ROLES.ADMINISTRATOR && (credential.role !== ROLES.GENERAL_MANAGER || credential.id === auth.id);
+  !isAdmin(credential) && (credential.role !== ROLES.GENERAL_MANAGER || credential.id === auth.id);
 
 function assertCanAddToSchedule(auth, member) {
-  if (member.role === ROLES.ADMINISTRATOR) {
-    throw AppError.forbidden("Administradores não podem ser escalados");
+  if (isAdmin(member)) {
+    throw AppError.forbidden("Administradores e desenvolvedores não podem ser escalados");
   }
   if (member.role === ROLES.GENERAL_MANAGER && member.id !== auth.id) {
     throw AppError.forbidden("O líder geral só entra em uma escala quando ele mesmo se coloca nela");
@@ -225,7 +225,7 @@ export function createSchedulesService({
     const members = await repository.membersWithAvailabilityAt(schedule.department.id, {
       at: schedule.scheduleAt,
       weekday,
-      excludeRoles: [ROLES.ADMINISTRATOR],
+      excludeRoles: [ROLES.DEVELOPER, ROLES.ADMINISTRATOR],
     });
     return members
       .filter(isSelectableBy(auth))

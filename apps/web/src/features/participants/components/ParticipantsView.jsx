@@ -35,6 +35,7 @@ import {
   canViewParticipant,
   CREDENTIAL_STATUS,
   getDisplayMemberStatus,
+  hasScheduleManagementRole,
   isAdmin,
   isAtLeast,
   resolveRoleCode,
@@ -776,7 +777,7 @@ export function ParticipantsView() {
                         )}
 
                         {(isSelf ||
-                          isAtLeast(currentUser, ROLES.SCHEDULER_MANAGER)) &&
+                          hasScheduleManagementRole(currentUser)) &&
                           person.pendingTransfer?.to?.name && (
                             <span className={styles.transferPendingNote}>
                               Transferência → {person.pendingTransfer.to.name}

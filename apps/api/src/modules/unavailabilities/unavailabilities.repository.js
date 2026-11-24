@@ -17,7 +17,11 @@ export const unavailabilitiesRepository = {
     return prisma.unavailability.findMany({
       where: {
         ...overlapping(from, to),
-        credential: { status: { not: "INACTIVE" }, departments: { some: { departmentId, pending: false } } },
+        credential: {
+          status: { not: "INACTIVE" },
+          role: { not: "DEVELOPER" },
+          departments: { some: { departmentId, pending: false } },
+        },
       },
       select: { ...unavailabilitySelect, credential: { select: { id: true, name: true, username: true } } },
       orderBy: { startAt: "asc" },

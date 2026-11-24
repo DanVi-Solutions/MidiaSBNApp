@@ -1,5 +1,7 @@
 "use client";
 
+import { DemandDetailDrawer } from "@/features/demands/components/DemandDetailDrawer";
+import { DemandFormDrawer } from "@/features/demands/components/DemandFormDrawer";
 import { MinistryAssignLeaderDrawer } from "@/features/ministries/components/MinistryAssignLeaderDrawer";
 import { MinistryFormDrawer } from "@/features/ministries/components/MinistryFormDrawer";
 import { ParticipantFormDrawer } from "@/features/participants/components/ParticipantFormDrawer";
@@ -16,6 +18,25 @@ export function WorkspaceRightDrawerHost({ activeDrawer, onCloseDrawer }) {
   const handleClose = () => onCloseDrawer?.(key);
 
   switch (type) {
+    case "demand-detail":
+      return (
+        <DemandDetailDrawer
+          key={key}
+          demand={payload.demand}
+          onRequestDelete={payload.onRequestDelete}
+          onClose={handleClose}
+        />
+      );
+    case "demand-form":
+      return (
+        <DemandFormDrawer
+          key={key}
+          mode={payload.mode}
+          demand={payload.demand}
+          defaultDepartmentId={payload.defaultDepartmentId}
+          onClose={handleClose}
+        />
+      );
     case "ministry-form":
       return (
         <MinistryFormDrawer

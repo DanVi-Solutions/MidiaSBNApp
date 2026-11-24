@@ -20,6 +20,12 @@ const notificationType = z
     "SCHEDULE_CYCLE_OPENED",
     "ASSIGNMENT_DECLINED",
     "PRESENCE_NOT_CONFIRMED",
+    "DEMAND_ASSIGNED",
+    "DEMAND_UNASSIGNED",
+    "DEMAND_UPDATED",
+    "DEMAND_COMPLETED",
+    "DEMAND_REOPENED",
+    "DEMAND_DELETED",
   ])
   .meta({ description: "O que originou o aviso. Útil para escolher ícone ou cor no frontend." });
 

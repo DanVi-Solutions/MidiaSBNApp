@@ -6,7 +6,7 @@ const role = z.enum(ROLE_LIST);
 const credentialNumber = z.string().meta({ example: "SBN-7KQ4M2XPRA" });
 
 const department = z
-  .object({ id, name: z.string().meta({ example: "Mídia" }) })
+  .object({ id, name: z.string().meta({ example: "Mídia" }), hasDemands: z.boolean().optional() })
   .meta({ description: "Ministério" });
 const person = z.object({ id, name: z.string() });
 

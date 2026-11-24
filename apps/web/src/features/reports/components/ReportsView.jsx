@@ -23,6 +23,7 @@ import {
 import {
   canViewParticipant,
   getDepartmentIds,
+  hasScheduleManagementRole,
   isAdmin,
   isAtLeast,
   resolveRoleCode,
@@ -101,7 +102,7 @@ export function ReportsView() {
 
   const roleCode = resolveRoleCode(currentUser);
   const userIsAdmin = isAdmin(currentUser);
-  const isVolunteer = roleCode === ROLES.VOLUNTEER;
+  const isVolunteer = !hasScheduleManagementRole(currentUser);
   const isGeneralManager = roleCode === ROLES.GENERAL_MANAGER;
   const isManagementOnly = isAtLeast(currentUser, ROLES.GENERAL_MANAGER);
   const userDepartmentIds = useMemo(

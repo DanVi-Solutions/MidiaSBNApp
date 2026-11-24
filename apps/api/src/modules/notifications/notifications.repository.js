@@ -12,7 +12,11 @@ const notificationSelect = {
 };
 
 const RECIPIENT_STATUSES = ["ACTIVE", "RECOVERING"];
-const SCHEDULE_MANAGER_ROLES = ["SCHEDULER_MANAGER", "DEPARTMENT_MANAGER", "GENERAL_MANAGER"];
+const SCHEDULE_MANAGER_ROLES = [
+  "SCHEDULER_MANAGER",
+  "DEPARTMENT_MANAGER",
+  "GENERAL_MANAGER",
+];
 const DEPARTMENT_LEADER_ROLES = ["DEPARTMENT_MANAGER", "GENERAL_MANAGER"];
 
 const activeMemberOf = (departmentId) => ({
@@ -161,7 +165,7 @@ export const notificationsRepository = {
   membersOf(departmentId) {
     return ids(
       prisma.credential.findMany({
-        where: { ...activeMemberOf(departmentId), role: { not: "ADMINISTRATOR" } },
+        where: { ...activeMemberOf(departmentId), role: { notIn: ["DEVELOPER", "ADMINISTRATOR"] } },
         select: { id: true },
       }),
     );

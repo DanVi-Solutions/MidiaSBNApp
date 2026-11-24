@@ -38,11 +38,17 @@ enum ChangeStatus {
 }
 
 enum Role {
+  DEVELOPER
   ADMINISTRATOR
   GENERAL_MANAGER
   DEPARTMENT_MANAGER
   SCHEDULER_MANAGER
   VOLUNTEER
+}
+
+enum DemandStatus {
+  IN_PROGRESS
+  COMPLETED
 }
 
 enum NotificationType {
@@ -64,6 +70,12 @@ enum NotificationType {
   SCHEDULE_CYCLE_OPENED
   ASSIGNMENT_DECLINED
   PRESENCE_NOT_CONFIRMED
+  DEMAND_ASSIGNED
+  DEMAND_UNASSIGNED
+  DEMAND_UPDATED
+  DEMAND_COMPLETED
+  DEMAND_REOPENED
+  DEMAND_DELETED
 }
 
 // SCHEMAS:
@@ -87,6 +99,8 @@ model Credential {
   createdRecurringEvents RecurringEvent[]       @relation("CreatedRecurringEvents")
   notifications          Notification[]
   pushSubscriptions      PushSubscription[]
+  assignedDemands        DemandAssignee[]       @relation("DemandAssignees")
+  createdDemands         Demand[]               @relation("DemandCreator")
 
   @@map("credential")
 }
@@ -110,11 +124,13 @@ model Department {
   id          String  @id @default(uuid(7)) @db.Uuid
   name        String  @unique @db.VarChar(80)
   description String? @db.VarChar(255)
+  hasDemands  Boolean @default(false) @map("has_demands")
 
   credentials     CredentialDepartment[]     @relation("DepartmentCredentials")
   transfersFrom   CredentialDepartment[]     @relation("TransferFrom")
   schedules       Schedule[]
   recurringEvents RecurringEventDepartment[]
+  demands         Demand[]
 
   @@map("department")
 }
@@ -282,4 +298,45 @@ model JobMarker {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("job_marker")
+}
+
+model SystemConfig {
+  id              String   @id @default("default") @db.VarChar(32)
+  maintenanceMode Boolean  @default(false) @map("maintenance_mode")
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("system_config")
+}
+
+model Demand {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  title        String       @db.VarChar(120)
+  description  String?      @db.VarChar(500)
+  status       DemandStatus @default(IN_PROGRESS)
+  departmentId String       @map("department_id") @db.Uuid
+  createdById  String?      @map("created_by_id") @db.Uuid
+  dueAt        DateTime?    @map("due_at") @db.Timestamptz(6)
+  completedAt  DateTime?    @map("completed_at") @db.Timestamptz(6)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  department Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  assignees  DemandAssignee[]
+  createdBy  Credential?      @relation("DemandCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([departmentId, status])
+  @@index([status, completedAt])
+  @@map("demand")
+}
+
+model DemandAssignee {
+  demandId     String @map("demand_id") @db.Uuid
+  credentialId String @map("credential_id") @db.Uuid
+
+  demand     Demand     @relation(fields: [demandId], references: [id], onDelete: Cascade)
+  credential Credential @relation("DemandAssignees", fields: [credentialId], references: [id], onDelete: Cascade)
+
+  @@id([demandId, credentialId])
+  @@index([credentialId])
+  @@map("demand_assignee")
 }

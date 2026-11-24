@@ -30,6 +30,7 @@ import {
   computeInitials,
   CREDENTIAL_STATUS,
   isAdmin,
+  isDeveloper,
   normalizeUsername,
   validateDisplayName,
   validateUsername,
@@ -602,7 +603,9 @@ export function ProfileView() {
                   <dd>
                     {currentUser.ministries?.length > 0
                       ? currentUser.ministries.join(", ")
-                      : "Administração Geral"}
+                      : isDeveloper(currentUser)
+                        ? "Acesso Global"
+                        : "Administração Geral"}
                   </dd>
                 </div>
               </div>
@@ -734,34 +737,36 @@ export function ProfileView() {
 
           {!isAdmin(currentUser) && <DevicePushCard />}
 
-          <section
-            className={`${styles.card} ${styles.dangerCard}`}
-            aria-labelledby={dangerHeadingId}
-          >
-            <div className={styles.cardHeader}>
-              <div>
-                <p className={styles.dangerEyebrow}>ZONA DE PERIGO</p>
-                <h2 id={dangerHeadingId} className={styles.cardTitle}>
-                  Excluir conta
-                </h2>
-                <p className={styles.cardSubtitle}>
-                  Ao excluir sua conta, seu acesso individual e sua participação
-                  nas escalas serão removidos permanentemente.
-                </p>
+          {!isDeveloper(currentUser) && (
+            <section
+              className={`${styles.card} ${styles.dangerCard}`}
+              aria-labelledby={dangerHeadingId}
+            >
+              <div className={styles.cardHeader}>
+                <div>
+                  <p className={styles.dangerEyebrow}>ZONA DE PERIGO</p>
+                  <h2 id={dangerHeadingId} className={styles.cardTitle}>
+                    Excluir conta
+                  </h2>
+                  <p className={styles.cardSubtitle}>
+                    Ao excluir sua conta, seu acesso individual e sua participação
+                    nas escalas serão removidos permanentemente.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className={styles.dangerActions}>
-              <button
-                type="button"
-                className={styles.deleteTriggerButton}
-                onClick={handleOpenDeleteDialog}
-              >
-                <TrashIcon />
-                <span>Excluir minha conta</span>
-              </button>
-            </div>
-          </section>
+              <div className={styles.dangerActions}>
+                <button
+                  type="button"
+                  className={styles.deleteTriggerButton}
+                  onClick={handleOpenDeleteDialog}
+                >
+                  <TrashIcon />
+                  <span>Excluir minha conta</span>
+                </button>
+              </div>
+            </section>
+          )}
         </div>
       </div>
 
@@ -816,91 +821,93 @@ export function ProfileView() {
         </form>
       </dialog>
 
-      <dialog
-        ref={deleteDialogRef}
-        closedby="any"
-        aria-labelledby={deleteModalTitleId}
-        className={styles.deleteDialog}
-        onCancel={(event) => {
-          if (isDeleting) event.preventDefault();
-        }}
-        onClose={handleDeleteDialogClose}
-      >
-        <form
-          className={styles.modalForm}
-          noValidate
-          onSubmit={handleConfirmDelete}
+      {!isDeveloper(currentUser) && (
+        <dialog
+          ref={deleteDialogRef}
+          closedby="any"
+          aria-labelledby={deleteModalTitleId}
+          className={styles.deleteDialog}
+          onCancel={(event) => {
+            if (isDeleting) event.preventDefault();
+          }}
+          onClose={handleDeleteDialogClose}
         >
-          <div className={styles.modalHeader}>
-            <span className={styles.modalDangerBadge} aria-hidden="true">
-              <TrashIcon />
-            </span>
-            <div>
-              <h2 id={deleteModalTitleId} className={styles.modalTitle}>
-                Excluir sua conta?
-              </h2>
-              <p className={styles.modalSubtitle}>
-                Esta ação não pode ser desfeita. Sua credencial deixará de
-                funcionar imediatamente.
-              </p>
-            </div>
-          </div>
-
-          <div className={styles.fieldGroup}>
-            <label htmlFor={confirmUsernameId} className={styles.fieldLabel}>
-              Digite <strong>{expectedUsername}</strong> para confirmar
-            </label>
-            <input
-              ref={confirmUsernameRef}
-              id={confirmUsernameId}
-              type="text"
-              value={confirmUsername}
-              placeholder={expectedUsername}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              aria-invalid={deleteError ? "true" : "false"}
-              aria-describedby={deleteError ? deleteErrorId : undefined}
-              className={`${styles.input} ${
-                deleteError ? styles.inputError : ""
-              }`}
-              onChange={(event) => {
-                setConfirmUsername(event.currentTarget.value);
-                if (deleteError) setDeleteError("");
-              }}
-            />
-            {deleteError && (
-              <div id={deleteErrorId} className={styles.errorMsg}>
-                <AlertCircleIcon className={styles.errorIcon} />
-                <span>{deleteError}</span>
+          <form
+            className={styles.modalForm}
+            noValidate
+            onSubmit={handleConfirmDelete}
+          >
+            <div className={styles.modalHeader}>
+              <span className={styles.modalDangerBadge} aria-hidden="true">
+                <TrashIcon />
+              </span>
+              <div>
+                <h2 id={deleteModalTitleId} className={styles.modalTitle}>
+                  Excluir sua conta?
+                </h2>
+                <p className={styles.modalSubtitle}>
+                  Esta ação não pode ser desfeita. Sua credencial deixará de
+                  funcionar imediatamente.
+                </p>
               </div>
-            )}
-          </div>
+            </div>
 
-          <div className={styles.modalActions}>
-            <button
-              type="button"
-              autoFocus
-              disabled={isDeleting}
-              className={styles.modalCancelButton}
-              onClick={() => deleteDialogRef.current?.close("cancel")}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isDeleting}
-              aria-busy={isDeleting}
-              className={styles.modalDeleteButton}
-            >
-              {isDeleting
-                ? "Excluindo conta..."
-                : "Excluir conta permanentemente"}
-            </button>
-          </div>
-        </form>
-      </dialog>
+            <div className={styles.fieldGroup}>
+              <label htmlFor={confirmUsernameId} className={styles.fieldLabel}>
+                Digite <strong>{expectedUsername}</strong> para confirmar
+              </label>
+              <input
+                ref={confirmUsernameRef}
+                id={confirmUsernameId}
+                type="text"
+                value={confirmUsername}
+                placeholder={expectedUsername}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                aria-invalid={deleteError ? "true" : "false"}
+                aria-describedby={deleteError ? deleteErrorId : undefined}
+                className={`${styles.input} ${
+                  deleteError ? styles.inputError : ""
+                }`}
+                onChange={(event) => {
+                  setConfirmUsername(event.currentTarget.value);
+                  if (deleteError) setDeleteError("");
+                }}
+              />
+              {deleteError && (
+                <div id={deleteErrorId} className={styles.errorMsg}>
+                  <AlertCircleIcon className={styles.errorIcon} />
+                  <span>{deleteError}</span>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                autoFocus
+                disabled={isDeleting}
+                className={styles.modalCancelButton}
+                onClick={() => deleteDialogRef.current?.close("cancel")}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isDeleting}
+                aria-busy={isDeleting}
+                className={styles.modalDeleteButton}
+              >
+                {isDeleting
+                  ? "Excluindo conta..."
+                  : "Excluir conta permanentemente"}
+              </button>
+            </div>
+          </form>
+        </dialog>
+      )}
 
       <CredentialCodeModal
         modalState={codeModalState}

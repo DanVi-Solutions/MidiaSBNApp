@@ -59,16 +59,17 @@ export function createCredentialsService({
     }
   }
 
-  function withNewNumber(operation) {
+  function withNewNumber(operation, role) {
     return retryOnCredentialNumberCollision(
       async (credentialNumber) => ({ credentialNumber, result: await operation(credentialNumber) }),
-      generateNumber,
+      () => generateNumber(role),
     );
   }
 
-  async function activateWithNewHashedNumber(id, data) {
-    const { credentialNumber, result } = await withNewNumber((number) =>
-      repository.activateWithHashedNumber(id, hashCredentialNumber(number), data),
+  async function activateWithNewHashedNumber(id, data, role) {
+    const { credentialNumber, result } = await withNewNumber(
+      (number) => repository.activateWithHashedNumber(id, hashCredentialNumber(number), data),
+      role,
     );
     return withCredentialNumber(result, credentialNumber);
   }
@@ -123,9 +124,10 @@ export function createCredentialsService({
     }
   }
 
-  async function issueNewReadableNumber(id, status) {
-    const { credentialNumber, result } = await withNewNumber((number) =>
-      repository.issueReadableNumber(id, number, status),
+  async function issueNewReadableNumber(id, status, role) {
+    const { credentialNumber, result } = await withNewNumber(
+      (number) => repository.issueReadableNumber(id, number, status),
+      role,
     );
     return withCredentialNumber(result, credentialNumber);
   }
@@ -154,7 +156,7 @@ export function createCredentialsService({
       const seesActualStatus = canSeeActualStatus(auth);
       const credentials = await repository.list({
         departmentIds: admin ? null : auth.departmentIds,
-        excludeRoles: admin ? null : [ROLES.ADMINISTRATOR],
+        excludeRoles: admin ? [ROLES.DEVELOPER] : [ROLES.DEVELOPER, ROLES.ADMINISTRATOR],
         statuses: seesActualStatus ? null : MEMBER_VISIBLE_STATUSES,
       });
       return credentials.map((item) => {
@@ -167,8 +169,9 @@ export function createCredentialsService({
       policy.assertCanCreate(auth, { role, departmentIds });
       await ensureDepartmentsExist(departmentIds);
 
-      const { result } = await withNewNumber((credentialNumber) =>
-        repository.create({ name, role, credentialNumber, departmentIds }),
+      const { result } = await withNewNumber(
+        (credentialNumber) => repository.create({ name, role, credentialNumber, departmentIds }),
+        role,
       );
       return withCredentialNumber(result);
     },
@@ -180,7 +183,7 @@ export function createCredentialsService({
     async prepareActivationCode(auth) {
       let chosen = "";
       for (let attempt = 0; attempt < 5; attempt++) {
-        const candidate = generateNumber();
+        const candidate = generateNumber(auth.role);
         const taken = repository.isCredentialNumberTaken
           ? await repository.isCredentialNumberTaken(candidate, hashCredentialNumber(candidate))
           : false;
@@ -213,7 +216,7 @@ export function createCredentialsService({
         return translateUsernameConflict(() => activateWithFixedNumber(auth.id, fixedCode, data));
       }
 
-      return translateUsernameConflict(() => activateWithNewHashedNumber(auth.id, data));
+      return translateUsernameConflict(() => activateWithNewHashedNumber(auth.id, data, auth.role));
     },
 
     async completeRecovery(auth, { activationToken } = {}) {
@@ -222,7 +225,7 @@ export function createCredentialsService({
         return activateWithFixedNumber(auth.id, fixedCode);
       }
 
-      return activateWithNewHashedNumber(auth.id);
+      return activateWithNewHashedNumber(auth.id, {}, auth.role);
     },
 
     async updateMe(auth, { name, username }) {
@@ -254,7 +257,7 @@ export function createCredentialsService({
       policy.assertCanChangeStatus(auth, target, status);
 
       if (status === "INACTIVE") return toPublicCredential(await repository.deactivate(id));
-      return issueNewReadableNumber(id, "RECOVERING");
+      return issueNewReadableNumber(id, "RECOVERING", target.role);
     },
 
     async regenerateCredentialNumber(auth, id, { userAgent }) {
@@ -263,16 +266,18 @@ export function createCredentialsService({
 
       if (auth.id !== target.id) {
         const statusAfterReset = target.status === "PENDING" ? "PENDING" : "RECOVERING";
-        return issueNewReadableNumber(id, statusAfterReset);
+        return issueNewReadableNumber(id, statusAfterReset, target.role);
       }
 
       const refresh = generateRefreshToken();
-      const { credentialNumber, result: sessionId } = await withNewNumber((number) =>
-        repository.rotateHashedNumber(id, hashCredentialNumber(number), {
-          tokenHash: refresh.tokenHash,
-          expiresAt: refresh.expiresAt,
-          userAgent,
-        }),
+      const { credentialNumber, result: sessionId } = await withNewNumber(
+        (number) =>
+          repository.rotateHashedNumber(id, hashCredentialNumber(number), {
+            tokenHash: refresh.tokenHash,
+            expiresAt: refresh.expiresAt,
+            userAgent,
+          }),
+        target.role,
       );
 
       return {

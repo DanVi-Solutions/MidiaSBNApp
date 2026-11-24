@@ -898,3 +898,53 @@
   margin-inline: auto;
   padding: clamp(1.35rem, 2.8vw, 2.1rem) clamp(1rem, 2.8vw, 2.25rem) 3rem;
 }
+
+.maintenanceNotice {
+  border-block-end: 1px solid var(--status-amber-border);
+  background-color: var(--status-amber-bg);
+}
+
+.maintenanceNoticeInner {
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.9rem;
+  padding: 0.68rem clamp(1rem, 2.8vw, 2.25rem);
+}
+
+.maintenanceNoticeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--status-amber-accent);
+  flex-shrink: 0;
+}
+
+.maintenanceNoticeText {
+  flex: 1 1 220px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--status-amber-ink-deep);
+}
+
+.maintenanceNoticeText strong {
+  color: var(--status-amber-ink);
+}
+
+.maintenanceNoticeLink {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--status-amber-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .maintenanceNoticeLink:hover {
+    opacity: 0.8;
+  }
+}

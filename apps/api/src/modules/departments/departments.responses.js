@@ -4,6 +4,7 @@ export const department = z.object({
   id: z.uuid(),
   name: z.string().meta({ example: "Mídia" }),
   description: z.string().nullable(),
+  hasDemands: z.boolean(),
   membersCount: z.number().int().meta({
     description: "Quantidade de pessoas no ministério (sem contar transferências ainda não aprovadas).",
   }),

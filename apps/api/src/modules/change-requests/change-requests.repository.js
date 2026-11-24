@@ -46,7 +46,7 @@ export const changeRequestsRepository = {
       where: {
         id: credentialId,
         status: "ACTIVE",
-        role: { notIn: ["ADMINISTRATOR", "GENERAL_MANAGER"] },
+        role: { notIn: ["DEVELOPER", "ADMINISTRATOR", "GENERAL_MANAGER"] },
         departments: { some: { departmentId, pending: false } },
       },
       select: { id: true },

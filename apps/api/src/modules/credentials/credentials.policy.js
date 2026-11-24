@@ -1,7 +1,8 @@
-import { ROLES, isAdmin, isAtLeast, rankOf } from "../../shared/auth/roles.js";
+import { ROLES, hasScheduleManagementRole, isAdmin, isAtLeast, isDeveloper, rankOf } from "../../shared/auth/roles.js";
 import { AppError } from "../../shared/errors/AppError.js";
 
 const MAX_ASSIGNABLE_ROLE = {
+  [ROLES.DEVELOPER]: ROLES.ADMINISTRATOR,
   [ROLES.ADMINISTRATOR]: ROLES.ADMINISTRATOR,
   [ROLES.GENERAL_MANAGER]: ROLES.GENERAL_MANAGER,
   [ROLES.DEPARTMENT_MANAGER]: ROLES.SCHEDULER_MANAGER,
@@ -14,6 +15,7 @@ export function sharesDepartment(actor, target) {
 }
 
 export function canManage(actor, target) {
+  if (isDeveloper(target)) return false;
   if (isAdmin(actor)) return true;
   return rankOf(actor.role) > rankOf(target.role) && sharesDepartment(actor, target);
 }
@@ -21,13 +23,13 @@ export function canManage(actor, target) {
 export function assertDepartmentCount(role, departmentIds) {
   const count = departmentIds.length;
 
-  if (role === ROLES.ADMINISTRATOR && count !== 0) {
-    throw AppError.unprocessable("Administradores não pertencem a ministérios");
+  if ((role === ROLES.ADMINISTRATOR || role === ROLES.DEVELOPER) && count !== 0) {
+    throw AppError.unprocessable("Administradores e desenvolvedores não pertencem a ministérios");
   }
   if (role === ROLES.GENERAL_MANAGER && count < 1) {
     throw AppError.unprocessable("General manager precisa de ao menos um ministério");
   }
-  if (role !== ROLES.ADMINISTRATOR && role !== ROLES.GENERAL_MANAGER && count !== 1) {
+  if (role !== ROLES.ADMINISTRATOR && role !== ROLES.DEVELOPER && role !== ROLES.GENERAL_MANAGER && count !== 1) {
     throw AppError.unprocessable("Este papel exige exatamente um ministério");
   }
 }
@@ -52,13 +54,15 @@ export function assertCanCreate(actor, { role, departmentIds }) {
 }
 
 export function assertCanView(actor, target) {
-  if (isSelf(actor, target) || isAdmin(actor)) return;
-  if (isAtLeast(actor.role, ROLES.SCHEDULER_MANAGER) && sharesDepartment(actor, target)) return;
+  if (isSelf(actor, target)) return;
+  if (isDeveloper(target)) throw AppError.notFound("Credencial não encontrada");
+  if (isAdmin(actor)) return;
+  if (hasScheduleManagementRole(actor.role) && sharesDepartment(actor, target)) return;
   throw AppError.forbidden();
 }
 
 export function assertCanList(actor) {
-  if (!isAtLeast(actor.role, ROLES.SCHEDULER_MANAGER)) throw AppError.forbidden();
+  if (!hasScheduleManagementRole(actor.role)) throw AppError.forbidden();
 }
 
 export function assertCanListDepartment(actor, departmentId) {
@@ -73,7 +77,9 @@ export function assertCanListMembers(actor) {
 }
 
 export function assertCanViewMember(actor, target) {
-  if (isSelf(actor, target) || isAdmin(actor)) return;
+  if (isSelf(actor, target)) return;
+  if (isDeveloper(target)) throw AppError.notFound("Credencial não encontrada");
+  if (isAdmin(actor)) return;
   if (isAtLeast(actor.role, ROLES.VOLUNTEER) && !isAdmin(target) && sharesDepartment(actor, target)) return;
   throw AppError.forbidden();
 }
@@ -92,6 +98,7 @@ export function assertCanChangeRole(actor, target, role, departmentIds) {
 }
 
 export function assertCanDelete(actor, target) {
+  if (isDeveloper(target)) throw AppError.forbidden("A conta de desenvolvedor não pode ser excluída");
   if (isSelf(actor, target)) return;
   if (isAtLeast(actor.role, ROLES.DEPARTMENT_MANAGER) && canManage(actor, target)) return;
   throw AppError.forbidden();
@@ -109,6 +116,7 @@ export function assertCanRegenerateNumber(actor, target) {
 }
 
 export function assertCanChangeStatus(actor, target, status) {
+  if (isDeveloper(target)) throw AppError.forbidden("O status da conta de desenvolvedor não pode ser alterado");
   if (target.status === "PENDING") {
     throw AppError.conflict("Credencial pendente: o primeiro acesso é que a ativa");
   }
@@ -124,6 +132,7 @@ export function assertCanChangeStatus(actor, target, status) {
 }
 
 export function assertCanSetDepartments(actor, target, departmentIds) {
+  if (isDeveloper(target)) throw AppError.forbidden("A conta de desenvolvedor não pertence a ministérios");
   if (!isAdmin(actor)) throw AppError.forbidden("Apenas administradores editam ministérios");
   assertDepartmentCount(target.role, departmentIds);
 }

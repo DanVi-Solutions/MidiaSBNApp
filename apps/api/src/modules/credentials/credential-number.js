@@ -11,8 +11,9 @@ function randomFromAlphabet(length) {
   return code;
 }
 
-export function generateCredentialNumber() {
-  return `SBN-${randomFromAlphabet(LENGTH)}`;
+export function generateCredentialNumber(role) {
+  const prefix = role === "DEVELOPER" ? "DEV" : "SBN";
+  return `${prefix}-${randomFromAlphabet(LENGTH)}`;
 }
 
 export async function retryOnCredentialNumberCollision(operation, generate = generateCredentialNumber) {

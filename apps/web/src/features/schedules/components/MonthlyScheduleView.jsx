@@ -68,6 +68,7 @@ import {
   CREDENTIAL_STATUS,
   getAssignableDepartments,
   getDepartmentIds,
+  hasScheduleManagementRole,
   isAdmin,
   isAtLeast,
   resolveRoleCode,
@@ -279,7 +280,7 @@ export function MonthlyScheduleView() {
     () => canManageAnySchedule(currentUser, departments),
     [currentUser, departments]
   );
-  const canExportSchedule = isAtLeast(currentUser, ROLES.SCHEDULER_MANAGER);
+  const canExportSchedule = hasScheduleManagementRole(currentUser);
   const activeMinistryId =
     activeMinistry?.id && !activeMinistry.isGlobal
       ? activeMinistry.id
