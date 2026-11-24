@@ -734,34 +734,36 @@ export function ProfileView() {
 
           {!isAdmin(currentUser) && <DevicePushCard />}
 
-          <section
-            className={`${styles.card} ${styles.dangerCard}`}
-            aria-labelledby={dangerHeadingId}
-          >
-            <div className={styles.cardHeader}>
-              <div>
-                <p className={styles.dangerEyebrow}>ZONA DE PERIGO</p>
-                <h2 id={dangerHeadingId} className={styles.cardTitle}>
-                  Excluir conta
-                </h2>
-                <p className={styles.cardSubtitle}>
-                  Ao excluir sua conta, seu acesso individual e sua participação
-                  nas escalas serão removidos permanentemente.
-                </p>
+          {!isAdmin(currentUser) && (
+            <section
+              className={`${styles.card} ${styles.dangerCard}`}
+              aria-labelledby={dangerHeadingId}
+            >
+              <div className={styles.cardHeader}>
+                <div>
+                  <p className={styles.dangerEyebrow}>ZONA DE PERIGO</p>
+                  <h2 id={dangerHeadingId} className={styles.cardTitle}>
+                    Excluir conta
+                  </h2>
+                  <p className={styles.cardSubtitle}>
+                    Ao excluir sua conta, seu acesso individual e sua participação
+                    nas escalas serão removidos permanentemente.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className={styles.dangerActions}>
-              <button
-                type="button"
-                className={styles.deleteTriggerButton}
-                onClick={handleOpenDeleteDialog}
-              >
-                <TrashIcon />
-                <span>Excluir minha conta</span>
-              </button>
-            </div>
-          </section>
+              <div className={styles.dangerActions}>
+                <button
+                  type="button"
+                  className={styles.deleteTriggerButton}
+                  onClick={handleOpenDeleteDialog}
+                >
+                  <TrashIcon />
+                  <span>Excluir minha conta</span>
+                </button>
+              </div>
+            </section>
+          )}
         </div>
       </div>
 

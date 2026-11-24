@@ -2016,7 +2016,9 @@ export function MonthlyScheduleView() {
         ref={confirmDialogRef}
         closedby="any"
         aria-labelledby={confirmModalTitleId}
-        className={styles.confirmDialog}
+        className={`${styles.confirmDialog} ${
+          confirmModal?.type === "check-in" ? styles.confirmSheet : ""
+        }`}
         onCancel={(event) => {
           if (isConfirmingAction) {
             event.preventDefault();

@@ -486,9 +486,9 @@ export function ParticipantFormDrawer({
     if (created.credentialNumber) {
       openWorkspaceCodeModal({
         variant: "temporary",
-        title: "Participante adicionado — envie o código",
+        title: "Participante adicionado — envie o acesso",
         subtitle:
-          "Compartilhe este código com o membro para que ele realize o primeiro acesso.",
+          "Copie a mensagem pronta e envie ao membro para que ele faça o primeiro acesso.",
         personName: created.name,
         status: created.status,
         credentialNumber: created.credentialNumber,
