@@ -54,13 +54,7 @@
   composes: emptyDesc from "../../recurring-events/components/RecurringEventsView.module.css";
 }
 
-.cardActions {
-  composes: cardActions from "../../recurring-events/components/RecurringEventsView.module.css";
-}
 
-.cardIconAction {
-  composes: cardIconAction from "../../recurring-events/components/RecurringEventsView.module.css";
-}
 
 .createDrawer {
   composes: createDrawer from "../../recurring-events/components/RecurringEventsView.module.css";
@@ -262,8 +256,16 @@
   composes: cardActionButton cardPublishButton from "../../schedules/components/MonthlyScheduleView.module.css";
 }
 
-.cardIconActionDanger {
-  composes: cardIconAction from "../../recurring-events/components/RecurringEventsView.module.css";
+.actionsBar {
+  composes: eventActionsBar from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.editButton {
+  composes: cardActionButton cardEditButton from "../../schedules/components/MonthlyScheduleView.module.css";
+}
+
+.deleteButton {
+  composes: cardActionButton cardDeleteButton from "../../schedules/components/MonthlyScheduleView.module.css";
 }
 
 .searchWrap {
@@ -399,13 +401,6 @@
 
 .addTimeButton {
   composes: addTimeButton from "../../recurring-events/components/RecurringEventsView.module.css";
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .cardIconActionDanger:hover {
-    border-color: var(--status-error);
-    color: var(--status-error);
-  }
 }
 
 .toolbar {
@@ -670,13 +665,6 @@
   color: var(--ink-secondary);
 }
 
-.cardFooterRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-}
 
 .ministryList {
   list-style: none;
@@ -709,10 +697,6 @@
 .ministryChipScheduled svg {
   width: 13px;
   height: 13px;
-}
-
-.publishButton {
-  margin-inline-start: auto;
 }
 
 .publishButton:disabled {

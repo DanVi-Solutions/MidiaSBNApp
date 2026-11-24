@@ -71,7 +71,10 @@ function usePublicAgendaHint() {
         return;
       }
       setIsVisible(true);
-      hideTimer = window.setTimeout(() => setIsVisible(false), PUBLIC_HINT_DURATION_MS);
+      hideTimer = window.setTimeout(
+        () => setIsVisible(false),
+        PUBLIC_HINT_DURATION_MS,
+      );
     }, 600);
     return () => {
       window.clearTimeout(showTimer);
@@ -208,28 +211,6 @@ function AgendaEventCard({
                 Rascunho
               </span>
             )}
-            {canChange && (
-              <div className={styles.cardActions}>
-                <button
-                  type="button"
-                  aria-label={`Editar ${event.name}`}
-                  title="Editar evento"
-                  className={styles.cardIconAction}
-                  onClick={() => onEdit(event)}
-                >
-                  <PencilIcon />
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Cancelar ${event.name}`}
-                  title={isDraft ? "Excluir rascunho" : "Cancelar evento"}
-                  className={styles.cardIconActionDanger}
-                  onClick={() => onCancel(event)}
-                >
-                  <TrashIcon />
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
@@ -250,39 +231,39 @@ function AgendaEventCard({
           <p className={styles.cardDescription}>{event.description}</p>
         )}
 
-        {(event.departments.length > 0 || (isDraft && canChange)) && (
-          <div className={styles.cardFooterRow}>
-            {event.departments.length > 0 && (
-              <ul
-                className={styles.ministryList}
-                aria-label={`Ministérios de ${event.name}`}
+        {event.departments.length > 0 && (
+          <ul
+            className={styles.ministryList}
+            aria-label={`Ministérios de ${event.name}`}
+          >
+            {event.departments.map((department) => (
+              <li
+                key={department.id}
+                className={
+                  canEdit && department.scheduled
+                    ? styles.ministryChipScheduled
+                    : styles.ministryChip
+                }
+                title={
+                  canEdit
+                    ? department.scheduled
+                      ? "Escala criada"
+                      : isDraft
+                        ? "A escala será criada depois que o evento for publicado"
+                        : "A escala será criada quando a data entrar no período das escalas"
+                    : undefined
+                }
               >
-                {event.departments.map((department) => (
-                  <li
-                    key={department.id}
-                    className={
-                      canEdit && department.scheduled
-                        ? styles.ministryChipScheduled
-                        : styles.ministryChip
-                    }
-                    title={
-                      canEdit
-                        ? department.scheduled
-                          ? "Escala criada"
-                          : isDraft
-                            ? "A escala será criada depois que o evento for publicado"
-                            : "A escala será criada quando a data entrar no período das escalas"
-                        : undefined
-                    }
-                  >
-                    {canEdit && department.scheduled && <CheckIcon />}
-                    {department.name}
-                  </li>
-                ))}
-              </ul>
-            )}
+                {canEdit && department.scheduled && <CheckIcon />}
+                {department.name}
+              </li>
+            ))}
+          </ul>
+        )}
 
-            {isDraft && canChange && (
+        {canChange && (
+          <div className={styles.actionsBar}>
+            {isDraft && (
               <button
                 type="button"
                 className={styles.publishButton}
@@ -294,6 +275,24 @@ function AgendaEventCard({
                 <span>{isPublishing ? "Publicando..." : "Publicar"}</span>
               </button>
             )}
+            <button
+              type="button"
+              aria-label={`Editar ${event.name}`}
+              className={styles.editButton}
+              onClick={() => onEdit(event)}
+            >
+              <PencilIcon />
+              <span>Editar</span>
+            </button>
+            <button
+              type="button"
+              aria-label={`Excluir ${event.name}`}
+              className={styles.deleteButton}
+              onClick={() => onCancel(event)}
+            >
+              <TrashIcon />
+              <span>Excluir</span>
+            </button>
           </div>
         )}
       </div>
@@ -588,8 +587,8 @@ export function AgendaView() {
               </a>
               {isPublicHintVisible && (
                 <span role="status" className={styles.publicHint}>
-                  A agenda também tem uma <strong>página pública</strong>, aberta para qualquer pessoa. Clique no ícone
-                  para abri-la.
+                  A agenda também tem uma <strong>página pública</strong>,
+                  aberta para qualquer pessoa. Clique no ícone para abri-la.
                 </span>
               )}
             </span>
@@ -780,16 +779,18 @@ export function AgendaView() {
                               className={styles.calendarDots}
                               aria-hidden="true"
                             >
-                              {dayEvents.slice(0, MAX_CALENDAR_DOTS).map((event) => (
-                                <span
-                                  key={event.id}
-                                  className={
-                                    event.published
-                                      ? styles.calendarDot
-                                      : styles.calendarDotDraft
-                                  }
-                                />
-                              ))}
+                              {dayEvents
+                                .slice(0, MAX_CALENDAR_DOTS)
+                                .map((event) => (
+                                  <span
+                                    key={event.id}
+                                    className={
+                                      event.published
+                                        ? styles.calendarDot
+                                        : styles.calendarDotDraft
+                                    }
+                                  />
+                                ))}
                             </span>
                           </button>
                         );
