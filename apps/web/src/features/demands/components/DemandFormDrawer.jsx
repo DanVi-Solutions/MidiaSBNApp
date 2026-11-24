@@ -700,8 +700,7 @@ export function DemandFormDrawer({
               </p>
             ) : (
               <p className={styles.fieldHint}>
-                Selecione uma ou mais pessoas para a demanda. Ao menos um
-                responsável é obrigatório para finalizar.
+                Selecione uma ou mais pessoas para a demanda.
               </p>
             )}
           </fieldset>
@@ -735,16 +734,11 @@ export function DemandFormDrawer({
                 }
               }}
             />
-            {dueDateError ? (
+            {dueDateError && (
               <div id={dueDateErrorId} className={styles.errorMsg}>
                 <AlertCircleIcon className={styles.errorIcon} />
                 <span>{dueDateError}</span>
               </div>
-            ) : (
-              <p className={styles.fieldHint}>
-                Escolha uma data a partir de hoje ({formatIsoDatePtBr(todayIso)}
-                ).
-              </p>
             )}
           </div>
 

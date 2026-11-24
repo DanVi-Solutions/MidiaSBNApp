@@ -1232,8 +1232,9 @@ export function MonthlyScheduleView() {
           <p className={styles.pageEyebrow}>PLANEJAMENTO MENSAL</p>
           <h1 className={styles.pageTitle}>Escala do mês</h1>
           <p className={styles.pageSubtitle}>
-            Organize escalas, inscrições voluntárias e substituições com
-            clareza.
+            {canManageAny
+              ? "Crie e publique as escalas, acompanhe as confirmações e resolva substituições."
+              : "Veja suas escalas, confirme presença, faça check-in e inscreva-se em vagas abertas."}
           </p>
         </div>
 
