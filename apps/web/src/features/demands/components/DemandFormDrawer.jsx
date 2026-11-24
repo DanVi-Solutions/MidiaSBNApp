@@ -508,39 +508,6 @@ export function DemandFormDrawer({
 
       <form className={styles.drawerForm} noValidate onSubmit={handleSubmit}>
         <div className={styles.drawerBody}>
-          {showMinistrySelect ? (
-            <div className={styles.fieldGroup}>
-              <label htmlFor={ministrySelectId} className={styles.fieldLabel}>
-                Ministério
-              </label>
-              <select
-                id={ministrySelectId}
-                name="departmentId"
-                value={departmentId}
-                disabled={isSaving}
-                className={styles.select}
-                onChange={(event) =>
-                  handleDepartmentChange(event.currentTarget.value)
-                }
-              >
-                {manageableDepartments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div className={styles.fieldGroup}>
-              <span className={styles.fieldLabel}>Ministério</span>
-              <div className={styles.readonlyScopeBox}>
-                <strong>
-                  {lockedDepartment?.name || "Nenhum ministério disponível"}
-                </strong>
-              </div>
-            </div>
-          )}
-
           <div className={styles.fieldGroup}>
             <div className={styles.fieldLabelRow}>
               <label htmlFor={titleInputId} className={styles.fieldLabel}>
@@ -600,6 +567,45 @@ export function DemandFormDrawer({
               onChange={(event) => setDescription(event.currentTarget.value)}
             />
           </div>
+
+          {showMinistrySelect ? (
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabelRow}>
+                <label htmlFor={ministrySelectId} className={styles.fieldLabel}>
+                  Ministério
+                </label>
+                <span className={styles.requiredTag}>Obrigatório</span>
+              </div>
+              <select
+                id={ministrySelectId}
+                name="departmentId"
+                value={departmentId}
+                disabled={isSaving}
+                className={styles.select}
+                onChange={(event) =>
+                  handleDepartmentChange(event.currentTarget.value)
+                }
+              >
+                {manageableDepartments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldLabelRow}>
+                <span className={styles.fieldLabel}>Ministério</span>
+                <span className={styles.optionalTag}>Somente leitura</span>
+              </div>
+              <div className={styles.readonlyScopeBox}>
+                <strong>
+                  {lockedDepartment?.name || "Nenhum ministério disponível"}
+                </strong>
+              </div>
+            </div>
+          )}
 
           <fieldset className={styles.memberFieldset}>
             <legend className={styles.fieldsetLegendRow}>
