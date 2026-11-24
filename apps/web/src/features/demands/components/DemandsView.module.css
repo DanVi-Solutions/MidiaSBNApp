@@ -50,10 +50,16 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.7rem;
+  width: 100%;
 }
 
 .gmMinistrySwitcher {
   min-width: 0;
+  flex: 1 1 200px;
+}
+
+.gmMinistrySwitcher .filterSelect {
+  width: 100%;
 }
 
 .primaryButton {
@@ -74,6 +80,37 @@
   transition: background-color 0.15s ease;
 }
 
+@media (max-width: 519px) {
+  .headerActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .gmMinistrySwitcher {
+    flex: none;
+    width: 100%;
+  }
+
+  .headerActions .primaryButton {
+    width: 100%;
+  }
+}
+
+@media (min-width: 720px) {
+  .headerActions {
+    width: auto;
+    justify-content: flex-end;
+  }
+
+  .gmMinistrySwitcher {
+    flex: 0 1 auto;
+  }
+
+  .gmMinistrySwitcher .filterSelect {
+    width: auto;
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .primaryButton:hover {
     background-color: var(--btn-primary-hover);
@@ -83,31 +120,33 @@
 .toolbar {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-}
-
-@media (min-width: 860px) {
-  .toolbar {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
+  gap: 0.75rem;
 }
 
 .statusTabs {
-  display: inline-flex;
-  flex-wrap: wrap;
+  display: flex;
+  flex-wrap: nowrap;
   gap: 0.35rem;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
   padding: 0.25rem;
   border: 1px solid var(--border-control);
   border-radius: 12px;
   background-color: var(--surface-card);
-  align-self: flex-start;
+  align-self: stretch;
+}
+
+.statusTabs::-webkit-scrollbar {
+  display: none;
 }
 
 .statusTab {
   display: inline-flex;
+  flex: 1 0 auto;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
   min-height: 36px;
   padding: 0.4rem 0.85rem;
@@ -117,6 +156,7 @@
   color: var(--ink-secondary);
   font-size: 0.82rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background-color 0.15s ease,
@@ -142,52 +182,180 @@
 
 .toolbarFilters {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.65rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.ministryFilterWrap {
+  width: 100%;
+  min-width: 0;
+}
+
+.filterSelect,
+.filterSelect::picker(select) {
+  appearance: base-select;
 }
 
 .filterSelect {
-  min-height: 40px;
-  padding: 0.45rem 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 42px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.5rem 0.9rem;
   border: 1px solid var(--border-input);
   border-radius: 10px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
   font: inherit;
-  font-size: 0.84rem;
+  font-size: 0.85rem;
   font-weight: 550;
+  text-align: start;
+  cursor: pointer;
+}
+
+.filterSelect:focus-visible {
+  outline: 2px solid var(--ink-primary);
+  outline-offset: 2px;
+}
+
+.filterSelect::picker(select) {
+  margin-block-start: 0.35rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background-color: var(--surface-card);
+  box-shadow: var(--shadow-picker);
+}
+
+.filterSelect::picker-icon {
+  color: var(--ink-secondary);
+}
+
+.filterSelect option {
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  color: var(--ink-primary);
+  cursor: pointer;
+}
+
+.filterSelect option:hover {
+  background-color: var(--surface-workspace);
+}
+
+.filterSelect option::checkmark {
+  color: var(--accent-ink);
 }
 
 .searchWrap {
   position: relative;
   display: flex;
   align-items: center;
-  min-width: min(260px, 100%);
-  flex: 1 1 240px;
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .searchIcon {
   position: absolute;
-  inset-inline-start: 0.8rem;
+  inset-inline-start: 0.85rem;
   color: var(--ink-muted);
   pointer-events: none;
 }
 
 .searchInput {
   width: 100%;
-  min-height: 40px;
-  padding: 0.48rem 0.85rem 0.48rem 2.35rem;
+  min-height: 42px;
+  padding: 0.5rem 0.9rem 0.5rem 2.4rem;
   border: 1px solid var(--border-input);
   border-radius: 10px;
   background-color: var(--surface-card);
   color: var(--ink-primary);
   font: inherit;
-  font-size: 0.86rem;
+  font-size: max(1rem, 1em);
+}
+
+.searchInput:focus-visible {
+  outline: 2px solid var(--ink-primary);
+  outline-offset: 2px;
 }
 
 .searchInput::placeholder {
   color: var(--ink-placeholder);
+  font-size: 0.86rem;
+}
+
+@media (min-width: 640px) {
+  .statusTabs {
+    display: inline-flex;
+    width: auto;
+    align-self: flex-start;
+  }
+
+  .statusTab {
+    flex: 0 0 auto;
+  }
+
+  .toolbarFilters {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+  }
+
+  .ministryFilterWrap {
+    width: auto;
+    flex: 0 0 auto;
+  }
+
+  .filterSelect {
+    width: auto;
+    min-width: 188px;
+    max-width: 240px;
+  }
+
+  .searchWrap {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .searchInput {
+    font-size: 0.86rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .toolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.9rem;
+  }
+
+  .statusTabs {
+    flex-shrink: 0;
+  }
+
+  .toolbarFilters {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    min-width: 0;
+    width: auto;
+  }
+
+  .searchWrap {
+    flex: 1 1 220px;
+    max-width: 340px;
+    min-width: 180px;
+  }
 }
 
 .grid {
@@ -1261,4 +1429,63 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+}
+
+@media (pointer: coarse) {
+  .cardIconAction {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (max-width: 519px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+  }
+
+  .card {
+    padding: 1.05rem 1.1rem;
+    gap: 0.85rem;
+  }
+
+  .confirmHeader,
+  .confirmBody,
+  .confirmFooter {
+    padding-inline: 1.1rem;
+  }
+
+  .confirmFooter {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .confirmCancelBtn,
+  .confirmDangerBtn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .drawerHeader {
+    padding: 1.05rem 1.15rem 0.95rem;
+  }
+
+  .drawerBody {
+    padding: 1.1rem 1.15rem;
+  }
+
+  .drawerFooter,
+  .detailFooter {
+    padding: 0.9rem 1.15rem max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .drawerFooter {
+    flex-wrap: nowrap;
+  }
+
+  .drawerCancelButton,
+  .drawerSubmitButton {
+    flex: 1 1 0;
+  }
 }

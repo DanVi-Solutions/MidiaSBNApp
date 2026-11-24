@@ -528,7 +528,7 @@ export function DemandsView() {
 
         <div className={styles.toolbarFilters}>
           {userIsAdmin && demandDepartments.length > 1 && (
-            <div>
+            <div className={styles.ministryFilterWrap}>
               <label htmlFor={ministryFilterId} className="visually-hidden">
                 Filtrar por ministério
               </label>
