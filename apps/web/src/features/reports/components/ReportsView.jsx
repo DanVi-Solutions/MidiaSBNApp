@@ -2,12 +2,10 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { usePrivateWorkspace } from "@/components/layout/PrivateShell";
-import { useToast } from "@/components/ui/ToastProvider";
 import {
   CheckCircleIcon,
   CheckIcon,
   ChevronDownIcon,
-  DownloadIcon,
   FilterIcon,
   TrendingUpIcon,
   UsersIcon,
@@ -31,55 +29,6 @@ import {
 } from "@/lib/roles";
 import styles from "./ReportsView.module.css";
 
-function buildCsvSummary(report) {
-  const lines = [
-    ["Indicador", "Valor", "Detalhe"],
-    ["Visualização", report.viewLabel, ""],
-    [report.primaryKpi.label, report.primaryKpi.value, report.primaryKpi.detail],
-    [
-      report.secondaryKpi.label,
-      report.secondaryKpi.value,
-      report.secondaryKpi.detail,
-    ],
-    [
-      report.tertiaryKpi.label,
-      report.tertiaryKpi.value,
-      report.tertiaryKpi.detail,
-    ],
-    [],
-    ["Mês", report.kind === "member" ? "Escalas" : "Cobertura (%)", "Resumo"],
-    ...report.monthlyBars.map((item) => [
-      item.month,
-      item.displayValue,
-      item.subLabel,
-    ]),
-    [],
-    [report.breakdownTitle, "Valor", "Detalhe"],
-    ...report.breakdownItems.map((item) => [
-      item.name,
-      item.valueText,
-      item.meta || "",
-    ]),
-  ];
-
-  return lines
-    .map((row) =>
-      row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(";")
-    )
-    .join("\r\n");
-}
-
-function slugifyFilePart(value) {
-  return (
-    String(value ?? "geral")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "geral"
-  );
-}
-
 export function ReportsView() {
   const {
     currentUser,
@@ -88,7 +37,6 @@ export function ReportsView() {
     participants,
     schedulesVersion,
   } = usePrivateWorkspace();
-  const toast = useToast();
 
   const filterSelectId = useId();
   const secondarySelectId = useId();
@@ -549,22 +497,6 @@ export function ReportsView() {
       ? "Acompanhe participação, cobertura e disponibilidade de toda a equipe."
       : "Acompanhe os indicadores do seu ministério e de sua equipe.";
 
-  const handleExportSummary = () => {
-    if (!report) return;
-    const csv = `\uFEFF${buildCsvSummary(report)}`;
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `relatorio-midia-${slugifyFilePart(report.viewLabel)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-
-    toast.success(`Resumo exportado para "${report.viewLabel}".`);
-  };
-
   return (
     <div className={styles.page}>
       <header className={styles.pageHeader}>
@@ -573,16 +505,6 @@ export function ReportsView() {
           <h1 className={styles.pageTitle}>Relatórios</h1>
           <p className={styles.pageSubtitle}>{pageSubtitle}</p>
         </div>
-
-        <button
-          type="button"
-          disabled={!report || isLoading || isLoadingMemberExtras}
-          className={styles.exportButton}
-          onClick={handleExportSummary}
-        >
-          <DownloadIcon />
-          <span>Exportar resumo</span>
-        </button>
       </header>
 
       <div className="visually-hidden" aria-live="polite" role="status">

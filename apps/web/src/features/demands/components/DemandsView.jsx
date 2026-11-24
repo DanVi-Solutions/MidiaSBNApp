@@ -19,6 +19,7 @@ import {
   CheckIcon,
   ClipboardListIcon,
   CloseIcon,
+  DownloadIcon,
   EyeIcon,
   PencilIcon,
   PlusIcon,
@@ -32,6 +33,10 @@ import {
   updateDemand,
 } from "@/features/demands/services/demandsService";
 import {
+  buildDemandsExportPayload,
+  exportDemandsPng,
+} from "@/features/demands/utils/exportDemandsPng";
+import {
   canCreateDemandsIn,
   canDeleteDemand,
   canEditDemand,
@@ -39,6 +44,7 @@ import {
   computeInitials,
   computeMinistryCode,
   getAssignableDepartments,
+  hasDemandManagementRole,
   isAdmin,
   resolveRoleCode,
   ROLES,
@@ -163,6 +169,8 @@ export function DemandsView() {
         activeDepartment?.id &&
           canCreateDemandsIn(currentUser, activeDepartment.id)
       );
+  const canExportDemands =
+    hasDemandManagementRole(currentUser) && demandDepartments.length > 0;
 
   const [demands, setDemands] = useState([]);
   const [nowMs, setNowMs] = useState(0);
@@ -175,6 +183,7 @@ export function DemandsView() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteError, setDeleteError] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExportingDemands, setIsExportingDemands] = useState(false);
 
   const shouldFetchDemands =
     userIsAdmin || Boolean(scopedDepartmentId);
@@ -449,6 +458,64 @@ export function DemandsView() {
       ? `Demandas e entregas do ministério ${activeDepartment.name}.`
       : "Acompanhe e gerencie as demandas da equipe.";
 
+  const resolveExportScopeTitle = () => {
+    if (selectedMinistryFilter) {
+      const matched = demandDepartments.find(
+        (dept) => dept.id === selectedMinistryFilter
+      );
+      if (matched?.name) return matched.name;
+    }
+
+    if (!userIsAdmin && activeDepartment?.name) {
+      return activeDepartment.name;
+    }
+
+    const uniqueMinistries = [
+      ...new Set(
+        visibleDemands
+          .map((item) => item?.department?.name)
+          .filter(Boolean)
+      ),
+    ];
+    if (uniqueMinistries.length === 1) {
+      return uniqueMinistries[0];
+    }
+
+    return "Todos os Ministérios";
+  };
+
+  const handleExportDemands = async () => {
+    if (!canExportDemands || isExportingDemands) return;
+
+    const payload = buildDemandsExportPayload({
+      demands: visibleDemands,
+      scopeTitle: resolveExportScopeTitle(),
+      statusFilter,
+      filterHint: searchQuery.trim(),
+    });
+
+    if (payload.totalDemands === 0) {
+      toast.error("Não há demandas no filtro selecionado.");
+      return;
+    }
+
+    setIsExportingDemands(true);
+    try {
+      await exportDemandsPng(payload);
+      toast.success(
+        `Demandas exportadas (${payload.totalDemands} ${
+          payload.totalDemands === 1 ? "demanda" : "demandas"
+        }).`
+      );
+    } catch (error) {
+      toast.error(
+        error?.message || "Não foi possível exportar a imagem das demandas."
+      );
+    } finally {
+      setIsExportingDemands(false);
+    }
+  };
+
   return (
     <div className={styles.page}>
       <header className={styles.pageHeader}>
@@ -495,6 +562,21 @@ export function DemandsView() {
             >
               <PlusIcon />
               <span>Nova demanda</span>
+            </button>
+          )}
+
+          {canExportDemands && (
+            <button
+              type="button"
+              disabled={isLoading || isExportingDemands}
+              aria-busy={isExportingDemands}
+              className={styles.exportButton}
+              onClick={handleExportDemands}
+            >
+              <DownloadIcon />
+              <span>
+                {isExportingDemands ? "Exportando..." : "Exportar demandas"}
+              </span>
             </button>
           )}
         </div>

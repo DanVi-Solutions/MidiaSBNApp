@@ -45,38 +45,6 @@
   color: var(--ink-secondary);
 }
 
-.exportButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.48rem;
-  min-height: 42px;
-  padding: 0.55rem 1.05rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  background-color: var(--surface-card);
-  color: var(--ink-primary);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .exportButton:not(:disabled):hover {
-    background-color: var(--surface-subtle);
-    border-color: var(--border-hover);
-  }
-}
-
-.exportButton:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
 /* Filter Card */
 .filterCard {
   display: flex;
@@ -604,7 +572,6 @@
   }
 }
 
-.exportButton:focus-visible,
 .filterSelect:focus-visible,
 .memberPickerTrigger:focus-visible,
 .memberOptionCard:focus-visible {
@@ -802,7 +769,6 @@
 }
 
 @media (pointer: coarse) {
-  .exportButton,
   .filterSelect,
   .memberPickerTrigger {
     min-height: 48px;
