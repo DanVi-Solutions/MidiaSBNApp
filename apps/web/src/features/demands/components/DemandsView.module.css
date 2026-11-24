@@ -243,7 +243,7 @@
   background-color: var(--surface-card);
   color: var(--ink-primary);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: max(1rem, 1em);
   font-weight: 550;
   text-align: start;
   cursor: pointer;
@@ -358,6 +358,7 @@
     width: auto;
     min-width: 188px;
     max-width: 240px;
+    font-size: 0.85rem;
   }
 
   .searchWrap {
@@ -371,7 +372,7 @@
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1120px) {
   .toolbar {
     flex-direction: row;
     align-items: center;
@@ -1472,7 +1473,9 @@
 
 @media (pointer: coarse) {
   .exportButton,
-  .primaryButton {
+  .primaryButton,
+  .filterSelect,
+  .searchInput {
     min-height: 48px;
   }
 

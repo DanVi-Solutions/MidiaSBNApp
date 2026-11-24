@@ -680,7 +680,7 @@ export function ProfileView() {
                   id: "dark",
                   label: "Modo escuro",
                   badge: null,
-                  description: "Superfícies escuras no mesmo estilo visual",
+                  description: "Fundo escuro com alto contraste",
                   Icon: MoonIcon,
                 },
               ].map(({ id: optionId, label, badge, description, Icon }) => {

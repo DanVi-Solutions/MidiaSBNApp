@@ -677,7 +677,7 @@ export function ReportsView() {
 
       {isLoading ? (
         <div className={styles.stateBox} role="status">
-          <p className={styles.stateTitle}>Carregando indicadores reais...</p>
+          <p className={styles.stateTitle}>Carregando indicadores...</p>
         </div>
       ) : loadError ? (
         <div className={styles.stateBox} role="alert">

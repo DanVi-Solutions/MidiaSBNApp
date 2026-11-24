@@ -46,6 +46,7 @@ import {
   getAssignableDepartments,
   hasDemandManagementRole,
   isAdmin,
+  isAtLeast,
   resolveRoleCode,
   ROLES,
 } from "@/lib/roles";
@@ -126,6 +127,7 @@ export function DemandsView() {
 
   const searchInputId = useId();
   const ministryFilterId = useId();
+  const assignmentFilterId = useId();
   const deleteTitleId = useId();
   const deleteDescId = useId();
 
@@ -135,6 +137,8 @@ export function DemandsView() {
   const roleCode = resolveRoleCode(currentUser);
   const userIsAdmin = isAdmin(currentUser);
   const isGeneralManager = roleCode === ROLES.GENERAL_MANAGER;
+  const isManagementOnly = isAtLeast(currentUser, ROLES.GENERAL_MANAGER);
+  const canFilterMyDemands = !isManagementOnly;
 
   const demandDepartments = useMemo(() => {
     const pool = userIsAdmin
@@ -177,6 +181,7 @@ export function DemandsView() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [assignmentFilter, setAssignmentFilter] = useState("ALL");
   const [ministryFilter, setMinistryFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [togglingId, setTogglingId] = useState("");
@@ -184,6 +189,10 @@ export function DemandsView() {
   const [deleteError, setDeleteError] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExportingDemands, setIsExportingDemands] = useState(false);
+
+  const effectiveAssignmentFilter = canFilterMyDemands
+    ? assignmentFilter
+    : "ALL";
 
   const shouldFetchDemands =
     userIsAdmin || Boolean(scopedDepartmentId);
@@ -243,23 +252,34 @@ export function DemandsView() {
     );
   }, [demands, selectedMinistryFilter]);
 
+  const scopedDemands = useMemo(() => {
+    if (effectiveAssignmentFilter !== "MINE") return ministryFilteredDemands;
+    const myId = currentUser?.id;
+    if (!myId) return [];
+    return ministryFilteredDemands.filter(
+      (item) =>
+        Array.isArray(item.assignees) &&
+        item.assignees.some((person) => person?.id === myId)
+    );
+  }, [currentUser?.id, effectiveAssignmentFilter, ministryFilteredDemands]);
+
   const counts = useMemo(() => {
     let inProgress = 0;
     let completed = 0;
-    for (const item of ministryFilteredDemands) {
+    for (const item of scopedDemands) {
       if (item.status === "COMPLETED") completed += 1;
       else inProgress += 1;
     }
     return {
-      ALL: ministryFilteredDemands.length,
+      ALL: scopedDemands.length,
       IN_PROGRESS: inProgress,
       COMPLETED: completed,
     };
-  }, [ministryFilteredDemands]);
+  }, [scopedDemands]);
 
   const visibleDemands = useMemo(() => {
     const query = normalizeText(searchQuery);
-    return ministryFilteredDemands.filter((item) => {
+    return scopedDemands.filter((item) => {
       if (statusFilter !== "ALL" && item.status !== statusFilter) {
         return false;
       }
@@ -274,7 +294,7 @@ export function DemandsView() {
       );
       return haystack.includes(query);
     });
-  }, [ministryFilteredDemands, searchQuery, statusFilter]);
+  }, [scopedDemands, searchQuery, statusFilter]);
 
   const handleOpenCreate = () => {
     if (!canCreateCurrentScope) return;
@@ -459,6 +479,12 @@ export function DemandsView() {
       : "Acompanhe e gerencie as demandas da equipe.";
 
   const resolveExportScopeTitle = () => {
+    if (effectiveAssignmentFilter === "MINE") {
+      return activeDepartment?.name
+        ? `${activeDepartment.name} (Minhas demandas)`
+        : "Minhas Demandas";
+    }
+
     if (selectedMinistryFilter) {
       const matched = demandDepartments.find(
         (dept) => dept.id === selectedMinistryFilter
@@ -632,6 +658,25 @@ export function DemandsView() {
             </div>
           )}
 
+          {canFilterMyDemands && (
+            <div className={styles.ministryFilterWrap}>
+              <label htmlFor={assignmentFilterId} className="visually-hidden">
+                Filtrar por participação
+              </label>
+              <select
+                id={assignmentFilterId}
+                value={effectiveAssignmentFilter}
+                className={styles.filterSelect}
+                onChange={(event) =>
+                  setAssignmentFilter(event.currentTarget.value)
+                }
+              >
+                <option value="ALL">Todas as demandas</option>
+                <option value="MINE">Minhas demandas</option>
+              </select>
+            </div>
+          )}
+
           <search aria-label="Buscar demandas" className={styles.searchWrap}>
             <label htmlFor={searchInputId} className="visually-hidden">
               Buscar demanda
@@ -692,7 +737,11 @@ export function DemandsView() {
               ? canCreateCurrentScope
                 ? 'Clique em "Nova demanda" para registrar a primeira tarefa da equipe.'
                 : "Quando novas demandas forem criadas pela equipe, elas aparecerão aqui."
-              : "Tente ajustar os filtros ou o termo de busca."}
+              : effectiveAssignmentFilter === "MINE" &&
+                  statusFilter === "ALL" &&
+                  !searchQuery.trim()
+                ? "Você não está escalado em nenhuma demanda no momento."
+                : "Tente ajustar os filtros ou o termo de busca."}
           </p>
         </div>
       ) : (
