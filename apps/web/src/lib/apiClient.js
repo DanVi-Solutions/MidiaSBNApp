@@ -7,6 +7,7 @@ import {
 
 let refreshInFlight = null;
 const unauthorizedListeners = new Set();
+const maintenanceListeners = new Set();
 
 export function subscribeUnauthorized(listener) {
   if (typeof listener !== "function") {
@@ -20,6 +21,26 @@ export function subscribeUnauthorized(listener) {
 
 function notifyUnauthorized(reason) {
   for (const listener of unauthorizedListeners) {
+    try {
+      listener(reason);
+    } catch {
+      // Ignore listener failure
+    }
+  }
+}
+
+export function subscribeMaintenance(listener) {
+  if (typeof listener !== "function") {
+    return () => {};
+  }
+  maintenanceListeners.add(listener);
+  return () => {
+    maintenanceListeners.delete(listener);
+  };
+}
+
+function notifyMaintenance(reason) {
+  for (const listener of maintenanceListeners) {
     try {
       listener(reason);
     } catch {
@@ -84,6 +105,9 @@ function extractApiErrorMessage(status, payload) {
   if (status === 429) {
     return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
   }
+  if (status === 503) {
+    return "O sistema está em modo de manutenção no momento. Tente novamente mais tarde.";
+  }
 
   return "Não foi possível concluir a requisição. Tente novamente.";
 }
@@ -108,6 +132,9 @@ async function performRefresh() {
     const payload = await parseJsonSafe(response);
     if (!response.ok || !payload?.accessToken || !payload?.refreshToken) {
       clearStoredSession();
+      if (response.status === 503 && payload?.details?.code === "MAINTENANCE_MODE") {
+        notifyMaintenance(extractApiErrorMessage(503, payload));
+      }
       return null;
     }
 
@@ -221,6 +248,11 @@ export async function apiRequest(
   if (response.status === 401 && auth) {
     clearStoredSession();
     notifyUnauthorized(extractApiErrorMessage(401, payload));
+  }
+
+  if (response.status === 503 && auth && payload?.details?.code === "MAINTENANCE_MODE") {
+    clearStoredSession();
+    notifyMaintenance(extractApiErrorMessage(503, payload));
   }
 
   return {

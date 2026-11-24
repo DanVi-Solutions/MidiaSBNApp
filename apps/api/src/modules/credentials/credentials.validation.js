@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ROLE_LIST } from "../../shared/auth/roles.js";
+import { ASSIGNABLE_ROLE_LIST } from "../../shared/auth/roles.js";
 
 const name = z
   .string()
@@ -37,7 +37,7 @@ const departmentIds = z
       "exatamente um.",
   });
 
-const role = z.enum(ROLE_LIST, "Papel inválido").meta({
+const role = z.enum(ASSIGNABLE_ROLE_LIST, "Papel inválido").meta({
   description:
     "Papel da pessoa, do maior para o menor: ADMINISTRATOR, GENERAL_MANAGER, DEPARTMENT_MANAGER, " +
     "SCHEDULER_MANAGER, VOLUNTEER.",

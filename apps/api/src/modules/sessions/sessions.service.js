@@ -1,3 +1,4 @@
+import { isDeveloper } from "../../shared/auth/roles.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { credentialsRepository } from "../credentials/credentials.repository.js";
 import { assertCanManageSessionsOf } from "./sessions.policy.js";
@@ -9,7 +10,9 @@ export function createSessionsService({
 } = {}) {
   async function findManageableCredential(auth, credentialId) {
     const target = await credentials.findById(credentialId);
-    if (!target) throw AppError.notFound("Credencial não encontrada");
+    if (!target || (isDeveloper(target) && target.id !== auth.id)) {
+      throw AppError.notFound("Credencial não encontrada");
+    }
     assertCanManageSessionsOf(auth, target);
   }
 

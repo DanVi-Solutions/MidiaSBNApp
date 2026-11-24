@@ -1,11 +1,12 @@
 import { z } from "zod";
+import { ROLE_LIST } from "../../shared/auth/roles.js";
 
 const department = z.object({ id: z.uuid(), name: z.string() });
 const person = z.object({
   id: z.uuid(),
   name: z.string(),
   username: z.string().nullable(),
-  role: z.enum(["ADMINISTRATOR", "GENERAL_MANAGER", "DEPARTMENT_MANAGER", "SCHEDULER_MANAGER", "VOLUNTEER"]).optional(),
+  role: z.enum(ROLE_LIST).optional(),
 });
 const changeStatus = z.enum(["NONE", "REQUESTED", "REJECTED", "DECLINED"]).meta({
   description:

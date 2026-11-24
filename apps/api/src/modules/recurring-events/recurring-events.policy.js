@@ -1,5 +1,5 @@
 import { participatesIn } from "../../shared/auth/departmentAccess.js";
-import { ROLES, isAdmin, isAtLeast } from "../../shared/auth/roles.js";
+import { ROLES, hasScheduleManagementRole, isAdmin, isAtLeast } from "../../shared/auth/roles.js";
 import { AppError } from "../../shared/errors/AppError.js";
 
 function eventDepartmentIds(event) {
@@ -10,8 +10,8 @@ function eventDepartmentIds(event) {
 }
 
 export function assertCanSeeEvents(actor) {
-  if (!isAtLeast(actor.role, ROLES.SCHEDULER_MANAGER)) {
-    throw AppError.forbidden("Apenas scheduler manager ou acima pode ver os eventos recorrentes");
+  if (!hasScheduleManagementRole(actor.role)) {
+    throw AppError.forbidden("Apenas responsável pelas escalas ou acima pode ver os eventos recorrentes");
   }
 }
 

@@ -1,7 +1,7 @@
 import { prisma } from "../../config/database.js";
 
 const deliverable = () => ({
-  credential: { role: { not: "ADMINISTRATOR" }, status: { not: "INACTIVE" } },
+  credential: { role: { notIn: ["DEVELOPER", "ADMINISTRATOR"] }, status: { not: "INACTIVE" } },
   session: { expiresAt: { gt: new Date() } },
 });
 

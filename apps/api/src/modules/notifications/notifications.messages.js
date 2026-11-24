@@ -1,6 +1,7 @@
 import { formatDay, formatMoment, formatMonthName } from "../../shared/time/formatting.js";
 
 const ROLE_LABELS = {
+  DEVELOPER: "Desenvolvedor",
   ADMINISTRATOR: "Administrador",
   GENERAL_MANAGER: "Líder Geral",
   DEPARTMENT_MANAGER: "Gerente do Ministério",
@@ -12,6 +13,7 @@ const SCHEDULE_PAGE = "/schedule";
 const CONFIRM_PRESENCE = "Confirme sua presença no app.";
 const PARTICIPANTS_PAGE = "/participants";
 const PROFILE_PAGE = "/profile";
+const DEMANDS_PAGE = "/demands";
 
 const scheduleLabel = (schedule) => `${schedule.name} (${schedule.department.name})`;
 const when = (schedule) => formatMoment(schedule.scheduleAt);
@@ -20,6 +22,10 @@ const listNames = (names) =>
 
 function aboutSchedule(type, schedule, title, body) {
   return { type, title, body, link: SCHEDULE_PAGE, scheduleId: schedule.id };
+}
+
+function aboutDemand(type, title, body) {
+  return { type, title, body, link: DEMANDS_PAGE, scheduleId: null };
 }
 
 export const messages = {
@@ -187,6 +193,48 @@ export const messages = {
     link: SCHEDULE_PAGE,
     scheduleId: null,
   }),
+
+  demandAssigned: (demand) =>
+    aboutDemand(
+      "DEMAND_ASSIGNED",
+      "Nova demanda atribuída a você",
+      `Você foi definido(a) como responsável pela demanda "${demand.title}" (${demand.department.name}).`,
+    ),
+
+  demandUnassigned: (demand) =>
+    aboutDemand(
+      "DEMAND_UNASSIGNED",
+      "Você saiu de uma demanda",
+      `Você não é mais responsável pela demanda "${demand.title}" (${demand.department.name}).`,
+    ),
+
+  demandUpdated: (demand) =>
+    aboutDemand(
+      "DEMAND_UPDATED",
+      "Demanda atualizada",
+      `A demanda "${demand.title}" (${demand.department.name}) foi atualizada.`,
+    ),
+
+  demandCompleted: (demand) =>
+    aboutDemand(
+      "DEMAND_COMPLETED",
+      "Demanda finalizada",
+      `A demanda "${demand.title}" (${demand.department.name}) foi marcada como finalizada.`,
+    ),
+
+  demandReopened: (demand) =>
+    aboutDemand(
+      "DEMAND_REOPENED",
+      "Demanda reaberta",
+      `A demanda "${demand.title}" (${demand.department.name}) voltou para em progresso.`,
+    ),
+
+  demandDeleted: (demand) =>
+    aboutDemand(
+      "DEMAND_DELETED",
+      "Demanda excluída",
+      `A demanda "${demand.title}" (${demand.department.name}) foi excluída.`,
+    ),
 };
 
 export const pushTestMessage = {

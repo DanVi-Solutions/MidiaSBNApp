@@ -32,6 +32,7 @@ export const availabilitiesRepository = {
     return prisma.credential.findMany({
       where: {
         status: { not: "INACTIVE" },
+        role: { not: "DEVELOPER" },
         departments: { some: { departmentId, pending: false } },
       },
       select: { id: true, name: true, username: true, availabilities: { select: periodsSelect } },

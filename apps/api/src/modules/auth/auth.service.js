@@ -1,10 +1,12 @@
 import { hashCredentialNumber } from "../../shared/auth/credentialNumberHash.js";
+import { isDeveloper } from "../../shared/auth/roles.js";
 import { buildSession, ensureNotInactive, toStoredRefreshToken } from "../../shared/auth/session.js";
 import { generateRefreshToken, hashToken } from "../../shared/auth/tokens.js";
 import { AppError } from "../../shared/errors/AppError.js";
+import { createMaintenanceError, systemService } from "../system/system.service.js";
 import { authRepository } from "./auth.repository.js";
 
-export function createAuthService({ repository = authRepository } = {}) {
+export function createAuthService({ repository = authRepository, system = systemService } = {}) {
   return {
     async login({ credentialNumber }, { userAgent }) {
       const credential = await repository.findCredentialByNumber(
@@ -13,6 +15,9 @@ export function createAuthService({ repository = authRepository } = {}) {
       );
       if (!credential) throw AppError.unauthorized("Código de credencial inválido");
       ensureNotInactive(credential);
+      if (!isDeveloper(credential) && (await system.isMaintenanceMode())) {
+        throw createMaintenanceError();
+      }
 
       const refresh = generateRefreshToken();
       const sessionId = await repository.openSession(credential.id, {
@@ -32,6 +37,9 @@ export function createAuthService({ repository = authRepository } = {}) {
       }
 
       ensureNotInactive(stored.credential);
+      if (!isDeveloper(stored.credential) && (await system.isMaintenanceMode())) {
+        throw createMaintenanceError();
+      }
 
       const refresh = generateRefreshToken();
       const rotated = await repository.rotateRefreshToken(stored.id, stored.tokenHash, toStoredRefreshToken(refresh));

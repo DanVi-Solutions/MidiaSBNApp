@@ -192,6 +192,7 @@ export function MinistriesView() {
       id: ministry.id,
       code: ministry.code,
       name: ministry.name,
+      hasDemands: Boolean(ministry.hasDemands),
       isGlobal: false,
     });
     const message = `Ministério ativo alterado para "${ministry.name}".`;

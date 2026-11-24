@@ -1,6 +1,6 @@
 import { prisma } from "../../config/database.js";
 
-const departmentRef = { select: { id: true, name: true } };
+const departmentRef = { select: { id: true, name: true, hasDemands: true } };
 
 const credentialSelect = {
   id: true,
@@ -96,15 +96,14 @@ export const credentialsRepository = {
     if (departmentIds) {
       where.departments = { some: { pending: false, departmentId: { in: departmentIds } } };
     }
-    if (excludeRoles?.length) {
-      where.role = { notIn: excludeRoles };
-    }
+    const effectiveExcludeRoles = [...new Set(["DEVELOPER", ...(excludeRoles ?? [])])];
+    where.role = { notIn: effectiveExcludeRoles };
     if (statuses?.length) {
       where.status = { in: statuses };
     }
 
     const rows = await prisma.credential.findMany({
-      where: Object.keys(where).length > 0 ? where : undefined,
+      where,
       select: credentialSelect,
       orderBy: { name: "asc" },
     });

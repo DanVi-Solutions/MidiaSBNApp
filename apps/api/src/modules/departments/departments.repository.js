@@ -4,7 +4,8 @@ const departmentSelect = {
   id: true,
   name: true,
   description: true,
-  _count: { select: { credentials: { where: { pending: false } } } },
+  hasDemands: true,
+  _count: { select: { credentials: { where: { pending: false, credential: { role: { not: "DEVELOPER" } } } } } },
 };
 
 function toDepartment(row) {

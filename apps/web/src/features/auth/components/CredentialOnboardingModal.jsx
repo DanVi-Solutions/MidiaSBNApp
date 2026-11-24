@@ -20,8 +20,9 @@ import {
 } from "@/features/auth/services/authService";
 import {
   copyTextToClipboard,
+  isAdmin,
+  isDeveloper,
   normalizeUsername,
-  ROLES,
   validateDisplayName,
   validateUsername,
 } from "@/lib/roles";
@@ -29,7 +30,7 @@ import styles from "./CredentialOnboardingModal.module.css";
 
 function getMinistryWelcomeTitle(credential) {
   if (!credential) return "Boas-vindas à equipe!";
-  if (credential.role === ROLES.ADMINISTRATOR) {
+  if (isAdmin(credential)) {
     return "Boas-vindas à Mídia Sobrenatural!";
   }
 
@@ -422,7 +423,9 @@ function CredentialOnboardingContent({
                   </div>
                 ) : (
                   <span className={styles.contextValue}>
-                    Administração Geral
+                    {isDeveloper(credential)
+                      ? "Acesso Global"
+                      : "Administração Geral"}
                   </span>
                 )}
               </div>

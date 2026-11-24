@@ -40,6 +40,8 @@ export function MinistryFormDrawer({ mode = "create", ministry = null, onClose }
   const nameInputId = useId();
   const nameErrorId = useId();
   const descriptionInputId = useId();
+  const demandsSwitchId = useId();
+  const demandsHintId = useId();
 
   const dialogRef = useRef(null);
   const nameInputRef = useRef(null);
@@ -52,6 +54,9 @@ export function MinistryFormDrawer({ mode = "create", ministry = null, onClose }
   );
   const [ministryDescription, setMinistryDescription] = useState(() =>
     isEditingMinistry ? ministry.description || "" : ""
+  );
+  const [ministryHasDemands, setMinistryHasDemands] = useState(() =>
+    isEditingMinistry ? Boolean(ministry.hasDemands) : false
   );
   const [nameError, setNameError] = useState("");
   const [createFormError, setCreateFormError] = useState("");
@@ -144,6 +149,9 @@ export function MinistryFormDrawer({ mode = "create", ministry = null, onClose }
       if (trimmedDescription !== (ministry.description || "").trim()) {
         patch.description = trimmedDescription || null;
       }
+      if (ministryHasDemands !== Boolean(ministry.hasDemands)) {
+        patch.hasDemands = ministryHasDemands;
+      }
 
       if (Object.keys(patch).length === 0) {
         await closeAnimatedRightDrawer(dialogRef.current);
@@ -184,6 +192,7 @@ export function MinistryFormDrawer({ mode = "create", ministry = null, onClose }
     const result = await createDepartment({
       name: trimmedName,
       description: trimmedDescription,
+      hasDemands: ministryHasDemands,
     });
     setIsCreating(false);
 
@@ -325,6 +334,38 @@ export function MinistryFormDrawer({ mode = "create", ministry = null, onClose }
                 setMinistryDescription(event.currentTarget.value)
               }
             />
+          </div>
+
+          <div
+            className={`${styles.switchCard} ${
+              ministryHasDemands ? styles.switchCardActive : ""
+            }`}
+          >
+            <div className={styles.switchHeaderRow}>
+              <div className={styles.switchLead}>
+                <label htmlFor={demandsSwitchId} className={styles.switchTitle}>
+                  Utilizar página de demandas
+                </label>
+                <p id={demandsHintId} className={styles.switchHint}>
+                  Ativa a página de demandas para que os membros deste
+                  ministério criem e acompanhem tarefas.
+                </p>
+              </div>
+
+              <input
+                id={demandsSwitchId}
+                type="checkbox"
+                role="switch"
+                name="hasDemands"
+                checked={ministryHasDemands}
+                disabled={isCreating}
+                aria-describedby={demandsHintId}
+                className={styles.switchInput}
+                onChange={(event) =>
+                  setMinistryHasDemands(event.currentTarget.checked)
+                }
+              />
+            </div>
           </div>
 
           {isEditingMinistry && (

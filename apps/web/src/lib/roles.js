@@ -1,4 +1,5 @@
 export const ROLES = Object.freeze({
+  DEVELOPER: "DEVELOPER",
   ADMINISTRATOR: "ADMINISTRATOR",
   GENERAL_MANAGER: "GENERAL_MANAGER",
   DEPARTMENT_MANAGER: "DEPARTMENT_MANAGER",
@@ -14,9 +15,11 @@ const RANK = Object.freeze({
   [ROLES.DEPARTMENT_MANAGER]: 3,
   [ROLES.GENERAL_MANAGER]: 4,
   [ROLES.ADMINISTRATOR]: 5,
+  [ROLES.DEVELOPER]: 6,
 });
 
 export const ROLE_LABELS = Object.freeze({
+  [ROLES.DEVELOPER]: "Desenvolvedor",
   [ROLES.ADMINISTRATOR]: "Administrador",
   [ROLES.GENERAL_MANAGER]: "Líder Geral",
   [ROLES.DEPARTMENT_MANAGER]: "Gerente do Ministério",
@@ -55,6 +58,7 @@ export const STATUS_META = Object.freeze({
 });
 
 const MAX_ASSIGNABLE_ROLE = Object.freeze({
+  [ROLES.DEVELOPER]: ROLES.ADMINISTRATOR,
   [ROLES.ADMINISTRATOR]: ROLES.ADMINISTRATOR,
   [ROLES.GENERAL_MANAGER]: ROLES.GENERAL_MANAGER,
   [ROLES.DEPARTMENT_MANAGER]: ROLES.SCHEDULER_MANAGER,
@@ -84,8 +88,24 @@ export function isAtLeast(entityOrRole, minimumRole) {
   return rankOf(entityOrRole) >= rankOf(minimumRole);
 }
 
+export function isDeveloper(entityOrRole) {
+  return resolveRoleCode(entityOrRole) === ROLES.DEVELOPER;
+}
+
 export function isAdmin(entityOrRole) {
-  return resolveRoleCode(entityOrRole) === ROLES.ADMINISTRATOR;
+  const code = resolveRoleCode(entityOrRole);
+  return code === ROLES.ADMINISTRATOR || code === ROLES.DEVELOPER;
+}
+
+export function hasScheduleManagementRole(entityOrRole) {
+  const code = resolveRoleCode(entityOrRole);
+  return (
+    isAtLeast(code, ROLES.DEPARTMENT_MANAGER) || code === ROLES.SCHEDULER_MANAGER
+  );
+}
+
+export function hasDemandManagementRole(entityOrRole) {
+  return isAtLeast(resolveRoleCode(entityOrRole), ROLES.DEPARTMENT_MANAGER);
 }
 
 export function getRoleLabel(entityOrRole) {
@@ -112,6 +132,7 @@ export function sharesDepartment(actor, target) {
 
 export function canManage(actor, target) {
   if (!actor || !target) return false;
+  if (isDeveloper(target)) return false;
   if (isAdmin(actor)) return true;
   return rankOf(actor) > rankOf(target) && sharesDepartment(actor, target);
 }
@@ -137,6 +158,7 @@ export function getDisplayMemberStatus(actor, target) {
 
 export function canViewParticipant(actor, target) {
   if (!actor || !target) return false;
+  if (isDeveloper(target)) return false;
   if (isAdmin(actor)) return true;
   if (actor.id && target.id && actor.id === target.id) return true;
   if (isAdmin(target)) return false;
@@ -176,7 +198,7 @@ export function canCreateCredential(actor) {
 
 export function getDepartmentRequirement(role) {
   const code = resolveRoleCode(role);
-  if (code === ROLES.ADMINISTRATOR) {
+  if (code === ROLES.ADMINISTRATOR || code === ROLES.DEVELOPER) {
     return { mode: "none", min: 0, max: 0 };
   }
   if (code === ROLES.GENERAL_MANAGER) {
@@ -252,15 +274,28 @@ export function canDeleteParticipant(actor, target) {
 export function canAssignMemberToSchedule(actor, target) {
   if (!actor || !target) return false;
   const targetRole = resolveRoleCode(target);
-  if (targetRole === ROLES.ADMINISTRATOR) return false;
+  if (targetRole === ROLES.ADMINISTRATOR || targetRole === ROLES.DEVELOPER) return false;
   if (targetRole === ROLES.GENERAL_MANAGER) {
     return Boolean(actor.id && target.id && actor.id === target.id);
   }
   return true;
 }
 
+export function canAssignMemberToDemand(actor, target) {
+  if (!actor || !target) return false;
+  const targetRole = resolveRoleCode(target);
+  if (targetRole === ROLES.DEVELOPER) return false;
+  if (
+    targetRole === ROLES.ADMINISTRATOR ||
+    targetRole === ROLES.GENERAL_MANAGER
+  ) {
+    return Boolean(actor.id && target.id && actor.id === target.id);
+  }
+  return true;
+}
+
 export function canSeeRecurringEvents(actor) {
-  return isAtLeast(actor, ROLES.SCHEDULER_MANAGER);
+  return hasScheduleManagementRole(actor);
 }
 
 export function canManageGeneralRecurringEvents(actor) {
@@ -307,7 +342,7 @@ export function canManageScheduleOf(actor, departmentId) {
   if (!actor || !departmentId) return false;
   if (isAdmin(actor)) return true;
   return (
-    isAtLeast(actor, ROLES.SCHEDULER_MANAGER) &&
+    hasScheduleManagementRole(actor) &&
     getDepartmentIds(actor).includes(departmentId)
   );
 }
@@ -316,8 +351,83 @@ export function canManageAnySchedule(actor, departments = []) {
   if (!actor) return false;
   return (
     isAdmin(actor) ||
-    (isAtLeast(actor, ROLES.SCHEDULER_MANAGER) &&
+    (hasScheduleManagementRole(actor) &&
       getAssignableDepartments(actor, departments).length > 0)
+  );
+}
+
+export function canManageDemandsOf(actor, departmentId) {
+  if (!actor || !departmentId) return false;
+  if (isAdmin(actor)) return true;
+  return (
+    hasDemandManagementRole(actor) &&
+    getDepartmentIds(actor).includes(departmentId)
+  );
+}
+
+export function canCreateDemandsIn(actor, departmentId) {
+  if (!actor || !departmentId) return false;
+  if (isAdmin(actor)) return true;
+  return getDepartmentIds(actor).includes(departmentId);
+}
+
+export function canEditDemand(actor, demand) {
+  const departmentId = demand?.department?.id;
+  if (!actor || !departmentId) return false;
+  if (canManageDemandsOf(actor, departmentId)) return true;
+  if (!getDepartmentIds(actor).includes(departmentId)) return false;
+  const assignees = Array.isArray(demand.assignees) ? demand.assignees : [];
+  return Boolean(
+    (demand.createdBy?.id && demand.createdBy.id === actor.id) ||
+      assignees.some((person) => person?.id === actor.id)
+  );
+}
+
+export function canDeleteDemand(actor, demand) {
+  const departmentId = demand?.department?.id;
+  if (!actor || !departmentId) return false;
+  if (canManageDemandsOf(actor, departmentId)) return true;
+  if (!getDepartmentIds(actor).includes(departmentId)) return false;
+  return Boolean(demand.createdBy?.id && demand.createdBy.id === actor.id);
+}
+
+export function canToggleDemandStatus(actor, demand, targetAssigneeIds) {
+  const departmentId = demand?.department?.id;
+  if (!actor || !departmentId) return false;
+  if (canManageDemandsOf(actor, departmentId)) return true;
+  if (!getDepartmentIds(actor).includes(departmentId)) return false;
+
+  const currentAssigneeIds = Array.isArray(demand.assignees)
+    ? demand.assignees.map((person) => person?.id).filter(Boolean)
+    : [];
+  const isCreator = Boolean(
+    demand.createdBy?.id && demand.createdBy.id === actor.id
+  );
+  const isCurrentAssignee = currentAssigneeIds.includes(actor.id);
+  if (!isCreator && !isCurrentAssignee) return false;
+
+  const effectiveAssigneeIds =
+    targetAssigneeIds === undefined
+      ? currentAssigneeIds
+      : Array.isArray(targetAssigneeIds)
+        ? targetAssigneeIds.filter(Boolean)
+        : [];
+
+  if (
+    effectiveAssigneeIds.length > 0 &&
+    !effectiveAssigneeIds.includes(actor.id)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+export function canManageAnyDemands(actor, departments = []) {
+  if (!actor) return false;
+  if (isAdmin(actor)) return true;
+  return getAssignableDepartments(actor, departments).some(
+    (dept) => dept?.hasDemands
   );
 }
 

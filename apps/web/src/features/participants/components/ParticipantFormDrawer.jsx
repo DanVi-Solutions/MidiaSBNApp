@@ -76,18 +76,76 @@ export function ParticipantFormDrawer({
   const announceTimerRef = useRef(null);
   const isCleaningUpRef = useRef(false);
 
-  const formRoles = useMemo(
-    () => getParticipantFormRoles(currentUser),
-    [currentUser]
-  );
   const assignableDepartments = useMemo(
     () => getAssignableDepartments(currentUser, departments),
     [currentUser, departments]
   );
+  const isMinistryLocked = !isAdmin(currentUser);
+  const lockedDepartment = useMemo(() => {
+    if (!isMinistryLocked) return null;
+    return (
+      assignableDepartments.find((dept) => dept.id === activeMinistry?.id) ||
+      assignableDepartments[0] ||
+      null
+    );
+  }, [activeMinistry?.id, assignableDepartments, isMinistryLocked]);
 
   const [fullName, setFullName] = useState("");
+  const [selectedDepartmentIds, setSelectedDepartmentIds] = useState(() => {
+    if (isEditing && participant) {
+      const req = getDepartmentRequirement(participant.roleCode || ROLES.VOLUNTEER);
+      if (req.mode === "none") return [];
+    }
+
+    const validIds = new Set(assignableDepartments.map((d) => d.id));
+
+    if (isMinistryLocked) {
+      if (activeMinistry?.id && validIds.has(activeMinistry.id)) {
+        return [activeMinistry.id];
+      }
+      return assignableDepartments.length > 0 ? [assignableDepartments[0].id] : [];
+    }
+
+    if (isEditing && participant) {
+      const currentValid = (participant.departmentIds || []).filter((id) =>
+        validIds.has(id)
+      );
+      if (currentValid.length > 0) {
+        return [currentValid[0]];
+      }
+    } else if (preset?.departmentId && validIds.has(preset.departmentId)) {
+      return [preset.departmentId];
+    }
+
+    if (activeMinistry?.id && validIds.has(activeMinistry.id)) {
+      return [activeMinistry.id];
+    }
+    return assignableDepartments.length > 0 ? [assignableDepartments[0].id] : [];
+  });
+
+  const selectedDepartment = useMemo(() => {
+    if (isMinistryLocked) return lockedDepartment;
+    const chosenId = selectedDepartmentIds[0];
+    return (
+      assignableDepartments.find((dept) => dept.id === chosenId) ||
+      assignableDepartments[0] ||
+      null
+    );
+  }, [
+    assignableDepartments,
+    isMinistryLocked,
+    lockedDepartment,
+    selectedDepartmentIds,
+  ]);
+
+  const formRoles = useMemo(
+    () => getParticipantFormRoles(currentUser),
+    [currentUser]
+  );
+
   const [selectedRole, setSelectedRole] = useState(() => {
     const allowed = getParticipantFormRoles(currentUser);
+
     if (isEditing && participant) {
       return participant.roleCode || ROLES.VOLUNTEER;
     }
@@ -97,45 +155,6 @@ export function ParticipantFormDrawer({
     return allowed.includes(ROLES.VOLUNTEER)
       ? ROLES.VOLUNTEER
       : allowed[0] || ROLES.VOLUNTEER;
-  });
-  const [selectedDepartmentIds, setSelectedDepartmentIds] = useState(() => {
-    const allowed = getParticipantFormRoles(currentUser);
-    const initialRole =
-      isEditing && participant
-        ? participant.roleCode || ROLES.VOLUNTEER
-        : preset?.role && allowed.includes(preset.role)
-          ? preset.role
-          : allowed.includes(ROLES.VOLUNTEER)
-            ? ROLES.VOLUNTEER
-            : allowed[0] || ROLES.VOLUNTEER;
-    const req = getDepartmentRequirement(initialRole);
-    if (req.mode === "none") return [];
-
-    const assignable = getAssignableDepartments(currentUser, departments);
-    const validIds = new Set(assignable.map((d) => d.id));
-
-    if (!isAdmin(currentUser)) {
-      if (activeMinistry?.id && validIds.has(activeMinistry.id)) {
-        return [activeMinistry.id];
-      }
-      return assignable.length > 0 ? [assignable[0].id] : [];
-    }
-
-    if (isEditing && participant) {
-      const currentValid = (participant.departmentIds || []).filter((id) =>
-        validIds.has(id)
-      );
-      if (currentValid.length > 0) {
-        return req.mode === "single" ? [currentValid[0]] : currentValid;
-      }
-    } else if (preset?.departmentId && validIds.has(preset.departmentId)) {
-      return [preset.departmentId];
-    }
-
-    if (activeMinistry?.id && validIds.has(activeMinistry.id)) {
-      return [activeMinistry.id];
-    }
-    return assignable.length > 0 ? [assignable[0].id] : [];
   });
 
   const [fullNameError, setFullNameError] = useState("");
@@ -148,15 +167,6 @@ export function ParticipantFormDrawer({
     () => getDepartmentRequirement(selectedRole),
     [selectedRole]
   );
-  const isMinistryLocked = !isAdmin(currentUser);
-  const lockedDepartment = useMemo(() => {
-    if (!isMinistryLocked) return null;
-    return (
-      assignableDepartments.find((dept) => dept.id === activeMinistry?.id) ||
-      assignableDepartments[0] ||
-      null
-    );
-  }, [activeMinistry?.id, assignableDepartments, isMinistryLocked]);
 
   const editRoleOptions = useMemo(() => {
     if (
@@ -593,6 +603,47 @@ export function ParticipantFormDrawer({
             </div>
           )}
 
+          {!isMinistryLocked &&
+            departmentRequirement.mode !== "none" &&
+            !(isEditing && selectedRole === ROLES.GENERAL_MANAGER) &&
+            assignableDepartments.length > 0 && (
+              <div className={styles.fieldGroup}>
+                <label htmlFor={ministrySelectId} className={styles.fieldLabel}>
+                  Ministério
+                </label>
+                <select
+                  id={ministrySelectId}
+                  name="departmentId"
+                  value={selectedDepartmentIds[0] || ""}
+                  aria-invalid={departmentError ? "true" : "false"}
+                  aria-describedby={
+                    departmentError ? ministryErrorId : undefined
+                  }
+                  className={`${styles.select} ${
+                    departmentError ? styles.inputError : ""
+                  }`}
+                  onChange={(event) => {
+                    const val = event.currentTarget.value;
+                    setSelectedDepartmentIds(val ? [val] : []);
+                    setDepartmentError("");
+                    setDrawerFormError("");
+                  }}
+                >
+                  {assignableDepartments.map((dept) => (
+                    <option key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
+                {departmentError && (
+                  <div id={ministryErrorId} className={styles.errorMsg}>
+                    <AlertCircleIcon className={styles.errorIcon} />
+                    <span>{departmentError}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
           <div className={styles.singleColField}>
             <div className={styles.fieldGroup}>
               <label htmlFor={roleSelectId} className={styles.fieldLabel}>
@@ -642,53 +693,18 @@ export function ParticipantFormDrawer({
                 primeiro.
               </span>
             </div>
-          ) : (
+          ) : isMinistryLocked ? (
             <div className={styles.fieldGroup}>
               <div className={styles.fieldLabelRow}>
-                {isMinistryLocked ? (
-                  <span className={styles.fieldLabel}>Ministério</span>
-                ) : (
-                  <label htmlFor={ministrySelectId} className={styles.fieldLabel}>
-                    Ministério
-                  </label>
-                )}
-                {isMinistryLocked && (
-                  <span className={styles.optionalTag}>Somente leitura</span>
-                )}
+                <span className={styles.fieldLabel}>Ministério</span>
+                <span className={styles.optionalTag}>Somente leitura</span>
               </div>
 
-              {isMinistryLocked ? (
-                <div className={styles.readonlyScopeBox}>
-                  <strong className={styles.readonlyScopeValue}>
-                    {lockedDepartment?.name || "Nenhum ministério disponível"}
-                  </strong>
-                </div>
-              ) : (
-                <select
-                  id={ministrySelectId}
-                  name="departmentId"
-                  value={selectedDepartmentIds[0] || ""}
-                  aria-invalid={departmentError ? "true" : "false"}
-                  aria-describedby={
-                    departmentError ? ministryErrorId : undefined
-                  }
-                  className={`${styles.select} ${
-                    departmentError ? styles.inputError : ""
-                  }`}
-                  onChange={(event) => {
-                    const val = event.currentTarget.value;
-                    setSelectedDepartmentIds(val ? [val] : []);
-                    setDepartmentError("");
-                    setDrawerFormError("");
-                  }}
-                >
-                  {assignableDepartments.map((dept) => (
-                    <option key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </select>
-              )}
+              <div className={styles.readonlyScopeBox}>
+                <strong className={styles.readonlyScopeValue}>
+                  {lockedDepartment?.name || "Nenhum ministério disponível"}
+                </strong>
+              </div>
               {departmentError && (
                 <div id={ministryErrorId} className={styles.errorMsg}>
                   <AlertCircleIcon className={styles.errorIcon} />
@@ -696,7 +712,7 @@ export function ParticipantFormDrawer({
                 </div>
               )}
             </div>
-          )}
+          ) : null}
 
           {drawerFormError && (
             <div className={styles.formBannerError} role="alert">

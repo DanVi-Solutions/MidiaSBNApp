@@ -29,4 +29,8 @@ export class AppError extends Error {
   static unprocessable(message, details) {
     return new AppError(message, 422, details);
   }
+
+  static serviceUnavailable(message = "Serviço temporariamente indisponível", details) {
+    return new AppError(message, 503, details);
+  }
 }

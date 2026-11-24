@@ -25,6 +25,7 @@ import {
 import {
   CREDENTIAL_STATUS,
   getDepartmentIds,
+  hasScheduleManagementRole,
   isAdmin,
   isAtLeast,
   resolveRoleCode,
@@ -82,8 +83,7 @@ export function getReportDateRange(scheduleWindow) {
 }
 
 export async function fetchReportDataset({ currentUser, departments = [] }) {
-  const roleCode = resolveRoleCode(currentUser);
-  const isVolunteer = roleCode === ROLES.VOLUNTEER;
+  const isVolunteer = !hasScheduleManagementRole(currentUser);
   const userIsAdmin = isAdmin(currentUser);
   const isManagementOnly = isAtLeast(currentUser, ROLES.GENERAL_MANAGER);
 

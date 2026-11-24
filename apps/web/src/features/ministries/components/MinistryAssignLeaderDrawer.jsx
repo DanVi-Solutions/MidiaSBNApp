@@ -31,7 +31,7 @@ import {
   setupRightDrawerOutsideCollapse,
   shouldIgnoreRightDrawerClose,
 } from "@/lib/rightDrawer";
-import { CREDENTIAL_STATUS, getRoleLabel, ROLES } from "@/lib/roles";
+import { CREDENTIAL_STATUS, getRoleLabel, isAdmin, ROLES } from "@/lib/roles";
 import styles from "./MinistriesView.module.css";
 
 const CANDIDATE_BATCH_SIZE = 24;
@@ -183,8 +183,7 @@ export function MinistryAssignLeaderDrawer({ ministryId, onClose }) {
     );
     const promotableMembers = activeMembers.filter(
       (person) =>
-        person.roleCode !== ROLES.GENERAL_MANAGER &&
-        person.roleCode !== ROLES.ADMINISTRATOR
+        person.roleCode !== ROLES.GENERAL_MANAGER && !isAdmin(person)
     );
     const otherGeneralManagers = participants.filter(
       (person) =>

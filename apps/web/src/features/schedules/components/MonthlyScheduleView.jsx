@@ -68,6 +68,7 @@ import {
   CREDENTIAL_STATUS,
   getAssignableDepartments,
   getDepartmentIds,
+  hasScheduleManagementRole,
   isAdmin,
   isAtLeast,
   resolveRoleCode,
@@ -279,7 +280,7 @@ export function MonthlyScheduleView() {
     () => canManageAnySchedule(currentUser, departments),
     [currentUser, departments]
   );
-  const canExportSchedule = isAtLeast(currentUser, ROLES.SCHEDULER_MANAGER);
+  const canExportSchedule = hasScheduleManagementRole(currentUser);
   const activeMinistryId =
     activeMinistry?.id && !activeMinistry.isGlobal
       ? activeMinistry.id
@@ -1231,8 +1232,9 @@ export function MonthlyScheduleView() {
           <p className={styles.pageEyebrow}>PLANEJAMENTO MENSAL</p>
           <h1 className={styles.pageTitle}>Escala do mês</h1>
           <p className={styles.pageSubtitle}>
-            Organize escalas, inscrições voluntárias e substituições com
-            clareza.
+            {canManageAny
+              ? "Crie e publique as escalas, acompanhe as confirmações e resolva substituições."
+              : "Veja suas escalas, confirme presença, faça check-in e inscreva-se em vagas abertas."}
           </p>
         </div>
 

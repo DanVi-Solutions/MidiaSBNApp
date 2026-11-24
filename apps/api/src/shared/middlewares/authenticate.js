@@ -1,5 +1,7 @@
 import { credentialsRepository } from "../../modules/credentials/credentials.repository.js";
 import { sessionsRepository } from "../../modules/sessions/sessions.repository.js";
+import { createMaintenanceError, systemService } from "../../modules/system/system.service.js";
+import { isDeveloper } from "../auth/roles.js";
 import { verifyAccessToken } from "../auth/tokens.js";
 import { AppError } from "../errors/AppError.js";
 
@@ -21,6 +23,9 @@ export async function authenticate(req, res, next) {
   if (!credential) throw AppError.unauthorized("Credencial não encontrada");
   if (!sessionIsOpen) throw AppError.unauthorized("Sessão encerrada");
   if (credential.status === "INACTIVE") throw AppError.forbidden("Credencial inativa");
+  if (!isDeveloper(credential) && (await systemService.isMaintenanceMode())) {
+    throw createMaintenanceError();
+  }
 
   req.auth = { ...credential, sessionId: payload.sid };
   next();

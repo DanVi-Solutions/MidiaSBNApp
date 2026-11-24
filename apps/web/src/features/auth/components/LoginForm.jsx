@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangleIcon,
   ArrowRightIcon,
   EyeIcon,
   EyeOffIcon,
@@ -18,6 +19,7 @@ import {
   prepareActivationCode,
 } from "@/features/auth/services/authService";
 import { rememberWelcomeOnboarding } from "@/features/onboarding/lib/welcomeOnboarding";
+import { fetchSystemStatus } from "@/features/settings/services/systemService";
 import { guardAgainstAutofillUiEvents } from "@/lib/autofillEventGuard";
 import { CREDENTIAL_STATUS } from "@/lib/roles";
 import {
@@ -58,7 +60,21 @@ export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [onboardingState, setOnboardingState] = useState(null);
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const [isCodeVisible, setIsCodeVisible] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchSystemStatus().then((res) => {
+      if (!active) return;
+      if (res.ok && typeof res.data?.maintenanceMode === "boolean") {
+        setIsMaintenanceMode(res.data.maintenanceMode);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => guardAgainstAutofillUiEvents(), []);
 
@@ -157,6 +173,12 @@ export function LoginForm() {
     fetchMyCredential().then(async (meResult) => {
       if (!active) return;
       if (!meResult.ok || !meResult.data) {
+        if (
+          meResult.status === 503 ||
+          meResult.details?.code === "MAINTENANCE_MODE"
+        ) {
+          setIsMaintenanceMode(true);
+        }
         clearStoredSession();
         return;
       }
@@ -267,6 +289,12 @@ export function LoginForm() {
     }
 
     setIsSubmitting(false);
+    if (
+      result.status === 503 ||
+      result.details?.code === "MAINTENANCE_MODE"
+    ) {
+      setIsMaintenanceMode(true);
+    }
     setErrorMessage(result.error);
     setHasFallbackError(true);
     toast.error(
@@ -316,6 +344,21 @@ export function LoginForm() {
               Use o código fornecido pelo responsável da Mídia Sobrenatural.
             </p>
           </header>
+
+          {isMaintenanceMode && (
+            <div className={styles.maintenanceBanner} role="status">
+              <span className={styles.maintenanceIcon} aria-hidden="true">
+                <AlertTriangleIcon />
+              </span>
+              <div className={styles.maintenanceBody}>
+                <p className={styles.maintenanceTitle}>Sistema em manutenção</p>
+                <p className={styles.maintenanceText}>
+                  O acesso ao sistema está temporariamente suspenso enquanto
+                  realizamos ajustes. Tente novamente mais tarde.
+                </p>
+              </div>
+            </div>
+          )}
 
           <form
             className={styles.form}
