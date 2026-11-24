@@ -17,8 +17,8 @@ export function assertCanIndicateDepartments(actor, departmentIds) {
   }
 }
 
-export function assertUpcoming(event, now = new Date()) {
-  if (event.startsAt <= now) {
+export function assertUpcoming(lastSlotAt, now = new Date()) {
+  if (lastSlotAt <= now) {
     throw AppError.conflict("Este evento já aconteceu e não pode mais ser alterado");
   }
 }

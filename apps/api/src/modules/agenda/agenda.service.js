@@ -1,6 +1,8 @@
 import { AppError } from "../../shared/errors/AppError.js";
+import { scheduleAtForSlot, slotInstant } from "../../shared/time/agendaSlots.js";
 import { agendaCycleRange, agendaWindow, assertInsideAgendaWindow } from "../../shared/time/agendaWindow.js";
 import { isInsideWindow } from "../../shared/time/scheduleWindow.js";
+import { localDateOf } from "../../shared/time/zonedTime.js";
 import { messages } from "../notifications/notifications.messages.js";
 import { notifier as defaultNotifier } from "../notifications/notifications.notifier.js";
 import { scheduleAgendaEvents } from "./agenda.jobs.js";
@@ -8,6 +10,9 @@ import { assertCanEditAgenda, assertCanIndicateDepartments, assertUpcoming, canE
 import { agendaRepository } from "./agenda.repository.js";
 
 const difference = (list, other) => list.filter((item) => !other.includes(item));
+const sameList = (a, b) => a.length === b.length && a.every((item, index) => item === b[index]);
+const eventDateOf = (event) => localDateOf(event.startsAt);
+const lastSlotOf = (event) => slotInstant(eventDateOf(event), event.times.at(-1));
 
 function present(event) {
   const scheduledDepartmentIds = new Set(event.schedules.map((schedule) => schedule.department.id));
@@ -16,6 +21,8 @@ function present(event) {
     name: event.name,
     description: event.description,
     location: event.location,
+    date: eventDateOf(event),
+    times: event.times,
     startsAt: event.startsAt,
     published: event.published,
     createdBy: event.createdBy,
@@ -39,6 +46,10 @@ export function createAgendaService({ repository = agendaRepository, notifier = 
     }
   }
 
+  function assertSlotsInsideWindow(date, times) {
+    for (const time of times) assertInsideAgendaWindow(slotInstant(date, time));
+  }
+
   async function warnAssignees(schedules, buildMessage, except) {
     for (const schedule of schedules) {
       if (!schedule.published || schedule.assigneeIds.length === 0) continue;
@@ -55,18 +66,15 @@ export function createAgendaService({ repository = agendaRepository, notifier = 
     return { added, removed };
   }
 
-  function planReschedule(current, startsAt, keptSchedules) {
-    const moved = startsAt !== undefined && startsAt.getTime() !== current.startsAt.getTime();
-    if (!moved) return { moved, moveIds: [], dropIds: [], unsyncDepartmentIds: [] };
-    if (isInsideWindow(startsAt)) {
-      return { moved, moveIds: keptSchedules.map((schedule) => schedule.id), dropIds: [], unsyncDepartmentIds: [] };
+  function planReschedule(keptSchedules, nextDate) {
+    const moves = [];
+    const dropped = [];
+    for (const schedule of keptSchedules) {
+      const scheduleAt = scheduleAtForSlot(nextDate, schedule.agendaSlot);
+      if (isInsideWindow(scheduleAt)) moves.push({ id: schedule.id, scheduleAt });
+      else dropped.push(schedule);
     }
-    return {
-      moved,
-      moveIds: [],
-      dropIds: keptSchedules.map((schedule) => schedule.id),
-      unsyncDepartmentIds: keptSchedules.map((schedule) => schedule.department.id),
-    };
+    return { moves, dropped };
   }
 
   return {
@@ -94,9 +102,7 @@ export function createAgendaService({ repository = agendaRepository, notifier = 
 
     async list(auth, { year } = {}) {
       const window = agendaWindow();
-      const range = year
-        ? agendaCycleRange(year)
-        : { from: window.visibleFrom, until: window.editableUntil };
+      const range = year ? agendaCycleRange(year) : { from: window.visibleFrom, until: window.editableUntil };
       return (await repository.list({ ...range, publishedOnly: !canEditAgenda(auth) })).map(present);
     },
 
@@ -106,45 +112,79 @@ export function createAgendaService({ repository = agendaRepository, notifier = 
       return present(event);
     },
 
-    async create(auth, { departmentIds, ...data }) {
+    async create(auth, { departmentIds, date, times, ...data }) {
       assertCanEditAgenda(auth);
-      assertInsideAgendaWindow(data.startsAt);
+      assertSlotsInsideWindow(date, times);
       assertCanIndicateDepartments(auth, departmentIds);
       await assertDepartmentsExist(departmentIds);
 
-      const id = await repository.create({ ...data, departmentIds, createdById: auth.id });
+      const id = await repository.create({
+        ...data,
+        startsAt: slotInstant(date, times[0]),
+        times,
+        departmentIds,
+        createdById: auth.id,
+      });
       await scheduleAgendaEvents({ repository });
       return present(await findEvent(id));
     },
 
-    async update(auth, id, { departmentIds, ...data }) {
+    async update(auth, id, { departmentIds, date, times, ...data }) {
       assertCanEditAgenda(auth);
       const current = await findEvent(id);
-      assertUpcoming(current);
+      assertUpcoming(lastSlotOf(current));
       if (current.published && data.published === false) {
         throw AppError.conflict("Um evento publicado não volta para rascunho: cancele-o se ele não for mais acontecer");
       }
-      if (data.startsAt) assertInsideAgendaWindow(data.startsAt);
+
+      const currentDate = eventDateOf(current);
+      const nextDate = date ?? currentDate;
+      const nextTimes = times ?? current.times;
+      const dateChanged = nextDate !== currentDate;
+      const timesChanged = !sameList(nextTimes, current.times);
+      assertSlotsInsideWindow(nextDate, dateChanged ? nextTimes : difference(nextTimes, current.times));
 
       const { added, removed } = planDepartments(auth, current, departmentIds);
       await assertDepartmentsExist(added);
 
-      const removedSchedules = current.schedules.filter((schedule) => removed.includes(schedule.department.id));
-      const keptSchedules = difference(current.schedules, removedSchedules);
-      const reschedule = planReschedule(current, data.startsAt, keptSchedules);
+      const removedSlots = difference(current.times, nextTimes);
+      const cancelledSchedules = current.schedules.filter(
+        (schedule) => removed.includes(schedule.department.id) || removedSlots.includes(schedule.agendaSlot),
+      );
+      const keptSchedules = difference(current.schedules, cancelledSchedules);
+      const { moves, dropped } = dateChanged ? planReschedule(keptSchedules, nextDate) : { moves: [], dropped: [] };
+
+      const syncedSlotsByDepartment = {};
+      for (const department of current.departments) {
+        if (removed.includes(department.id)) continue;
+        const droppedSlots = dropped
+          .filter((schedule) => schedule.department.id === department.id)
+          .map((schedule) => schedule.agendaSlot);
+        const nextSynced = department.syncedSlots.filter(
+          (slot) => nextTimes.includes(slot) && !droppedSlots.includes(slot),
+        );
+        if (!sameList(nextSynced, department.syncedSlots)) syncedSlotsByDepartment[department.id] = nextSynced;
+      }
 
       await repository.update(id, {
-        data,
+        data: {
+          ...data,
+          ...((dateChanged || timesChanged) && { startsAt: slotInstant(nextDate, nextTimes[0]), times: nextTimes }),
+        },
         addDepartmentIds: added,
         removeDepartmentIds: removed,
-        moveSchedules: { ids: reschedule.moveIds, scheduleAt: data.startsAt },
-        dropScheduleIds: [...removedSchedules.map((schedule) => schedule.id), ...reschedule.dropIds],
-        unsyncDepartmentIds: reschedule.unsyncDepartmentIds,
+        dropScheduleIds: [...cancelledSchedules, ...dropped].map((schedule) => schedule.id),
+        moves,
+        syncedSlotsByDepartment,
       });
 
-      await warnAssignees(removedSchedules, messages.scheduleCancelled, auth.id);
-      if (reschedule.moved) {
-        await warnAssignees(keptSchedules, (schedule) => messages.agendaEventMoved(schedule, data.startsAt), auth.id);
+      await warnAssignees(cancelledSchedules, messages.scheduleCancelled, auth.id);
+      if (dateChanged) {
+        await warnAssignees(
+          keptSchedules,
+          (schedule) => messages.agendaEventMoved(schedule, slotInstant(nextDate, schedule.agendaSlot)),
+          auth.id,
+        );
       }
       await scheduleAgendaEvents({ repository });
       return present(await findEvent(id));
@@ -153,7 +193,7 @@ export function createAgendaService({ repository = agendaRepository, notifier = 
     async delete(auth, id) {
       assertCanEditAgenda(auth);
       const current = await findEvent(id);
-      assertUpcoming(current);
+      assertUpcoming(lastSlotOf(current));
       await repository.delete(
         id,
         current.schedules.map((schedule) => schedule.id),

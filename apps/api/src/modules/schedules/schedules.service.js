@@ -89,12 +89,6 @@ function assertCanDeleteSchedule(auth, schedule) {
   }
 }
 
-function assertKeepsAgendaDate(schedule, scheduleAt) {
-  if (comesFromAgenda(schedule) && scheduleAt && scheduleAt.getTime() !== schedule.scheduleAt.getTime()) {
-    throw AppError.conflict("Esta escala vem da Agenda Sobrenatural: para mudar a data, remarque o evento na agenda");
-  }
-}
-
 const assigneeIdsOf = (schedule) => (schedule.assignments ?? []).map((assignment) => assignment.credential.id);
 
 const OUTDATED_AFTER_LEAVING = [
@@ -428,7 +422,6 @@ export function createSchedulesService({
 
     async update(auth, id, changes) {
       const current = await findEditableSchedule(auth, id);
-      assertKeepsAgendaDate(current, changes.scheduleAt);
       if (changes.scheduleAt) assertInsideWindow(changes.scheduleAt);
       ensureVolunteersNeededWhenSelfSignup({
         selfSignup: changes.selfSignup ?? current.selfSignup,

@@ -32,7 +32,11 @@ const scheduleBase = z.object({
   recurringEventId: z.uuid().nullable().meta({ description: "Evento recorrente que gerou a escala, se houver." }),
   agendaEventId: z.uuid().nullable().meta({
     description:
-      "Evento da Agenda Sobrenatural que gerou a escala, se houver. A data dela só muda pela agenda, e só o líder geral ou acima pode apagá-la.",
+      "Evento da Agenda Sobrenatural que gerou a escala, se houver. Só o líder geral ou acima pode apagá-la.",
+  }),
+  agendaSlot: z.string().nullable().meta({
+    description: "Horário do evento na agenda que gerou a escala (a escala nasce uma hora antes). Mudar o horário da escala não altera o evento.",
+    example: "20:00",
   }),
   department,
   assignedCount: z.number().int().meta({ description: "Quantidade de pessoas escaladas." }),

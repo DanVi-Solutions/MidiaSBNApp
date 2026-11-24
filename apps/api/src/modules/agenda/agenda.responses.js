@@ -19,7 +19,9 @@ export const agendaEvent = z.object({
   name: z.string(),
   description: z.string().nullable(),
   location: z.string().nullable(),
-  startsAt: z.iso.datetime(),
+  date: z.string().meta({ example: "2026-12-12" }),
+  times: z.array(z.string()).meta({ example: ["09:00", "19:00"] }),
+  startsAt: z.iso.datetime().meta({ description: "Primeiro horário do evento." }),
   published: z.boolean().meta({ description: "`false` = rascunho, visível só para quem edita a agenda e sem escalas." }),
   createdBy: z.object({ id: z.uuid(), name: z.string() }).nullable(),
   departments: z.array(
@@ -46,6 +48,7 @@ export const publicAgenda = z.object({
       description: z.string().nullable(),
       location: z.string().nullable(),
       startsAt: z.iso.datetime(),
+      times: z.array(z.string()),
     }),
   ),
 });

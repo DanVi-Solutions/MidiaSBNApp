@@ -6,12 +6,13 @@ const eventSelect = {
   description: true,
   location: true,
   startsAt: true,
+  times: true,
   published: true,
   createdAt: true,
   updatedAt: true,
   createdBy: { select: { id: true, name: true } },
   departments: {
-    select: { syncedAt: true, department: { select: { id: true, name: true } } },
+    select: { syncedSlots: true, department: { select: { id: true, name: true } } },
     orderBy: { department: { name: "asc" } },
   },
   schedules: {
@@ -19,6 +20,7 @@ const eventSelect = {
       id: true,
       name: true,
       scheduleAt: true,
+      agendaSlot: true,
       published: true,
       department: { select: { id: true, name: true } },
       credentials: { select: { credentialId: true } },
@@ -31,7 +33,7 @@ function toAgendaEvent(row) {
   const { departments, schedules, ...event } = row;
   return {
     ...event,
-    departments: departments.map(({ department, syncedAt }) => ({ ...department, syncedAt })),
+    departments: departments.map(({ department, syncedSlots }) => ({ ...department, syncedSlots })),
     schedules: schedules.map(({ credentials, ...schedule }) => ({
       ...schedule,
       assigneeIds: credentials.map((assignment) => assignment.credentialId),
@@ -52,7 +54,7 @@ export const agendaRepository = {
   listPublished({ from, until }) {
     return prisma.agendaEvent.findMany({
       where: { published: true, startsAt: { gte: from, lt: until } },
-      select: { id: true, name: true, description: true, location: true, startsAt: true },
+      select: { id: true, name: true, description: true, location: true, startsAt: true, times: true },
       orderBy: [{ startsAt: "asc" }, { name: "asc" }],
     });
   },
@@ -69,17 +71,17 @@ export const agendaRepository = {
     return row.id;
   },
 
-  async update(id, { data, addDepartmentIds, removeDepartmentIds, moveSchedules, dropScheduleIds, unsyncDepartmentIds }) {
+  async update(id, { data, addDepartmentIds, removeDepartmentIds, dropScheduleIds, moves, syncedSlotsByDepartment }) {
     await prisma.$transaction(async (tx) => {
       if (dropScheduleIds.length > 0) {
         await tx.schedule.deleteMany({ where: { id: { in: dropScheduleIds } } });
       }
-      if (moveSchedules.ids.length > 0) {
-        await tx.credentialSchedule.deleteMany({ where: { scheduleId: { in: moveSchedules.ids } } });
-        await tx.notification.deleteMany({ where: { scheduleId: { in: moveSchedules.ids } } });
-        await tx.schedule.updateMany({
-          where: { id: { in: moveSchedules.ids } },
-          data: { scheduleAt: moveSchedules.scheduleAt, published: false, attendanceNoticeSentAt: null },
+      for (const move of moves) {
+        await tx.credentialSchedule.deleteMany({ where: { scheduleId: move.id } });
+        await tx.notification.deleteMany({ where: { scheduleId: move.id } });
+        await tx.schedule.update({
+          where: { id: move.id },
+          data: { scheduleAt: move.scheduleAt, published: false, attendanceNoticeSentAt: null },
         });
       }
       if (removeDepartmentIds.length > 0) {
@@ -87,10 +89,10 @@ export const agendaRepository = {
           where: { agendaEventId: id, departmentId: { in: removeDepartmentIds } },
         });
       }
-      if (unsyncDepartmentIds.length > 0) {
-        await tx.agendaEventDepartment.updateMany({
-          where: { agendaEventId: id, departmentId: { in: unsyncDepartmentIds } },
-          data: { syncedAt: null },
+      for (const [departmentId, syncedSlots] of Object.entries(syncedSlotsByDepartment)) {
+        await tx.agendaEventDepartment.update({
+          where: { agendaEventId_departmentId: { agendaEventId: id, departmentId } },
+          data: { syncedSlots },
         });
       }
       if (addDepartmentIds.length > 0) {
@@ -114,35 +116,29 @@ export const agendaRepository = {
     return prisma.department.count({ where: { id: { in: ids } } });
   },
 
-  listUnscheduled({ from, until }) {
+  listSchedulingCandidates({ from, until }) {
     return prisma.agendaEventDepartment.findMany({
-      where: { syncedAt: null, agendaEvent: { published: true, startsAt: { gte: from, lt: until } } },
+      where: { agendaEvent: { published: true, startsAt: { gte: from, lt: until } } },
       select: {
         departmentId: true,
-        agendaEvent: { select: { id: true, name: true, description: true, startsAt: true } },
+        syncedSlots: true,
+        agendaEvent: { select: { id: true, name: true, description: true, startsAt: true, times: true } },
       },
     });
   },
 
-  async createSchedules(entries, syncedAt) {
-    if (entries.length === 0) return 0;
-    const [{ count }] = await prisma.$transaction([
-      prisma.schedule.createMany({
-        data: entries.map(({ agendaEvent, departmentId }) => ({
-          name: agendaEvent.name,
-          description: agendaEvent.description,
-          scheduleAt: agendaEvent.startsAt,
-          departmentId,
-          agendaEventId: agendaEvent.id,
-        })),
-        skipDuplicates: true,
-      }),
-      prisma.agendaEventDepartment.updateMany({
-        where: { OR: entries.map(({ agendaEvent, departmentId }) => ({ agendaEventId: agendaEvent.id, departmentId })) },
-        data: { syncedAt },
-      }),
-    ]);
-    return count;
+  async createSchedules(schedules, syncedSlotUpdates) {
+    if (schedules.length === 0) return 0;
+    return prisma.$transaction(async (tx) => {
+      const { count } = await tx.schedule.createMany({ data: schedules, skipDuplicates: true });
+      for (const { agendaEventId, departmentId, syncedSlots } of syncedSlotUpdates) {
+        await tx.agendaEventDepartment.update({
+          where: { agendaEventId_departmentId: { agendaEventId, departmentId } },
+          data: { syncedSlots },
+        });
+      }
+      return count;
+    });
   },
 
   async deleteBefore(date) {

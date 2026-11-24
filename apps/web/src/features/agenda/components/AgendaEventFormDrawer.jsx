@@ -7,6 +7,7 @@ import {
   AlertCircleIcon,
   AlertTriangleIcon,
   CloseIcon,
+  PlusIcon,
 } from "@/components/ui/icons";
 import {
   createAgendaEvent,
@@ -47,19 +48,30 @@ function validateDate(dateIso, todayIso, lastEditableDay) {
   return "";
 }
 
-function validateTime(time, dateIso, todayIso) {
-  if (!time) return "Informe o horário do evento.";
-  if (dateIso === todayIso) {
-    const startsAt = new Date(
-      buildIsoDateTimeInZone(dateIso, time, APP_TIME_ZONE),
-    );
-    if (startsAt <= new Date()) return "Esse horário de hoje já passou.";
+const MAX_TIMES = 10;
+const WALL_TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function validateTimes(slots, dateIso, todayIso) {
+  const seen = new Set();
+  for (const slot of slots) {
+    if (!slot.value) return { error: "Preencha todos os horários ou remova os campos em branco.", slotId: slot.id };
+    if (!WALL_TIME_REGEX.test(slot.value)) return { error: "Informe um horário válido.", slotId: slot.id };
+    if (seen.has(slot.value)) return { error: `O horário ${slot.value} está repetido.`, slotId: slot.id };
+    seen.add(slot.value);
+    if (dateIso === todayIso) {
+      const startsAt = new Date(buildIsoDateTimeInZone(dateIso, slot.value, APP_TIME_ZONE));
+      if (startsAt <= new Date()) return { error: `O horário ${slot.value} de hoje já passou.`, slotId: slot.id };
+    }
   }
-  return "";
+  return { error: "", slotId: null };
 }
 
 const sameIds = (a, b) =>
   a.length === b.length && a.every((id) => b.includes(id));
+
+const sortedTimesOf = (slots) => [...new Set(slots.map((slot) => slot.value))].sort();
+
+const createSlots = (times) => times.map((value, index) => ({ id: index + 1, value }));
 
 export function AgendaEventFormDrawer({
   mode = "create",
@@ -109,22 +121,22 @@ export function AgendaEventFormDrawer({
   const nameErrorId = useId();
   const dateInputId = useId();
   const dateErrorId = useId();
-  const timeInputId = useId();
-  const timeErrorId = useId();
+  const timesErrorId = useId();
   const locationInputId = useId();
   const descriptionInputId = useId();
 
   const dialogRef = useRef(null);
   const nameInputRef = useRef(null);
   const dateInputRef = useRef(null);
-  const timeInputRef = useRef(null);
+  const timeInputRefs = useRef(new Map());
   const isCleaningUpRef = useRef(false);
 
   const [name, setName] = useState(() => (isEditing ? event.name : ""));
   const [dateIso, setDateIso] = useState(() =>
     isEditing ? event.dateIso : "",
   );
-  const [time, setTime] = useState(() => (isEditing ? event.time : "19:00"));
+  const [timeSlots, setTimeSlots] = useState(() => createSlots(isEditing ? event.times : ["19:00"]));
+  const slotIdCounterRef = useRef(timeSlots.length);
   const [location, setLocation] = useState(() =>
     isEditing ? event.location : "",
   );
@@ -137,7 +149,7 @@ export function AgendaEventFormDrawer({
 
   const [nameError, setNameError] = useState("");
   const [dateError, setDateError] = useState("");
-  const [timeError, setTimeError] = useState("");
+  const [timesError, setTimesError] = useState("");
   const [formError, setFormError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -178,14 +190,36 @@ export function AgendaEventFormDrawer({
     onClose?.();
   };
 
-  const isRescheduling =
-    isEditing && (dateIso !== event.dateIso || time !== event.time);
+  const isRescheduling = isEditing && dateIso !== event.dateIso;
+  const currentTimes = timeSlots.map((slot) => slot.value);
+  const removedTimes = isEditing ? event.times.filter((value) => !currentTimes.includes(value)) : [];
   const scheduledDepartments = isEditing
     ? event.departments.filter((department) => department.scheduled)
     : [];
   const removedScheduled = scheduledDepartments.filter(
     (department) => !selectedIds.includes(department.id),
   );
+
+  const addTimeSlot = () => {
+    if (isSaving || timeSlots.length >= MAX_TIMES) return;
+    slotIdCounterRef.current += 1;
+    const nextId = slotIdCounterRef.current;
+    setTimeSlots((prev) => [...prev, { id: nextId, value: "" }]);
+    setTimesError("");
+    window.requestAnimationFrame(() => timeInputRefs.current.get(nextId)?.focus());
+  };
+
+  const removeTimeSlot = (slotId) => {
+    if (isSaving || timeSlots.length <= 1) return;
+    setTimeSlots((prev) => prev.filter((slot) => slot.id !== slotId));
+    setTimesError("");
+  };
+
+  const changeTimeSlot = (slotId, value) => {
+    setTimeSlots((prev) => prev.map((slot) => (slot.id === slotId ? { ...slot, value } : slot)));
+    setFormError("");
+    setTimesError("");
+  };
 
   const toggleDepartment = (departmentId) => {
     if (!canToggle(departmentId) || isSaving) return;
@@ -202,25 +236,26 @@ export function AgendaEventFormDrawer({
     if (isSaving) return;
 
     const nextNameError = validateName(name);
-    const dateUnchanged =
-      isEditing && dateIso === event.dateIso && time === event.time;
+    const nextTimes = sortedTimesOf(timeSlots);
+    const dateUnchanged = isEditing && dateIso === event.dateIso;
+    const timesUnchanged = isEditing && nextTimes.join() === event.times.join();
     const nextDateError = dateUnchanged
       ? ""
       : validateDate(dateIso, todayIso, lastEditableDay);
-    const nextTimeError =
-      dateUnchanged || nextDateError
-        ? ""
-        : validateTime(time, dateIso, todayIso);
+    const slotsToCheck =
+      dateUnchanged && isEditing ? timeSlots.filter((slot) => !event.times.includes(slot.value)) : timeSlots;
+    const timesCheck =
+      nextDateError || (dateUnchanged && timesUnchanged)
+        ? { error: "", slotId: null }
+        : validateTimes(slotsToCheck, dateIso, todayIso);
     setNameError(nextNameError);
     setDateError(nextDateError);
-    setTimeError(nextTimeError);
+    setTimesError(timesCheck.error);
     setFormError("");
 
     if (nextNameError) return nameInputRef.current?.focus();
     if (nextDateError) return dateInputRef.current?.focus();
-    if (nextTimeError) return timeInputRef.current?.focus();
-
-    const startsAt = buildIsoDateTimeInZone(dateIso, time, APP_TIME_ZONE);
+    if (timesCheck.error) return timeInputRefs.current.get(timesCheck.slotId)?.focus();
     const trimmed = {
       name: name.trim(),
       location: location.trim(),
@@ -235,7 +270,8 @@ export function AgendaEventFormDrawer({
         patch.location = trimmed.location || null;
       if (trimmed.description !== event.description)
         patch.description = trimmed.description || null;
-      if (!dateUnchanged) patch.startsAt = startsAt;
+      if (!dateUnchanged) patch.date = dateIso;
+      if (!timesUnchanged) patch.times = nextTimes;
       if (!sameIds(selectedIds, event.departmentIds))
         patch.departmentIds = selectedIds;
 
@@ -251,7 +287,8 @@ export function AgendaEventFormDrawer({
         name: trimmed.name,
         ...(trimmed.location && { location: trimmed.location }),
         ...(trimmed.description && { description: trimmed.description }),
-        startsAt,
+        date: dateIso,
+        times: nextTimes,
         departmentIds: selectedIds,
       });
     }
@@ -341,69 +378,101 @@ export function AgendaEventFormDrawer({
             )}
           </div>
 
-          <div className={styles.dateTimeRow}>
-            <div className={styles.fieldGroup}>
-              <div className={styles.fieldLabelRow}>
-                <label htmlFor={dateInputId} className={styles.fieldLabel}>
-                  Data
-                </label>
-                <span className={styles.requiredTag}>Obrigatório</span>
-              </div>
-              <input
-                ref={dateInputRef}
-                id={dateInputId}
-                name="date"
-                type="date"
-                value={dateIso}
-                min={todayIso}
-                max={lastEditableDay || undefined}
-                aria-invalid={dateError ? "true" : "false"}
-                aria-describedby={dateError ? dateErrorId : undefined}
-                className={`${styles.input} ${dateError ? styles.inputError : ""}`}
-                onChange={(changeEvent) => {
-                  setDateIso(changeEvent.currentTarget.value);
-                  setFormError("");
-                  if (dateError) setDateError("");
-                }}
-              />
-              {dateError && (
-                <div id={dateErrorId} className={styles.errorMsg}>
-                  <AlertCircleIcon className={styles.errorIcon} />
-                  <span>{dateError}</span>
-                </div>
-              )}
+          <div className={styles.fieldGroup}>
+            <div className={styles.fieldLabelRow}>
+              <label htmlFor={dateInputId} className={styles.fieldLabel}>
+                Data
+              </label>
+              <span className={styles.requiredTag}>Obrigatório</span>
             </div>
-
-            <div className={styles.fieldGroup}>
-              <div className={styles.fieldLabelRow}>
-                <label htmlFor={timeInputId} className={styles.fieldLabel}>
-                  Horário
-                </label>
-                <span className={styles.requiredTag}>Obrigatório</span>
+            <input
+              ref={dateInputRef}
+              id={dateInputId}
+              name="date"
+              type="date"
+              value={dateIso}
+              min={todayIso}
+              max={lastEditableDay || undefined}
+              aria-invalid={dateError ? "true" : "false"}
+              aria-describedby={dateError ? dateErrorId : undefined}
+              className={`${styles.input} ${dateError ? styles.inputError : ""}`}
+              onChange={(changeEvent) => {
+                setDateIso(changeEvent.currentTarget.value);
+                setFormError("");
+                if (dateError) setDateError("");
+              }}
+            />
+            {dateError && (
+              <div id={dateErrorId} className={styles.errorMsg}>
+                <AlertCircleIcon className={styles.errorIcon} />
+                <span>{dateError}</span>
               </div>
-              <input
-                ref={timeInputRef}
-                id={timeInputId}
-                name="time"
-                type="time"
-                value={time}
-                aria-invalid={timeError ? "true" : "false"}
-                aria-describedby={timeError ? timeErrorId : undefined}
-                className={`${styles.input} ${timeError ? styles.inputError : ""}`}
-                onChange={(changeEvent) => {
-                  setTime(changeEvent.currentTarget.value);
-                  setFormError("");
-                  if (timeError) setTimeError("");
-                }}
-              />
-              {timeError && (
-                <div id={timeErrorId} className={styles.errorMsg}>
-                  <AlertCircleIcon className={styles.errorIcon} />
-                  <span>{timeError}</span>
-                </div>
-              )}
-            </div>
+            )}
           </div>
+
+          <fieldset className={styles.timesFieldset} aria-describedby={timesError ? timesErrorId : undefined}>
+            <legend className={styles.fieldsetLegendRow}>
+              <span>Horários</span>
+              <span className={styles.requiredTag}>Obrigatório</span>
+            </legend>
+            <div className={styles.timesCard}>
+              <div className={styles.timesHeaderMeta}>
+                <p className={styles.timesHint}>Cada horário vira uma escala para cada ministério indicado.</p>
+                <span className={styles.timesCounter}>
+                  {timeSlots.length} / {MAX_TIMES}
+                </span>
+              </div>
+              <div className={styles.timeSlotsList}>
+                {timeSlots.map((slot, index) => (
+                  <div key={slot.id} className={styles.timeSlotRow}>
+                    <label htmlFor={`${drawerTitleId}-time-${slot.id}`} className="visually-hidden">
+                      Horário {index + 1}
+                    </label>
+                    <input
+                      ref={(node) => {
+                        if (node) timeInputRefs.current.set(slot.id, node);
+                        else timeInputRefs.current.delete(slot.id);
+                      }}
+                      id={`${drawerTitleId}-time-${slot.id}`}
+                      name="times"
+                      type="time"
+                      value={slot.value}
+                      aria-invalid={timesError ? "true" : "false"}
+                      className={`${styles.input} ${styles.timeSlotInput} ${timesError ? styles.inputError : ""}`}
+                      onChange={(changeEvent) => changeTimeSlot(slot.id, changeEvent.currentTarget.value)}
+                    />
+                    {timeSlots.length > 1 && (
+                      <button
+                        type="button"
+                        aria-label={`Remover horário ${index + 1}`}
+                        title="Remover horário"
+                        disabled={isSaving}
+                        className={styles.removeTimeButton}
+                        onClick={() => removeTimeSlot(slot.id)}
+                      >
+                        <CloseIcon />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                disabled={isSaving || timeSlots.length >= MAX_TIMES}
+                className={styles.addTimeButton}
+                onClick={addTimeSlot}
+              >
+                <PlusIcon />
+                <span>Adicionar horário</span>
+              </button>
+            </div>
+            {timesError && (
+              <div id={timesErrorId} className={styles.errorMsg}>
+                <AlertCircleIcon className={styles.errorIcon} />
+                <span>{timesError}</span>
+              </div>
+            )}
+          </fieldset>
 
           <div className={styles.fieldGroup}>
             <div className={styles.fieldLabelRow}>
@@ -496,6 +565,7 @@ export function AgendaEventFormDrawer({
           </fieldset>
 
           {(isRescheduling && scheduledDepartments.length > 0) ||
+          (removedTimes.length > 0 && scheduledDepartments.length > 0) ||
           removedScheduled.length > 0 ? (
             <div className={styles.warningCallout} role="note">
               <AlertTriangleIcon className={styles.warningCalloutIcon} />
@@ -504,6 +574,12 @@ export function AgendaEventFormDrawer({
                   <p>
                     Ao remarcar, quem já estava escalado sai das escalas deste
                     evento e é avisado. As escalas voltam para rascunho.
+                  </p>
+                )}
+                {removedTimes.length > 0 && scheduledDepartments.length > 0 && (
+                  <p>
+                    As escalas {removedTimes.length === 1 ? "do horário" : "dos horários"}{" "}
+                    {removedTimes.join(", ")} serão apagadas, e quem estava escalado será avisado.
                   </p>
                 )}
                 {removedScheduled.length > 0 && (

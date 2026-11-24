@@ -568,7 +568,7 @@ export function ParticipantFormDrawer({
           ) : (
             <div className={styles.fieldGroup}>
               <label htmlFor={fullNameInputId} className={styles.fieldLabel}>
-                Nome completo
+                Nome e sobrenome
               </label>
               <input
                 ref={fullNameInputRef}

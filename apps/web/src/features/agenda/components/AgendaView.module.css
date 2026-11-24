@@ -361,6 +361,46 @@
   }
 }
 
+.timesFieldset {
+  composes: timesFieldset from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.timesCard {
+  composes: timesCard from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.timesHeaderMeta {
+  composes: timesHeaderMeta from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.timesHint {
+  composes: timesHint from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.timesCounter {
+  composes: timesCounter from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.timeSlotsList {
+  composes: timeSlotsList from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.timeSlotRow {
+  composes: timeSlotRow from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.timeSlotInput {
+  composes: timeSlotInput from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.removeTimeButton {
+  composes: removeTimeButton from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
+.addTimeButton {
+  composes: addTimeButton from "../../recurring-events/components/RecurringEventsView.module.css";
+}
+
 @media (hover: hover) and (pointer: fine) {
   .cardIconActionDanger:hover {
     border-color: var(--status-error);

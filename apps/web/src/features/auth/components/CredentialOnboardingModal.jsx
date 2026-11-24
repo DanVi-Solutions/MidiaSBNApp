@@ -150,7 +150,7 @@ function CredentialOnboardingContent({
     setName(nextValue);
     setFormError("");
 
-    if (nameError && !validateDisplayName(nextValue)) {
+    if (nameError && !validateDisplayName(nextValue, { unchangedFrom: credential?.name })) {
       setNameError("");
     }
   };
@@ -174,7 +174,7 @@ function CredentialOnboardingContent({
     nameTouchedRef.current = true;
     usernameTouchedRef.current = true;
 
-    const nextNameError = validateDisplayName(name);
+    const nextNameError = validateDisplayName(name, { unchangedFrom: credential?.name });
     const nextUsernameError = validateUsername(username);
 
     setNameError(nextNameError);
@@ -434,7 +434,7 @@ function CredentialOnboardingContent({
             <div className={styles.fieldGroup}>
               <div className={styles.fieldLabelRow}>
                 <label htmlFor={nameInputId} className={styles.fieldLabel}>
-                  Nome completo
+                  Nome e sobrenome
                 </label>
                 <span className={styles.requiredTag}>Obrigatório</span>
               </div>
@@ -462,7 +462,7 @@ function CredentialOnboardingContent({
                 onChange={handleNameChange}
                 onBlur={() => {
                   if (nameTouchedRef.current) {
-                    setNameError(validateDisplayName(name));
+                    setNameError(validateDisplayName(name, { unchangedFrom: credential?.name }));
                   }
                 }}
               />

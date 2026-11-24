@@ -204,7 +204,7 @@ export function ProfileView() {
     fullNameTouchedRef.current = true;
     setNameDraft(nextValue);
 
-    if (fullNameError && !validateDisplayName(nextValue)) {
+    if (fullNameError && !validateDisplayName(nextValue, { unchangedFrom: currentUser.name })) {
       setFullNameError("");
     }
   };
@@ -227,7 +227,7 @@ export function ProfileView() {
     fullNameTouchedRef.current = true;
     usernameTouchedRef.current = true;
 
-    const nextFullNameError = validateDisplayName(fullName);
+    const nextFullNameError = validateDisplayName(fullName, { unchangedFrom: currentUser.name });
     const nextUsernameError = validateUsername(username);
 
     setFullNameError(nextFullNameError);
@@ -467,7 +467,7 @@ export function ProfileView() {
                   Identificação
                 </h2>
                 <p className={styles.cardSubtitle}>
-                  Atualize seu nome completo e o identificador exibido no
+                  Atualize seu nome e sobrenome e o identificador exibido no
                   sistema.
                 </p>
               </div>
@@ -483,7 +483,7 @@ export function ProfileView() {
             >
               <div className={styles.fieldGroup}>
                 <label htmlFor={fullNameId} className={styles.fieldLabel}>
-                  Nome completo
+                  Nome e sobrenome
                 </label>
                 <input
                   ref={fullNameRef}
@@ -503,7 +503,7 @@ export function ProfileView() {
                   onChange={handleFullNameChange}
                   onBlur={() => {
                     if (fullNameTouchedRef.current) {
-                      setFullNameError(validateDisplayName(fullName));
+                      setFullNameError(validateDisplayName(fullName, { unchangedFrom: currentUser.name }));
                     }
                   }}
                 />

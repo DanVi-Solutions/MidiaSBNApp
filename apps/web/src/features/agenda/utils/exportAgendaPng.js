@@ -50,8 +50,12 @@ export function buildAgendaExportPayload({
     )
     .sort(compareScheduleEvents);
 
+  const slots = inRange
+    .flatMap((event) => event.times.map((time) => ({ ...event, time })))
+    .sort(compareScheduleEvents);
+
   const days = new Map();
-  for (const event of inRange) {
+  for (const event of slots) {
     if (!days.has(event.dateIso)) {
       days.set(event.dateIso, {
         dateIso: event.dateIso,
@@ -61,7 +65,7 @@ export function buildAgendaExportPayload({
       });
     }
     days.get(event.dateIso).items.push({
-      id: event.id,
+      id: `${event.id}-${event.time}`,
       time: event.time,
       name: event.name,
       location: event.location,

@@ -464,11 +464,12 @@ export function normalizeUsername(rawValue) {
     .replace(/^@+/, "");
 }
 
-export function validateDisplayName(value) {
+export function validateDisplayName(value, { unchangedFrom } = {}) {
   const trimmed = String(value ?? "").trim();
-  if (!trimmed) return "Informe o nome completo.";
-  if (trimmed.length < 2) return "O nome deve ter pelo menos 2 caracteres.";
+  if (!trimmed) return "Informe o nome e o sobrenome.";
   if (trimmed.length > 80) return "O nome pode ter no máximo 80 caracteres.";
+  if (unchangedFrom !== undefined && trimmed === String(unchangedFrom ?? "").trim()) return "";
+  if (trimmed.split(/\s+/).length < 2) return "Informe o nome e o sobrenome.";
   return "";
 }
 

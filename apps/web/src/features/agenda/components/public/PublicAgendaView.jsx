@@ -107,7 +107,7 @@ function EventRow({ event }) {
           {event.name}
         </h3>
         <p className={styles.eventWhen}>
-          <span>{event.time}</span>
+          <span>{event.timesLabel}</span>
           {event.location && <span>{event.location}</span>}
           {event.isPast && (
             <span className={styles.pastNote}>Já aconteceu</span>

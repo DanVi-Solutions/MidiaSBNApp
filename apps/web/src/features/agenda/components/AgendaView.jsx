@@ -236,7 +236,7 @@ function AgendaEventCard({
         <div className={styles.cardMeta}>
           <span className={styles.cardMetaItem}>
             <ClockIcon />
-            {event.time}
+            {event.timesLabel}
           </span>
           {event.location && (
             <span className={styles.cardMetaItem}>

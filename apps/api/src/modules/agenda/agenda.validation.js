@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { dateTime, uuidParam } from "../../shared/http/schemas.js";
+import { uuidParam } from "../../shared/http/schemas.js";
 
 const name = z
   .string()
@@ -16,7 +16,20 @@ const location = z
   .max(120, "Local muito longo")
   .meta({ description: "Onde o evento acontece.", example: "Templo principal" });
 
-const startsAt = dateTime("Data e hora de início. Não pode estar no passado nem depois do limite da agenda.");
+const date = z.iso
+  .date("Use a data no formato AAAA-MM-DD")
+  .meta({ description: "Dia do evento. Não pode estar no passado nem depois do limite da agenda.", example: "2026-12-12" });
+
+const times = z
+  .array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use o formato HH:mm"))
+  .min(1, "Informe ao menos um horário")
+  .max(10, "Informe no máximo 10 horários")
+  .transform((values) => [...new Set(values)].sort())
+  .meta({
+    description:
+      "Horários do evento (HH:mm, no fuso do sistema). Cada horário vira uma escala por ministério, criada uma hora antes do horário do evento.",
+    example: ["09:00", "19:00"],
+  });
 
 const departmentIds = z
   .array(z.uuid("ID inválido"))
@@ -40,7 +53,8 @@ export const createBody = z.object({
   name,
   description: description.optional(),
   location: location.optional(),
-  startsAt,
+  date,
+  times,
   departmentIds: departmentIds.default([]),
 });
 
@@ -49,7 +63,10 @@ export const updateBody = z
     name: name.optional(),
     description: description.nullable().optional().meta({ description: "Envie `null` para apagar." }),
     location: location.nullable().optional().meta({ description: "Envie `null` para apagar." }),
-    startsAt: startsAt.optional(),
+    date: date.optional(),
+    times: times.optional().meta({
+      description: "Lista completa dos horários. Retirar um horário apaga as escalas geradas por ele e avisa quem estava escalado.",
+    }),
     published: z.boolean().optional().meta({
       description:
         "`true` publica o evento: ele aparece para todos e os ministérios passam a receber as escalas. Um evento publicado não volta para rascunho.",

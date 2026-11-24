@@ -1,8 +1,14 @@
 import { apiRequest } from "@/lib/apiClient";
 import {
+  buildIsoDateTimeInZone,
   extractDateAndTimeInZone,
   formatScheduleDateDisplay,
 } from "@/features/schedules/utils/scheduleDates";
+
+export function formatTimesLabel(times) {
+  if (times.length <= 1) return times[0] ?? "";
+  return `${times.slice(0, -1).join(", ")} e ${times.at(-1)}`;
+}
 
 export function getAgendaWindow() {
   return apiRequest("/agenda/window");
@@ -30,8 +36,11 @@ export function deleteAgendaEvent(id) {
 
 export function formatAgendaEventForUi(apiEvent, now = new Date()) {
   if (!apiEvent) return null;
-  const { dateIso, time } = extractDateAndTimeInZone(apiEvent.startsAt);
+  const startsAtLocal = extractDateAndTimeInZone(apiEvent.startsAt);
+  const dateIso = apiEvent.date || startsAtLocal.dateIso;
+  const times = Array.isArray(apiEvent.times) && apiEvent.times.length > 0 ? apiEvent.times : [startsAtLocal.time];
   const display = formatScheduleDateDisplay(dateIso);
+  const lastSlotAt = new Date(buildIsoDateTimeInZone(dateIso, times.at(-1)));
   const departments = Array.isArray(apiEvent.departments) ? apiEvent.departments : [];
 
   return {
@@ -42,7 +51,9 @@ export function formatAgendaEventForUi(apiEvent, now = new Date()) {
     startsAt: apiEvent.startsAt,
     dateIso,
     monthKey: dateIso.slice(0, 7),
-    time,
+    time: times[0],
+    times,
+    timesLabel: formatTimesLabel(times),
     day: display.day,
     monthShort: display.monthShort,
     weekdayShort: display.weekdayShort,
@@ -51,7 +62,7 @@ export function formatAgendaEventForUi(apiEvent, now = new Date()) {
     departments,
     departmentIds: departments.map((department) => department.id),
     published: Boolean(apiEvent.published),
-    isPast: new Date(apiEvent.startsAt) <= now,
+    isPast: lastSlotAt <= now,
     createdBy: apiEvent.createdBy ?? null,
   };
 }

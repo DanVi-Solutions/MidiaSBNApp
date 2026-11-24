@@ -1526,7 +1526,6 @@ export function ScheduleFormDrawer({
                     min={todayIso}
                     max={scheduleWindow?.lastEditableDay || undefined}
                     required
-                    disabled={isFromAgenda}
                     aria-invalid={fieldErrors.dateIso ? "true" : "false"}
                     aria-describedby={
                       fieldErrors.dateIso ? drawerDateErrorId : undefined
@@ -1575,7 +1574,6 @@ export function ScheduleFormDrawer({
                     type="time"
                     value={formTime}
                     required
-                    disabled={isFromAgenda}
                     aria-invalid={fieldErrors.time ? "true" : "false"}
                     aria-describedby={
                       fieldErrors.time ? drawerTimeErrorId : undefined
@@ -1607,7 +1605,9 @@ export function ScheduleFormDrawer({
 
               {isFromAgenda && (
                 <p className={styles.switchHint}>
-                  Data e horário definidos pela Agenda Sobrenatural. Para mudar, remarque o evento na agenda.
+                  Escala criada pela Agenda Sobrenatural
+                  {event?.agendaSlot ? ` (evento às ${event.agendaSlot})` : ""}. Ajustar o horário aqui não muda o
+                  evento na agenda.
                 </p>
               )}
 

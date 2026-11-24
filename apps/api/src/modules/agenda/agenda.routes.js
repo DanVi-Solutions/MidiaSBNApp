@@ -22,8 +22,9 @@ export const agendaRouter = createDocumentedRouter({
       "a partir de 17 de novembro, e os eventos de ciclos anteriores são apagados automaticamente.",
     "",
     "Todo evento nasce como **rascunho**, visível só para quem edita a agenda. Depois de publicado, ele aparece " +
-      "para todos e, quando a data entra no período das escalas, cada ministério indicado recebe uma escala em " +
-      "rascunho, sem ninguém escalado. O nome da escala pode ser trocado sem alterar o evento. Remarcar ou cancelar " +
+      "para todos e, quando a data entra no período das escalas, cada ministério indicado recebe uma escala por " +
+      "horário, marcada uma hora antes do horário do evento, em rascunho e sem ninguém escalado. O nome e o horário " +
+      "da escala podem ser ajustados sem alterar o evento. Remarcar ou cancelar " +
       "o evento tira as pessoas das escalas e as avisa.",
   ),
 });
@@ -108,7 +109,8 @@ r.patch(
         "período das escalas, as escalas mudam de data e voltam para rascunho; se não, são apagadas e recriadas quando " +
         "a data entrar no período.",
       "",
-      "Ao **retirar um ministério**, a escala dele é apagada e quem estava escalado é avisado.",
+      "Ao **retirar um ministério** ou **um horário**, as escalas correspondentes são apagadas e quem estava " +
+        "escalado é avisado.",
       "",
       "Eventos que já aconteceram não podem ser alterados (409).",
       "",
