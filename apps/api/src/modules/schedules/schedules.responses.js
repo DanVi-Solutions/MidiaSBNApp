@@ -30,6 +30,10 @@ const scheduleBase = z.object({
   selfSignup: z.boolean().meta({ description: "`true` = os próprios membros do ministério se inscrevem." }),
   volunteersNeeded: z.number().int().nullable().meta({ description: "Quantidade de pessoas que a escala precisa." }),
   recurringEventId: z.uuid().nullable().meta({ description: "Evento recorrente que gerou a escala, se houver." }),
+  agendaEventId: z.uuid().nullable().meta({
+    description:
+      "Evento da Agenda Sobrenatural que gerou a escala, se houver. A data dela só muda pela agenda, e só o líder geral ou acima pode apagá-la.",
+  }),
   department,
   assignedCount: z.number().int().meta({ description: "Quantidade de pessoas escaladas." }),
 });

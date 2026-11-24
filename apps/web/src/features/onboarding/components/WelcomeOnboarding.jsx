@@ -9,6 +9,9 @@ import {
   CheckIcon,
   ChurchIcon,
   ChevronLeftIcon,
+  DownloadIcon,
+  ShareUpIcon,
+  SmartphoneIcon,
 } from "@/components/ui/icons";
 import {
   replaceMyWeeklyAvailability,
@@ -19,6 +22,15 @@ import {
   enableDevicePush,
   isDevicePushSupported,
 } from "@/features/notifications/lib/devicePush";
+import {
+  INSTALL_OUTCOME,
+  INSTALL_PLATFORM,
+  canPromptInstall,
+  detectInstallPlatform,
+  isRunningAsInstalledApp,
+  promptInstall,
+  subscribeInstallPrompt,
+} from "@/lib/installPrompt";
 import { isAdmin, resolveRoleCode, ROLES } from "@/lib/roles";
 import { WORSHIP_SERVICE_OPTIONS } from "@/lib/worshipServices";
 import styles from "./WelcomeOnboarding.module.css";
@@ -51,20 +63,54 @@ const PUSH_RESULT = Object.freeze({
 
 const firstName = (name) => String(name ?? "").trim().split(/\s+/)[0] ?? "";
 
-function stepsFor(user) {
+function stepsFor(user, { platform, isInstalled }) {
   const role = resolveRoleCode(user);
   const servesInSchedules = !isAdmin(user) && role !== ROLES.GENERAL_MANAGER;
+  const shouldSuggestInstall = !isAdmin(user) && platform !== INSTALL_PLATFORM.DESKTOP && !isInstalled;
   return [
     "welcome",
     ...(servesInSchedules ? ["worship", "availability"] : []),
+    ...(shouldSuggestInstall ? ["install"] : []),
     ...(isAdmin(user) ? [] : ["notifications"]),
   ];
 }
 
+function useCanPromptInstall() {
+  const [canPrompt, setCanPrompt] = useState(canPromptInstall);
+  useEffect(() => subscribeInstallPrompt(() => setCanPrompt(canPromptInstall())), []);
+  return canPrompt;
+}
+
+const IOS_STEPS = [
+  <>
+    Toque em <strong>Compartilhar</strong> <ShareUpIcon className={styles.inlineIcon} /> na barra do Safari.
+  </>,
+  <>
+    Role a lista e toque em <strong>Adicionar à Tela de Início</strong>.
+  </>,
+  <>
+    Toque em <strong>Adicionar</strong>. O ícone da Mídia aparece junto com os seus apps.
+  </>,
+];
+
+const ANDROID_STEPS = [
+  <>
+    Toque no menu <strong>⋮</strong> no canto superior do Chrome.
+  </>,
+  <>
+    Escolha <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong>.
+  </>,
+  <>Confirme. O ícone da Mídia aparece junto com os seus apps.</>,
+];
+
 export function WelcomeOnboarding({ user, onFinish }) {
   const titleId = useId();
   const dialogRef = useRef(null);
-  const steps = stepsFor(user);
+  const [platform] = useState(detectInstallPlatform);
+  const [isInstalled] = useState(isRunningAsInstalledApp);
+  const steps = stepsFor(user, { platform, isInstalled });
+  const canPromptHere = useCanPromptInstall();
+  const [installOutcome, setInstallOutcome] = useState(null);
 
   const [stepIndex, setStepIndex] = useState(0);
   const [worshipService, setWorshipService] = useState("");
@@ -134,6 +180,13 @@ export function WelcomeOnboarding({ user, onFinish }) {
     if (!result.ok && result.reason === ENABLE_FAILURE.DENIED) {
       setError("As notificações foram bloqueadas no navegador.");
     }
+  };
+
+  const installApp = async () => {
+    setIsSaving(true);
+    const outcome = await promptInstall();
+    setIsSaving(false);
+    setInstallOutcome(outcome);
   };
 
   const togglePeriod = (dayCode, period) =>
@@ -256,6 +309,50 @@ export function WelcomeOnboarding({ user, onFinish }) {
           </section>
         )}
 
+        {step === "install" && (
+          <section className={styles.panel}>
+            <span className={styles.panelBadge} aria-hidden="true">
+              <SmartphoneIcon />
+            </span>
+            <h1 id={titleId} className={styles.panelTitle}>
+              {platform === INSTALL_PLATFORM.IOS
+                ? "Coloque o app na sua Tela de Início"
+                : "Instale o app no seu celular"}
+            </h1>
+            <p className={styles.panelText}>
+              Assim você abre as escalas com um toque, como qualquer aplicativo, sem precisar procurar o site.
+              {platform === INSTALL_PLATFORM.IOS &&
+                " No iPhone, os avisos no celular só funcionam pelo app da Tela de Início."}
+            </p>
+
+            {installOutcome === INSTALL_OUTCOME.ACCEPTED ? (
+              <p className={`${styles.status} ${styles.statusOk}`} role="status">
+                <CheckIcon /> App instalado. Ele já aparece junto com os seus apps.
+              </p>
+            ) : platform === INSTALL_PLATFORM.ANDROID && canPromptHere ? null : (
+              <ol className={styles.installSteps}>
+                {(platform === INSTALL_PLATFORM.IOS ? IOS_STEPS : ANDROID_STEPS).map((text, index) => (
+                  <li key={index}>{text}</li>
+                ))}
+              </ol>
+            )}
+
+            {installOutcome === INSTALL_OUTCOME.DISMISSED && (
+              <p className={`${styles.status} ${styles.statusWarn}`} role="status">
+                <AlertCircleIcon />
+                <span>Tudo bem. Você pode instalar depois pelos passos acima.</span>
+              </p>
+            )}
+
+            {platform === INSTALL_PLATFORM.IOS && (
+              <p className={styles.panelNote}>
+                Depois, abra o app pela Tela de Início, entre com o seu código e ative os avisos em{" "}
+                <strong>Meu perfil</strong>.
+              </p>
+            )}
+          </section>
+        )}
+
         {step === "notifications" && (
           <section className={styles.panel}>
             <span className={styles.panelBadge} aria-hidden="true">
@@ -349,6 +446,30 @@ export function WelcomeOnboarding({ user, onFinish }) {
               <ArrowRightIcon />
             </button>
           )}
+
+          {step === "install" &&
+            (platform === INSTALL_PLATFORM.ANDROID && canPromptHere && !installOutcome ? (
+              <>
+                <button type="button" disabled={isSaving} className={styles.secondaryButton} onClick={goNext}>
+                  Agora não
+                </button>
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  aria-busy={isSaving}
+                  className={styles.primaryButton}
+                  onClick={installApp}
+                >
+                  <DownloadIcon />
+                  <span>{isSaving ? "Abrindo..." : "Instalar app"}</span>
+                </button>
+              </>
+            ) : (
+              <button type="button" className={styles.primaryButton} onClick={goNext}>
+                <span>{isLastStep ? "Entrar no sistema" : "Continuar"}</span>
+                <ArrowRightIcon />
+              </button>
+            ))}
 
           {step === "notifications" &&
             (pushResult === PUSH_RESULT.IDLE && canEnablePushHere ? (

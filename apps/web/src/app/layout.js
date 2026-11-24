@@ -34,7 +34,7 @@ export const viewport = {
   themeColor: "#1a1a1f",
 };
 
-const THEME_INIT_SCRIPT = `(function(){try{var t=window.localStorage.getItem("midia_sbn_theme_v1");document.documentElement.dataset.theme=t==="dark"?"dark":"light";}catch(e){document.documentElement.dataset.theme="light";}})();`;
+const THEME_INIT_SCRIPT = `(function(){var t="light";try{var p=window.localStorage.getItem("midia_sbn_theme_v1");if(p==="dark"||p==="light"){t=p;}else if(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches){t="dark";}}catch(e){}document.documentElement.dataset.theme=t;})();`;
 
 export default function RootLayout({ children }) {
   return (

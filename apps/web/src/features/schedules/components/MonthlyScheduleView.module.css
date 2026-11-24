@@ -2759,3 +2759,21 @@
     flex: 1 1 auto;
   }
 }
+
+.agendaSourceBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background-color: var(--surface-subtle);
+  color: var(--ink-secondary);
+}
+
+.agendaSourceBadge svg {
+  width: 15px;
+  height: 15px;
+}

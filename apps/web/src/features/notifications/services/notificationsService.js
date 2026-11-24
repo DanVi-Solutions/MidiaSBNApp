@@ -53,7 +53,3 @@ export function unregisterPushSubscription(endpoint) {
     body: { endpoint },
   });
 }
-
-export function sendTestPush() {
-  return apiRequest("/notifications/push/test", { method: "POST" });
-}

@@ -11,13 +11,13 @@ import {
 
 export const PLATFORM_URL = "https://midiasbn.vercel.app/";
 
-const LOGICAL_WIDTH = 860;
-const OUTER_PAD_X = 32;
-const OUTER_PAD_Y = 30;
-const CONTENT_WIDTH = LOGICAL_WIDTH - OUTER_PAD_X * 2;
-const SCALE = 2;
+export const LOGICAL_WIDTH = 860;
+export const OUTER_PAD_X = 32;
+export const OUTER_PAD_Y = 30;
+export const CONTENT_WIDTH = LOGICAL_WIDTH - OUTER_PAD_X * 2;
+export const SCALE = 2;
 
-const COLORS = {
+export const COLORS = {
   canvasBg: "#f4f1ec",
   cardBg: "#ffffff",
   cardBorder: "#e4e0d8",
@@ -51,11 +51,11 @@ const COLORS = {
 const FONT_STACK =
   'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
-function fontSpec(weight, sizePx) {
+export function fontSpec(weight, sizePx) {
   return `${weight} ${sizePx}px ${FONT_STACK}`;
 }
 
-function slugifyFilePart(value) {
+export function slugifyFilePart(value) {
   return (
     String(value ?? "escala")
       .normalize("NFD")
@@ -71,7 +71,7 @@ function formatDayAndMonth(parts) {
   return `${day} de ${MONTH_FULL_PT[parts.month - 1] || ""}`;
 }
 
-function formatExportPeriod(startParts, endParts) {
+export function formatExportPeriod(startParts, endParts) {
   const sameYear = startParts.year === endParts.year;
   const sameMonth = sameYear && startParts.month === endParts.month;
 
@@ -206,7 +206,7 @@ export function buildMonthlyExportPayload({
   };
 }
 
-function drawRoundedRectPath(ctx, x, y, width, height, radius) {
+export function drawRoundedRectPath(ctx, x, y, width, height, radius) {
   const r = Math.max(0, Math.min(radius, width / 2, height / 2));
   ctx.beginPath();
   if (typeof ctx.roundRect === "function") {
@@ -225,13 +225,13 @@ function drawRoundedRectPath(ctx, x, y, width, height, radius) {
   ctx.closePath();
 }
 
-function fillRoundedRect(ctx, x, y, w, h, r, fillStyle) {
+export function fillRoundedRect(ctx, x, y, w, h, r, fillStyle) {
   drawRoundedRectPath(ctx, x, y, w, h, r);
   ctx.fillStyle = fillStyle;
   ctx.fill();
 }
 
-function strokeRoundedRect(
+export function strokeRoundedRect(
   ctx,
   x,
   y,
@@ -253,7 +253,7 @@ function strokeRoundedRect(
   ctx.restore();
 }
 
-function wrapLines(ctx, text, maxWidth) {
+export function wrapLines(ctx, text, maxWidth) {
   const words = String(text ?? "")
     .trim()
     .split(/\s+/)
@@ -276,7 +276,7 @@ function wrapLines(ctx, text, maxWidth) {
   return lines;
 }
 
-function truncateText(ctx, text, maxWidth) {
+export function truncateText(ctx, text, maxWidth) {
   const raw = String(text ?? "");
   if (ctx.measureText(raw).width <= maxWidth) return raw;
   const ellipsis = "…";
@@ -290,7 +290,7 @@ function truncateText(ctx, text, maxWidth) {
   return `${trimmed.trimEnd()}${ellipsis}`;
 }
 
-function layoutPillsRightAligned(
+export function layoutPillsRightAligned(
   ctx,
   pills,
   rightEdgeX,
@@ -624,9 +624,6 @@ function renderScheduleDocument(ctx, payload, { draw }) {
       if (payload.hasMultipleMinistries && item.ministryName) {
         middleH += 16;
       }
-      if (item.isOpenForVolunteering) {
-        middleH += 23;
-      }
 
       const pills = buildPillsForSchedule(item);
       const rightEdgeLocal = innerRowW;
@@ -810,35 +807,6 @@ function renderScheduleDocument(ctx, payload, { draw }) {
           middleCursorY += 16;
         }
 
-        if (item.isOpenForVolunteering) {
-          const badgeY = middleCursorY + 2;
-          const badgeText = "Aberta para voluntariar";
-          ctx.font = fontSpec(700, 11);
-          const badgeW = Math.ceil(ctx.measureText(badgeText).width + 16);
-          fillRoundedRect(
-            ctx,
-            eventX,
-            badgeY,
-            badgeW,
-            20,
-            999,
-            COLORS.openBadgeBg
-          );
-          strokeRoundedRect(
-            ctx,
-            eventX,
-            badgeY,
-            badgeW,
-            20,
-            999,
-            COLORS.openRowBorder,
-            1
-          );
-          ctx.fillStyle = COLORS.openBadgeInk;
-          ctx.textBaseline = "middle";
-          ctx.fillText(badgeText, eventX + 8, badgeY + 10);
-        }
-
         // Column 3: Right-aligned pills (full names only + open slots)
         ctx.textBaseline = "middle";
         for (const pill of layout.placedPills) {
@@ -882,8 +850,20 @@ function renderScheduleDocument(ctx, payload, { draw }) {
     y += totalDayCardH + 10;
   }
 
-  // 4. Footer Card with QR Code to https://midiasbn.vercel.app/
-  const qrMatrix = generateQrMatrix(PLATFORM_URL);
+  y = drawQrFooter(ctx, y, {
+    url: PLATFORM_URL,
+    eyebrow: "CONFIRMAÇÃO DE ESCALA",
+    heading: "Acesse a plataforma para confirmar sua escala",
+    description:
+      "Escaneie o QR Code ao lado ou acesse o link abaixo para confirmar sua presença ou se voluntariar nas vagas abertas.",
+    draw,
+  });
+  return y + OUTER_PAD_Y;
+}
+
+export function drawQrFooter(ctx, startY, { url, eyebrow, heading, description, draw }) {
+  let y = startY;
+  const qrMatrix = generateQrMatrix(url);
   const qrCardSize = 128;
   const footerPadX = 26;
   const footerPadY = 20;
@@ -892,13 +872,13 @@ function renderScheduleDocument(ctx, payload, { draw }) {
   ctx.font = fontSpec(700, 17.5);
   const footerHeadingLines = wrapLines(
     ctx,
-    "Acesse a plataforma para confirmar sua escala",
+    heading,
     footerTextW
   );
   ctx.font = fontSpec(500, 13);
   const footerDescLines = wrapLines(
     ctx,
-    "Escaneie o QR Code ao lado ou acesse o link abaixo para confirmar sua presença ou se voluntariar nas vagas abertas.",
+    description,
     footerTextW
   );
 
@@ -934,7 +914,7 @@ function renderScheduleDocument(ctx, payload, { draw }) {
     ctx.textBaseline = "top";
     ctx.font = fontSpec(700, 11.5);
     ctx.fillStyle = COLORS.accent;
-    ctx.fillText("CONFIRMAÇÃO DE ESCALA", fx, fy);
+    ctx.fillText(eyebrow, fx, fy);
     fy += 18 + 6;
 
     ctx.font = fontSpec(700, 17.5);
@@ -955,7 +935,7 @@ function renderScheduleDocument(ctx, payload, { draw }) {
 
     ctx.font = fontSpec(700, 14);
     ctx.fillStyle = COLORS.accentSoft;
-    ctx.fillText(PLATFORM_URL, fx, fy);
+    ctx.fillText(url, fx, fy);
 
     const qrX = OUTER_PAD_X + CONTENT_WIDTH - footerPadX - qrCardSize;
     const qrY =
@@ -986,8 +966,7 @@ function renderScheduleDocument(ctx, payload, { draw }) {
     y += 4;
   }
 
-  y += footerHeight + OUTER_PAD_Y;
-  return y;
+  return y + footerHeight;
 }
 
 async function waitForFontsSafe() {
@@ -1002,7 +981,7 @@ async function waitForFontsSafe() {
   }
 }
 
-export async function exportMonthlySchedulePng(payload) {
+export async function renderPngDocument(renderDocument, fileName) {
   if (typeof document === "undefined") {
     throw new Error("Exportação disponível apenas no navegador.");
   }
@@ -1016,7 +995,7 @@ export async function exportMonthlySchedulePng(payload) {
   }
 
   const totalHeight = Math.ceil(
-    renderScheduleDocument(measureCtx, payload, { draw: false })
+    renderDocument(measureCtx, { draw: false })
   );
 
   canvas.width = LOGICAL_WIDTH * SCALE;
@@ -1024,16 +1003,14 @@ export async function exportMonthlySchedulePng(payload) {
 
   const ctx = canvas.getContext("2d");
   if (!ctx) {
-    throw new Error("Não foi possível desenhar a imagem da escala.");
+    throw new Error("Não foi possível desenhar a imagem.");
   }
 
   ctx.scale(SCALE, SCALE);
   ctx.fillStyle = COLORS.canvasBg;
   ctx.fillRect(0, 0, LOGICAL_WIDTH, totalHeight);
 
-  renderScheduleDocument(ctx, payload, { draw: true });
-
-  const fileName = `escala-${payload.todayIso}-a-${payload.endIso}-${slugifyFilePart(payload.scopeTitle)}.png`;
+  renderDocument(ctx, { draw: true });
 
   const blob = await new Promise((resolve) => {
     if (typeof canvas.toBlob === "function") {
@@ -1063,4 +1040,9 @@ export async function exportMonthlySchedulePng(payload) {
   link.click();
   link.remove();
   return fileName;
+}
+
+export async function exportMonthlySchedulePng(payload) {
+  const fileName = `escala-${payload.todayIso}-a-${payload.endIso}-${slugifyFilePart(payload.scopeTitle)}.png`;
+  return renderPngDocument((ctx, options) => renderScheduleDocument(ctx, payload, options), fileName);
 }

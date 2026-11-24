@@ -81,6 +81,20 @@ const withCheckInWindow = (assignment) => ({ ...assignment, checkIn: checkInWind
 
 const ASSIGNMENT_NOT_FOUND = "Participação na escala não encontrada";
 
+const comesFromAgenda = (schedule) => Boolean(schedule.agendaEventId);
+
+function assertCanDeleteSchedule(auth, schedule) {
+  if (comesFromAgenda(schedule) && !isAtLeast(auth.role, ROLES.GENERAL_MANAGER)) {
+    throw AppError.forbidden("Escalas da Agenda Sobrenatural só podem ser apagadas pelo líder geral ou acima");
+  }
+}
+
+function assertKeepsAgendaDate(schedule, scheduleAt) {
+  if (comesFromAgenda(schedule) && scheduleAt && scheduleAt.getTime() !== schedule.scheduleAt.getTime()) {
+    throw AppError.conflict("Esta escala vem da Agenda Sobrenatural: para mudar a data, remarque o evento na agenda");
+  }
+}
+
 const assigneeIdsOf = (schedule) => (schedule.assignments ?? []).map((assignment) => assignment.credential.id);
 
 const OUTDATED_AFTER_LEAVING = [
@@ -414,6 +428,7 @@ export function createSchedulesService({
 
     async update(auth, id, changes) {
       const current = await findEditableSchedule(auth, id);
+      assertKeepsAgendaDate(current, changes.scheduleAt);
       if (changes.scheduleAt) assertInsideWindow(changes.scheduleAt);
       ensureVolunteersNeededWhenSelfSignup({
         selfSignup: changes.selfSignup ?? current.selfSignup,
@@ -427,6 +442,7 @@ export function createSchedulesService({
 
     async delete(auth, id) {
       const schedule = await findEditableSchedule(auth, id);
+      assertCanDeleteSchedule(auth, schedule);
       await repository.delete(id);
       if (schedule.published) {
         await notifier.to(assigneeIdsOf(schedule), messages.scheduleCancelled(schedule), { except: auth.id });

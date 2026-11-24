@@ -1,6 +1,7 @@
 import { app } from "./app.js";
 import { prisma } from "./config/database.js";
 import { env } from "./config/env.js";
+import { startAgendaJobs } from "./modules/agenda/agenda.jobs.js";
 import { startDemandCleanupJob } from "./modules/demands/demands.cleanup.js";
 import { startNotificationJobs } from "./modules/notifications/notifications.jobs.js";
 import { pushConfig } from "./modules/notifications/notifications.push.js";
@@ -15,6 +16,7 @@ const backgroundJobs = [
   startScheduleCleanupJob(),
   startDemandCleanupJob(),
   startSessionCleanupJob(),
+  startAgendaJobs(),
   startNotificationJobs(),
 ];
 

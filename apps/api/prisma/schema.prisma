@@ -101,6 +101,7 @@ model Credential {
   pushSubscriptions      PushSubscription[]
   assignedDemands        DemandAssignee[]       @relation("DemandAssignees")
   createdDemands         Demand[]               @relation("DemandCreator")
+  createdAgendaEvents    AgendaEvent[]          @relation("AgendaEventCreator")
 
   @@map("credential")
 }
@@ -131,6 +132,7 @@ model Department {
   schedules       Schedule[]
   recurringEvents RecurringEventDepartment[]
   demands         Demand[]
+  agendaEvents    AgendaEventDepartment[]
 
   @@map("department")
 }
@@ -161,6 +163,7 @@ model Schedule {
   published              Boolean   @default(false)
   description            String?   @db.VarChar(255)
   recurringEventId       String?   @map("recurring_event_id") @db.Uuid
+  agendaEventId          String?   @map("agenda_event_id") @db.Uuid
   selfSignup             Boolean   @default(false) @map("self_signup")
   volunteersNeeded       Int?      @map("volunteers_needed") @db.SmallInt
   attendanceNoticeSentAt DateTime? @map("attendance_notice_sent_at") @db.Timestamptz(6)
@@ -170,8 +173,10 @@ model Schedule {
 
   department     Department      @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   recurringEvent RecurringEvent? @relation(fields: [recurringEventId], references: [id], onDelete: SetNull)
+  agendaEvent    AgendaEvent?    @relation(fields: [agendaEventId], references: [id], onDelete: SetNull)
 
   @@unique([recurringEventId, departmentId, scheduleAt])
+  @@unique([agendaEventId, departmentId])
   @@index([departmentId, scheduleAt])
   @@index([recurringEventId])
   @@map("schedule")
@@ -339,4 +344,37 @@ model DemandAssignee {
   @@id([demandId, credentialId])
   @@index([credentialId])
   @@map("demand_assignee")
+}
+
+model AgendaEvent {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  name        String   @db.VarChar(80)
+  description String?  @db.VarChar(255)
+  location    String?  @db.VarChar(120)
+  startsAt    DateTime @map("starts_at") @db.Timestamptz(6)
+  published   Boolean  @default(false)
+  createdById String?  @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdBy   Credential?             @relation("AgendaEventCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  departments AgendaEventDepartment[]
+  schedules   Schedule[]
+
+  @@index([startsAt])
+  @@map("agenda_event")
+}
+
+model AgendaEventDepartment {
+  agendaEventId String    @map("agenda_event_id") @db.Uuid
+  departmentId  String    @map("department_id") @db.Uuid
+  syncedAt      DateTime? @map("synced_at") @db.Timestamptz(6)
+
+  agendaEvent AgendaEvent @relation(fields: [agendaEventId], references: [id], onDelete: Cascade)
+  department  Department  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@id([agendaEventId, departmentId])
+  @@index([departmentId])
+  @@index([syncedAt])
+  @@map("agenda_event_department")
 }

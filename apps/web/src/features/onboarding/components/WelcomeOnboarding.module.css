@@ -148,6 +148,54 @@
   color: var(--ink-secondary);
 }
 
+.installSteps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-block-start: 0.4rem;
+  padding: 0;
+  list-style: none;
+  counter-reset: install-step;
+}
+
+.installSteps li {
+  position: relative;
+  padding-inline-start: 2.3rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  counter-increment: install-step;
+}
+
+.installSteps li::before {
+  content: counter(install-step);
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  background-color: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.inlineIcon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+}
+
+.panelNote {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--ink-secondary);
+}
+
 .choiceList {
   display: flex;
   flex-direction: column;

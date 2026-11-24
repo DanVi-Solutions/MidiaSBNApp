@@ -11,6 +11,7 @@ import {
   CheckIcon,
   IdCardIcon,
   KeyIcon,
+  MonitorIcon,
   MoonIcon,
   RefreshCwIcon,
   ShieldCheckIcon,
@@ -18,7 +19,7 @@ import {
   TrashIcon,
   UserIcon,
 } from "@/components/ui/icons";
-import { useTheme } from "@/lib/theme";
+import { THEME_PREFERENCE, useTheme } from "@/lib/theme";
 import {
   checkUsernameAvailabilityRequest,
   deleteAccountRequest,
@@ -88,7 +89,7 @@ export function ProfileView() {
   const accessHeadingId = useId();
   const appearanceHeadingId = useId();
   const dangerHeadingId = useId();
-  const { theme, setTheme } = useTheme();
+  const { preference, theme, setThemePreference } = useTheme();
   const fullNameId = useId();
   const fullNameErrorId = useId();
   const usernameId = useId();
@@ -653,7 +654,7 @@ export function ProfileView() {
                 </h2>
                 <p className={styles.cardSubtitle}>
                   Escolha o tema visual da plataforma. Sua preferência fica
-                  salva automaticamente neste navegador.
+                  salva neste navegador.
                 </p>
               </div>
               {theme === "dark" ? (
@@ -670,21 +671,31 @@ export function ProfileView() {
             >
               {[
                 {
-                  id: "light",
-                  label: "Modo claro",
+                  id: THEME_PREFERENCE.SYSTEM,
+                  label: "Seguir o sistema",
                   badge: "Padrão",
-                  description: "Fundo claro com alto contraste",
-                  Icon: SunIcon,
+                  description: "Acompanha o modo do celular ou computador",
+                  Icon: MonitorIcon,
+                  message: "O tema agora segue o seu dispositivo.",
                 },
                 {
-                  id: "dark",
+                  id: THEME_PREFERENCE.LIGHT,
+                  label: "Modo claro",
+                  badge: null,
+                  description: "Fundo claro com alto contraste",
+                  Icon: SunIcon,
+                  message: "Modo claro ativado.",
+                },
+                {
+                  id: THEME_PREFERENCE.DARK,
                   label: "Modo escuro",
                   badge: null,
                   description: "Fundo escuro com alto contraste",
                   Icon: MoonIcon,
+                  message: "Modo escuro ativado.",
                 },
-              ].map(({ id: optionId, label, badge, description, Icon }) => {
-                const isSelected = theme === optionId;
+              ].map(({ id: optionId, label, badge, description, Icon, message }) => {
+                const isSelected = preference === optionId;
                 return (
                   <button
                     key={optionId}
@@ -695,16 +706,12 @@ export function ProfileView() {
                       isSelected ? styles.themeOptionActive : ""
                     }`}
                     onClick={() => {
-                      if (theme === optionId) {
+                      if (preference === optionId) {
                         return;
                       }
-                      setTheme(optionId);
-                      const msg =
-                        optionId === "dark"
-                          ? "Modo escuro ativado."
-                          : "Modo claro ativado.";
-                      announce(msg);
-                      toast.success(msg);
+                      setThemePreference(optionId);
+                      announce(message);
+                      toast.success(message);
                     }}
                   >
                     <span className={styles.themeOptionIcon} aria-hidden="true">

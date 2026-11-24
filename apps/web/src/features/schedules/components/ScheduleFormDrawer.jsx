@@ -164,6 +164,7 @@ export function ScheduleFormDrawer({
   const toast = useToast();
 
   const isEditing = mode === "edit" && Boolean(event);
+  const isFromAgenda = isEditing && Boolean(event?.agendaEventId);
   const userIsAdmin = isAdmin(currentUser);
   const userDepartmentIds = useMemo(
     () => getDepartmentIds(currentUser),
@@ -1525,6 +1526,7 @@ export function ScheduleFormDrawer({
                     min={todayIso}
                     max={scheduleWindow?.lastEditableDay || undefined}
                     required
+                    disabled={isFromAgenda}
                     aria-invalid={fieldErrors.dateIso ? "true" : "false"}
                     aria-describedby={
                       fieldErrors.dateIso ? drawerDateErrorId : undefined
@@ -1573,6 +1575,7 @@ export function ScheduleFormDrawer({
                     type="time"
                     value={formTime}
                     required
+                    disabled={isFromAgenda}
                     aria-invalid={fieldErrors.time ? "true" : "false"}
                     aria-describedby={
                       fieldErrors.time ? drawerTimeErrorId : undefined
@@ -1601,6 +1604,12 @@ export function ScheduleFormDrawer({
                   )}
                 </div>
               </div>
+
+              {isFromAgenda && (
+                <p className={styles.switchHint}>
+                  Data e horário definidos pela Agenda Sobrenatural. Para mudar, remarque o evento na agenda.
+                </p>
+              )}
 
               <div className={styles.drawerField}>
                 <div className={styles.fieldLabelRow}>
