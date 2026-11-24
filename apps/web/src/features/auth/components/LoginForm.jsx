@@ -4,6 +4,8 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRightIcon,
+  EyeIcon,
+  EyeOffIcon,
   KeyIcon,
   ShieldCheckIcon,
 } from "@/components/ui/icons";
@@ -16,6 +18,7 @@ import {
   prepareActivationCode,
 } from "@/features/auth/services/authService";
 import { rememberWelcomeOnboarding } from "@/features/onboarding/lib/welcomeOnboarding";
+import { guardAgainstAutofillUiEvents } from "@/lib/autofillEventGuard";
 import { CREDENTIAL_STATUS } from "@/lib/roles";
 import {
   clearStoredSession,
@@ -55,6 +58,9 @@ export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [onboardingState, setOnboardingState] = useState(null);
+  const [isCodeVisible, setIsCodeVisible] = useState(false);
+
+  useEffect(() => guardAgainstAutofillUiEvents(), []);
 
   useEffect(() => {
     return () => {
@@ -334,13 +340,13 @@ export function LoginForm() {
                   ref={inputRef}
                   id={credentialId}
                   name="credential"
-                  type="text"
+                  type={isCodeVisible ? "text" : "password"}
                   value={credential}
                   placeholder="EX: SBN-7KQ4M2XPRA"
                   required
                   minLength={4}
                   maxLength={30}
-                  autoComplete="off"
+                  autoComplete="current-password"
                   autoCorrect="off"
                   autoCapitalize="none"
                   spellCheck={false}
@@ -355,6 +361,16 @@ export function LoginForm() {
                   onBlur={handleBlur}
                   onInvalid={handleInvalid}
                 />
+                <button
+                  type="button"
+                  className={styles.revealButton}
+                  aria-label={isCodeVisible ? "Ocultar código" : "Mostrar código"}
+                  aria-pressed={isCodeVisible}
+                  aria-controls={credentialId}
+                  onClick={() => setIsCodeVisible((visible) => !visible)}
+                >
+                  {isCodeVisible ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
               </div>
 
               <span id={errorId} className="visually-hidden">

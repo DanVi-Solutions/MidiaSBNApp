@@ -66,15 +66,30 @@ function slugifyFilePart(value) {
   );
 }
 
-function formatRemainingMonthPeriod(todayParts, lastDayOfMonth) {
-  const startDay = String(todayParts.day).padStart(2, "0");
-  const endDay = String(lastDayOfMonth).padStart(2, "0");
-  const monthName = MONTH_FULL_PT[todayParts.month - 1] || "";
+function formatDayAndMonth(parts) {
+  const day = String(parts.day).padStart(2, "0");
+  return `${day} de ${MONTH_FULL_PT[parts.month - 1] || ""}`;
+}
 
-  if (todayParts.day >= lastDayOfMonth) {
-    return `${startDay} de ${monthName} de ${todayParts.year}`;
+function formatExportPeriod(startParts, endParts) {
+  const sameYear = startParts.year === endParts.year;
+  const sameMonth = sameYear && startParts.month === endParts.month;
+
+  if (sameMonth && startParts.day >= endParts.day) {
+    return `${formatDayAndMonth(startParts)} de ${startParts.year}`;
   }
-  return `${startDay} a ${endDay} de ${monthName} de ${todayParts.year}`;
+  if (sameMonth) {
+    return `${String(startParts.day).padStart(2, "0")} a ${formatDayAndMonth(endParts)} de ${endParts.year}`;
+  }
+  if (sameYear) {
+    return `${formatDayAndMonth(startParts)} a ${formatDayAndMonth(endParts)} de ${endParts.year}`;
+  }
+  return `${formatDayAndMonth(startParts)} de ${startParts.year} a ${formatDayAndMonth(endParts)} de ${endParts.year}`;
+}
+
+function endOfMonthIsoOf(parts) {
+  const lastDay = new Date(Date.UTC(parts.year, parts.month, 0)).getUTCDate();
+  return `${String(parts.year).padStart(4, "0")}-${String(parts.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 }
 
 function resolveWeekdayLabel(dateIso) {
@@ -88,6 +103,7 @@ export function buildMonthlyExportPayload({
   scopeTitle = "Escala",
   filterHint = "",
   todayIso: todayOverride,
+  lastDayIso,
 } = {}) {
   const todayIso = todayOverride || getTodayIsoInZone(APP_TIME_ZONE);
   const todayParts = parseIsoDateParts(todayIso);
@@ -97,10 +113,8 @@ export function buildMonthlyExportPayload({
       scopeTitle,
       filterHint,
       todayIso,
-      endOfMonthIso: todayIso,
+      endIso: todayIso,
       periodLabel: "",
-      year: "",
-      month: "",
       days: [],
       hasMultipleMinistries: false,
       totalSchedules: 0,
@@ -108,13 +122,9 @@ export function buildMonthlyExportPayload({
     };
   }
 
-  const lastDayOfMonth = new Date(
-    Date.UTC(todayParts.year, todayParts.month, 0)
-  ).getUTCDate();
-  const yearStr = String(todayParts.year).padStart(4, "0");
-  const monthStr = String(todayParts.month).padStart(2, "0");
-  const endOfMonthIso = `${yearStr}-${monthStr}-${String(lastDayOfMonth).padStart(2, "0")}`;
-  const periodLabel = formatRemainingMonthPeriod(todayParts, lastDayOfMonth);
+  const endParts = parseIsoDateParts(lastDayIso);
+  const endIso = endParts && lastDayIso >= todayIso ? lastDayIso : endOfMonthIsoOf(todayParts);
+  const periodLabel = formatExportPeriod(todayParts, parseIsoDateParts(endIso));
 
   const inRangePublished = events
     .filter(
@@ -122,7 +132,7 @@ export function buildMonthlyExportPayload({
         Boolean(ev?.published) &&
         ev?.dateIso &&
         ev.dateIso >= todayIso &&
-        ev.dateIso <= endOfMonthIso
+        ev.dateIso <= endIso
     )
     .sort(compareScheduleEvents);
 
@@ -187,10 +197,8 @@ export function buildMonthlyExportPayload({
     scopeTitle: String(scopeTitle || "Escala").trim(),
     filterHint: String(filterHint || "").trim(),
     todayIso,
-    endOfMonthIso,
+    endIso,
     periodLabel,
-    year: yearStr,
-    month: monthStr,
     days: [...daysMap.values()],
     hasMultipleMinistries: ministrySet.size > 1,
     totalSchedules: inRangePublished.length,
@@ -412,7 +420,7 @@ function renderScheduleDocument(ctx, payload, { draw }) {
   ctx.font = fontSpec(700, 26);
   const titleLines = wrapLines(
     ctx,
-    `Escala do Mês - ${payload.scopeTitle}`,
+    `Escala - ${payload.scopeTitle}`,
     headerInnerW
   );
   const titleLineH = 32;
@@ -1025,7 +1033,7 @@ export async function exportMonthlySchedulePng(payload) {
 
   renderScheduleDocument(ctx, payload, { draw: true });
 
-  const fileName = `escala-${payload.year}-${payload.month}-${slugifyFilePart(payload.scopeTitle)}.png`;
+  const fileName = `escala-${payload.todayIso}-a-${payload.endIso}-${slugifyFilePart(payload.scopeTitle)}.png`;
 
   const blob = await new Promise((resolve) => {
     if (typeof canvas.toBlob === "function") {

@@ -121,7 +121,7 @@
 .input {
   width: 100%;
   min-height: 48px;
-  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  padding: 0.75rem 3.25rem 0.75rem 2.75rem;
   border: 0;
   border-radius: 10px;
   background: transparent;
@@ -131,6 +131,40 @@
   font-size: max(1rem, 1em);
   letter-spacing: 0.03em;
   outline: none;
+}
+
+.input::-ms-reveal {
+  display: none;
+}
+
+.revealButton {
+  position: absolute;
+  inset-inline-end: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.revealButton:focus-visible {
+  outline: 2px solid var(--ink-primary);
+  outline-offset: 1px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .revealButton:hover {
+    color: var(--ink-primary);
+    background-color: var(--surface-workspace);
+  }
 }
 
 .input::placeholder {

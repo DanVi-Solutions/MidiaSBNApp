@@ -1199,12 +1199,11 @@ export function MonthlyScheduleView() {
       events: filteredEvents,
       scopeTitle: resolveExportScopeTitle(),
       filterHint: searchQuery.trim(),
+      lastDayIso: scheduleWindow?.lastEditableDay,
     });
 
     if (payload.totalSchedules === 0) {
-      toast.error(
-        "Não há escalas publicadas no filtro atual entre hoje e o fim deste mês para exportar."
-      );
+      toast.error("Não há escalas publicadas no filtro selecionado.");
       return;
     }
 
@@ -1296,7 +1295,7 @@ export function MonthlyScheduleView() {
                 <span>
                   {isExportingSchedule
                     ? "Exportando..."
-                    : "Exportar escala do mês"}
+                    : "Exportar escala"}
                 </span>
               </button>
             )}
