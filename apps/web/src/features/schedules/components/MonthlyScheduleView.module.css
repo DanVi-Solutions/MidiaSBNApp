@@ -2208,6 +2208,47 @@
   flex-direction: column;
 }
 
+@media (max-width: 640px) {
+  .confirmDialog.confirmSheet {
+    inset-block: auto 0;
+    inset-inline: 0;
+    width: 100vw;
+    max-width: none;
+    max-height: 90dvh;
+    margin: 0;
+    border: 0;
+    border-block-start: 1px solid var(--border-subtle);
+    border-radius: 20px 20px 0 0;
+    box-shadow: var(--shadow-drawer);
+    overflow-y: auto;
+  }
+
+  .confirmSheet .confirmFooter {
+    flex-wrap: nowrap;
+    padding-block-end: calc(1.15rem + env(safe-area-inset-bottom));
+  }
+
+  .confirmSheet .confirmFooter > * {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 640px) and (prefers-reduced-motion: no-preference) {
+  .confirmDialog.confirmSheet {
+    transform: translateY(100%);
+  }
+
+  .confirmDialog.confirmSheet[open] {
+    transform: translateY(0);
+  }
+
+  @starting-style {
+    .confirmDialog.confirmSheet[open] {
+      transform: translateY(100%);
+    }
+  }
+}
+
 .confirmHeader {
   display: flex;
   align-items: flex-start;

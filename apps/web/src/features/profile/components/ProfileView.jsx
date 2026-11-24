@@ -737,7 +737,7 @@ export function ProfileView() {
 
           {!isAdmin(currentUser) && <DevicePushCard />}
 
-          {!isDeveloper(currentUser) && (
+          {!isAdmin(currentUser) && (
             <section
               className={`${styles.card} ${styles.dangerCard}`}
               aria-labelledby={dangerHeadingId}
@@ -821,7 +821,7 @@ export function ProfileView() {
         </form>
       </dialog>
 
-      {!isDeveloper(currentUser) && (
+      {!isAdmin(currentUser) && (
         <dialog
           ref={deleteDialogRef}
           closedby="any"

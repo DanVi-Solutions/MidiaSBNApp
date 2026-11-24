@@ -99,7 +99,12 @@ export function assertCanChangeRole(actor, target, role, departmentIds) {
 
 export function assertCanDelete(actor, target) {
   if (isDeveloper(target)) throw AppError.forbidden("A conta de desenvolvedor não pode ser excluída");
-  if (isSelf(actor, target)) return;
+  if (isSelf(actor, target)) {
+    if (actor.role === ROLES.ADMINISTRATOR) {
+      throw AppError.forbidden("O administrador não pode excluir a própria conta");
+    }
+    return;
+  }
   if (isAtLeast(actor.role, ROLES.DEPARTMENT_MANAGER) && canManage(actor, target)) return;
   throw AppError.forbidden();
 }
@@ -124,6 +129,10 @@ export function assertCanChangeStatus(actor, target, status) {
   const isInactive = target.status === "INACTIVE";
   if (status === "INACTIVE" && isInactive) throw AppError.conflict("A credencial já está inativa");
   if (status === "ACTIVE" && !isInactive) throw AppError.conflict("Apenas credenciais inativas podem ser reativadas");
+
+  if (status === "INACTIVE" && isSelf(actor, target) && actor.role === ROLES.ADMINISTRATOR) {
+    throw AppError.forbidden("O administrador não pode desativar a própria conta");
+  }
 
   const isManager = isAtLeast(actor.role, ROLES.DEPARTMENT_MANAGER) && canManage(actor, target);
   if (status === "INACTIVE" && (isSelf(actor, target) || isManager)) return;

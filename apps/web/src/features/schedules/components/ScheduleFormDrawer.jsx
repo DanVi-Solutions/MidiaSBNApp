@@ -253,7 +253,7 @@ export function ScheduleFormDrawer({
     isEditing ? Boolean(event.selfSignup) : false
   );
   const [formVolunteersNeeded, setFormVolunteersNeeded] = useState(() =>
-    isEditing && event.volunteersNeeded ? String(event.volunteersNeeded) : "4"
+    isEditing && event.volunteersNeeded ? String(event.volunteersNeeded) : "1"
   );
   const [selectedMemberIds, setSelectedMemberIds] = useState(() =>
     isEditing ? (event.assignments || []).map((person) => person.memberId) : []

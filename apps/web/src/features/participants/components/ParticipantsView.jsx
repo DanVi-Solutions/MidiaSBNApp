@@ -23,6 +23,7 @@ import {
   getCredentialById,
   regenerateCredentialNumber,
 } from "@/features/participants/services/credentialsService";
+import { buildCredentialInviteMessage } from "@/lib/credentialInviteMessage";
 import {
   canCopyCredentialNumber,
   canCreateCredential,
@@ -351,7 +352,13 @@ export function ParticipantsView() {
       return;
     }
 
-    const copied = await copyTextToClipboard(code);
+    const copied = await copyTextToClipboard(
+      buildCredentialInviteMessage({
+        name: person.name,
+        status: person.status,
+        credentialNumber: code,
+      })
+    );
     if (copyTimerRef.current !== null) {
       window.clearTimeout(copyTimerRef.current);
     }
@@ -361,7 +368,9 @@ export function ParticipantsView() {
       copyTimerRef.current = window.setTimeout(() => {
         setCopiedParticipantId("");
       }, 2000);
-      toast.success(`Código de ${person.name} (${code}) copiado.`);
+      toast.success(
+        `Mensagem para ${person.name} copiada! Envie pelo canal de comunicação que você usa com este participante.`
+      );
     } else {
       toast.error(
         `Não foi possível copiar automaticamente. Código de ${person.name}: ${code}.`
@@ -427,7 +436,7 @@ export function ParticipantsView() {
         variant: "temporary",
         title: "Novo código temporário gerado",
         subtitle:
-          "Envie este código ao participante. Ao entrar, ele receberá um código.",
+          "Copie a mensagem pronta e envie ao participante: ela já explica como entrar.",
         personName: target.name,
         status: result.data.status,
         credentialNumber: generatedCode,
@@ -470,7 +479,7 @@ export function ParticipantsView() {
             variant: "temporary",
             title: "Conta reativada — código de recuperação",
             subtitle:
-              "Envie este código temporário para o participante concluir a recuperação ao entrar.",
+              "Copie a mensagem pronta e envie ao participante para que ele conclua a recuperação.",
             personName: target.name,
             status: result.data.status,
             credentialNumber: recoveryCode,
@@ -811,8 +820,8 @@ export function ParticipantsView() {
                             <button
                               type="button"
                               disabled={isCopying}
-                              title="Copiar código temporário"
-                              aria-label={`Copiar código de credencial de ${person.name}`}
+                              title="Copiar mensagem de acesso"
+                              aria-label={`Copiar mensagem de acesso para ${person.name}`}
                               className={`${styles.iconActionButton} ${
                                 isCopied ? styles.iconActionCopied : ""
                               }`}

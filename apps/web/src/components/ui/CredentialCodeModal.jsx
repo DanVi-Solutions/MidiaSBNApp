@@ -10,6 +10,7 @@ import {
   CopyIcon,
   KeyIcon,
 } from "@/components/ui/icons";
+import { buildCredentialInviteMessage } from "@/lib/credentialInviteMessage";
 import { copyTextToClipboard, CREDENTIAL_STATUS } from "@/lib/roles";
 import styles from "./CredentialCodeModal.module.css";
 
@@ -80,23 +81,35 @@ function CredentialCodeModalContent({
     const code = modalState?.credentialNumber;
     if (!code) return;
 
-    const didCopy = await copyTextToClipboard(code);
+    const text = isHashedSelf
+      ? code
+      : buildCredentialInviteMessage({
+          name: modalState.personName,
+          status: modalState.status,
+          credentialNumber: code,
+        });
+    const didCopy = await copyTextToClipboard(text);
     if (copyTimerRef.current !== null) {
       window.clearTimeout(copyTimerRef.current);
     }
 
-    if (didCopy) {
-      setCopied(true);
-      copyTimerRef.current = window.setTimeout(() => {
-        setCopied(false);
-      }, 2200);
-      toast.success("Código copiado para a área de transferência.");
-    } else {
-      toast.error(
-        `Não foi possível copiar automaticamente. Código: ${code}`
-      );
+    if (!didCopy) {
+      toast.error(`Não foi possível copiar automaticamente. Código: ${code}`);
+      return;
     }
+
+    setCopied(true);
+    copyTimerRef.current = window.setTimeout(() => {
+      setCopied(false);
+    }, 2200);
+    toast.success(
+      isHashedSelf
+        ? "Código copiado para a área de transferência."
+        : "Mensagem copiada! Envie pelo canal de comunicação que você usa com este participante."
+    );
   };
+
+  const copyLabel = isHashedSelf ? "Copiar código" : "Copiar mensagem";
 
   const handleFinish = () => {
     if (isHashedSelf && !confirmed) {
@@ -167,17 +180,6 @@ function CredentialCodeModalContent({
               <KeyIcon />
               <span>Código de acesso</span>
             </span>
-            <button
-              ref={copyButtonRef}
-              type="button"
-              className={`${styles.copyButton} ${
-                copied ? styles.copyButtonSuccess : ""
-              }`}
-              onClick={handleCopy}
-            >
-              {copied ? <CheckIcon /> : <CopyIcon />}
-              <span>{copied ? "Copiado" : "Copiar código"}</span>
-            </button>
           </div>
           <p className={styles.codeValue}>{modalState?.credentialNumber}</p>
         </div>
@@ -248,6 +250,17 @@ function CredentialCodeModalContent({
       </div>
 
       <div className={styles.modalFooter}>
+        <button
+          ref={copyButtonRef}
+          type="button"
+          className={`${styles.copyButton} ${
+            copied ? styles.copyButtonSuccess : ""
+          }`}
+          onClick={handleCopy}
+        >
+          {copied ? <CheckIcon /> : <CopyIcon />}
+          <span>{copied ? (isHashedSelf ? "Copiado" : "Copiada") : copyLabel}</span>
+        </button>
         <button
           type="button"
           className={styles.doneButton}
