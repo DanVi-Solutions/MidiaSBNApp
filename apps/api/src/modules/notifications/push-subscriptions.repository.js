@@ -44,9 +44,4 @@ export const pushSubscriptionsRepository = {
     if (ids.length === 0) return;
     await prisma.pushSubscription.deleteMany({ where: { id: { in: ids } } });
   },
-
-  async deleteOfExpiredSessions(now) {
-    const { count } = await prisma.pushSubscription.deleteMany({ where: { session: { expiresAt: { lte: now } } } });
-    return count;
-  },
 };

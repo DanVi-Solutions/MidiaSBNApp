@@ -23,6 +23,7 @@ const schema = z.object({
     .default("America/Sao_Paulo")
     .refine(isValidTimeZone, "APP_TIME_ZONE precisa ser um fuso IANA válido (ex.: America/Sao_Paulo)"),
   DOCS_ENABLED: z.stringbool().optional(),
+  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z

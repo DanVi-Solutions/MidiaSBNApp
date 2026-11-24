@@ -27,4 +27,9 @@ export const sessionsRepository = {
     });
     return count;
   },
+
+  async deleteExpired(now = new Date()) {
+    const { count } = await prisma.refreshToken.deleteMany({ where: { expiresAt: { lte: now } } });
+    return count;
+  },
 };

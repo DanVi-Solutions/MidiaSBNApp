@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: {
-    default: "Mídia Sobrenatural — Acesso Restrito",
+    default: "Mídia Sobrenatural",
     template: "%s | Mídia Sobrenatural",
   },
   description: "Sistema interno da equipe Mídia Sobrenatural.",
@@ -25,6 +25,7 @@ export const metadata = {
     statusBarStyle: "black-translucent",
   },
   icons: {
+    icon: { url: "/icon.svg", type: "image/svg+xml" },
     apple: "/icons/apple-touch-icon.png",
   },
 };
