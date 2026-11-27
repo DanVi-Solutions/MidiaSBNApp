@@ -73,6 +73,7 @@ import {
   computeMinistryCode,
   CREDENTIAL_STATUS,
   formatCredentialForUi,
+  getDepartmentIds,
   isAdmin,
   isAtLeast,
   isDeveloper,
@@ -217,6 +218,7 @@ function SidebarContent({
   navItems,
   pathname,
   activeMinistry,
+  canSwitchActiveMinistry = false,
   onNavigate,
   closeButton,
 }) {
@@ -226,6 +228,23 @@ function SidebarContent({
     }
     onNavigate?.();
   };
+
+  const ministryCardBody = (
+    <>
+      <span className={styles.ministryBadge} aria-hidden="true">
+        {activeMinistry.code}
+      </span>
+      <div className={styles.ministryMeta}>
+        <span className={styles.ministryEyebrow}>
+          {activeMinistry.isGlobal ? "VISÃO GLOBAL" : "MINISTÉRIO ATIVO"}
+        </span>
+        <span className={styles.ministryName}>{activeMinistry.name}</span>
+      </div>
+      {canSwitchActiveMinistry && (
+        <SwapIcon className={styles.ministrySwitchIcon} aria-hidden="true" />
+      )}
+    </>
+  );
 
   return (
     <div className={styles.sidebarInner}>
@@ -284,17 +303,19 @@ function SidebarContent({
         </nav>
       </div>
 
-      <div className={styles.ministryCard}>
-        <span className={styles.ministryBadge} aria-hidden="true">
-          {activeMinistry.code}
-        </span>
-        <div className={styles.ministryMeta}>
-          <span className={styles.ministryEyebrow}>
-            {activeMinistry.isGlobal ? "VISÃO GLOBAL" : "MINISTÉRIO ATIVO"}
-          </span>
-          <span className={styles.ministryName}>{activeMinistry.name}</span>
-        </div>
-      </div>
+      {canSwitchActiveMinistry ? (
+        <Link
+          href="/ministries"
+          className={`${styles.ministryCard} ${styles.ministryCardInteractive}`}
+          title="Trocar ministério ativo"
+          aria-label={`Ministério ativo: ${activeMinistry.name}. Ir para Ministérios para trocar`}
+          onClick={handleLinkClick}
+        >
+          {ministryCardBody}
+        </Link>
+      ) : (
+        <div className={styles.ministryCard}>{ministryCardBody}</div>
+      )}
     </div>
   );
 }
@@ -916,6 +937,14 @@ export function PrivateShell({ children }) {
     [currentUser, resolvedActiveMinistry?.hasDemands]
   );
 
+  const canSwitchActiveMinistry = useMemo(() => {
+    if (isAdmin(currentUser)) return false;
+    if (!resolvedActiveMinistry || resolvedActiveMinistry.isGlobal) {
+      return false;
+    }
+    return getDepartmentIds(currentUser).length > 1;
+  }, [currentUser, resolvedActiveMinistry]);
+
   useEffect(() => {
     if (
       authStatus === "authenticated" &&
@@ -1346,6 +1375,7 @@ export function PrivateShell({ children }) {
             navItems={visibleNavItems}
             pathname={pathname}
             activeMinistry={resolvedActiveMinistry}
+            canSwitchActiveMinistry={canSwitchActiveMinistry}
           />
         </aside>
 
@@ -1364,6 +1394,7 @@ export function PrivateShell({ children }) {
                 navItems={visibleNavItems}
                 pathname={pathname}
                 activeMinistry={resolvedActiveMinistry}
+                canSwitchActiveMinistry={canSwitchActiveMinistry}
                 onNavigate={closeDrawer}
                 closeButton={
                   <button

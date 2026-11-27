@@ -67,6 +67,7 @@
 
 .brandLink:focus-visible,
 .navItem:focus-visible,
+.ministryCardInteractive:focus-visible,
 .drawerCloseButton:focus-visible,
 .mobileMenuButton:focus-visible,
 .bellButton:focus-visible,
@@ -183,6 +184,21 @@
   white-space: nowrap;
 }
 
+.ministryCardInteractive {
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ministryCardInteractive:hover {
+    background-color: var(--sidebar-active);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+}
+
 .ministryBadge {
   display: inline-flex;
   align-items: center;
@@ -201,7 +217,13 @@
 .ministryMeta {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-width: 0;
+}
+
+.ministrySwitchIcon {
+  flex-shrink: 0;
+  color: #94918c;
 }
 
 .ministryEyebrow {
@@ -271,7 +293,8 @@
     padding: 6px 8px 6px 6px;
   }
 
-  .desktopSidebar .ministryMeta {
+  .desktopSidebar .ministryMeta,
+  .desktopSidebar .ministrySwitchIcon {
     opacity: 0;
     transform: translateX(-4px);
   }
@@ -291,7 +314,9 @@
   .desktopSidebar:hover .navLabel,
   .desktopSidebar:has(:focus-visible) .navLabel,
   .desktopSidebar:hover .ministryMeta,
-  .desktopSidebar:has(:focus-visible) .ministryMeta {
+  .desktopSidebar:has(:focus-visible) .ministryMeta,
+  .desktopSidebar:hover .ministrySwitchIcon,
+  .desktopSidebar:has(:focus-visible) .ministrySwitchIcon {
     opacity: 1;
     transform: translateX(0);
   }
@@ -311,7 +336,8 @@
   }
 
   .desktopSidebar .navLabel,
-  .desktopSidebar .ministryMeta {
+  .desktopSidebar .ministryMeta,
+  .desktopSidebar .ministrySwitchIcon {
     transition:
       opacity 180ms ease,
       transform 180ms ease;
